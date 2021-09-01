@@ -38,3 +38,28 @@ $ ./build.sh -e core
 - CPU idle governor -> TEO
 - ZSTD kernel and initram support
 - Futex/Futex2 support
+
+[patches]
+- CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
+- sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
+- CK's hrtimer patchset( http://www.users.on.net/~ckolivas/kernel/ )
+
+◇CacULEのレスポンス向上コマンド
+$ sudo sysctl kernel.sched_interactivity_factor=50
+$ sudo sysctl kernel.sched_max_lifetime_ms=60000
+
+永続化したい場合は、/etc/sysctl.d/90-override.confに以下を追加
+
+kernel.sched_interactivity_factor=50
+kernel.sched_max_lifetime_ms=60000
+
+◇I/Oスケジューラー確認方法
+現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。
+
+$ cat /sys/block/sd*/queue/scheduler
+
+I/Oスケジューラーを変更するには、以下のコマンドを実行します。
+
+# echo 変更したいスケジューラー > /sys/block/sda/queue/scheduler
+
+設定を永続化するには、起動時に「elevator=変更したいスケジューラー」を付けます。
