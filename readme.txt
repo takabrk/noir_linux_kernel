@@ -22,14 +22,14 @@ $ ./build.sh -e base
 ◇前述を行った後にカスタムカーネルのビルド
 $ ./build.sh -e core
 
-- CPU shceduler -> PDS
+- CPU shceduler -> CacULE
 - Default I/O scheduler -> Kyber
 - Processer family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - Preemption Model -> Preemptible Kernel(lowlatency desktop)
-- CPU Timer frequency -> 750Hz
+- CPU Timer frequency -> 2000Hz
 - RCU boost delay -> 0
-- Compiler optimization level -> Optimize for performance(-O2)
+- Compiler optimization level -> Optimize for more performance(-O3)
 - Timer tick handling -> Full dynticks system
 - Default CPUFreq Governor -> performance
 - HD-audio pre-allocated buffer size 4096
