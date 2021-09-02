@@ -43,7 +43,7 @@ case $e_num in
            #make INSTALL_MOD_PATH=../linux_modules modules_install -j4
            sudo make-kpkg clean
            cd ../
-           zip -r linux-$VERSIONPOINT-noir.zip linux-$VERSIONPOINT-noir
+           #zip -r linux-$VERSIONPOINT-noir.zip linux-$VERSIONPOINT-noir
            sudo rm -r linux-$VERSIONPOINT-noir
            sudo dpkg -i *.deb
            sudo update-grub
