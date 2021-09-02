@@ -42,6 +42,7 @@ $ ./build.sh -e core
 - CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://www.users.on.net/~ckolivas/kernel/ )
+- le9( https://github.com/hakavlad/le9-patch )
 
 ◇CacULEのレスポンス向上コマンド
 $ sudo sysctl kernel.sched_interactivity_factor=50
