@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-September 2,2021
+September 3,2021
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -32,11 +32,13 @@ $ ./build.sh -e core
 - Timer tick handling -> Idle dynticks system
 - Default CPUFreq Governor -> schedutil
 - HD-audio pre-allocated buffer size 4096
-- BBR TCP Congestion Control
+- BBR2 supoort
 - Built on the GCC 11.1.0
 - CPU idle governor -> TEO
 - ZSTD kernel and initram support
 - Futex/Futex2 support
+- Aufs support
+- clear linux on
 
 [patches]
 - CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
