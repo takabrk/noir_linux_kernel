@@ -21,6 +21,7 @@ $ ./build.sh -e base
 ◇前述を行った後にカスタムカーネルのビルド
 $ ./build.sh -e core
 
+- Built on the GCC 11.1.0
 - CPU shceduler -> CacULE
 - Default I/O scheduler -> Kyber
 - Processer family -> Generic X86_64
@@ -31,14 +32,14 @@ $ ./build.sh -e core
 - Compiler optimization level -> Optimize for more performance(-O3)
 - Timer tick handling -> Idle dynticks system
 - Default CPUFreq Governor -> schedutil
-- HD-audio pre-allocated buffer size 4096
-- BBR2 supoort
-- Built on the GCC 11.1.0
 - CPU idle governor -> TEO
+- UKSM support
+- BBR2 support
+- futex/futex2 support
 - ZSTD kernel and initram support
-- Futex/Futex2 support
 - Aufs support
 - clear linux on
+- winesync support
 
 [patches]
 - CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
