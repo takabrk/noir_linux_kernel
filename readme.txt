@@ -33,6 +33,7 @@ $ ./build.sh -e core
 - Timer tick handling -> Idle dynticks system
 - Default CPUFreq Governor -> schedutil
 - CPU idle governor -> TEO
+- nr_migrate = 256
 - UKSM support
 - BBR2 support
 - futex/futex2 support
