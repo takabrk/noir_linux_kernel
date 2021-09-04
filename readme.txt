@@ -27,7 +27,7 @@ $ ./build.sh -e core
 - Processer family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - Preemption Model -> Preemptible Kernel(lowlatency desktop)
-- CPU Timer frequency -> 1000Hz
+- CPU Timer frequency -> 2000Hz
 - RCU boost delay -> 0
 - Compiler optimization level -> Optimize for more performance(-O3)
 - Timer tick handling -> Idle dynticks system
@@ -46,6 +46,7 @@ $ ./build.sh -e core
 - VHBA
 
 [patches]
+- linux update patch( https://www.kernel.org/ )
 - CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://www.users.on.net/~ckolivas/kernel/ )
