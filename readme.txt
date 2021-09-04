@@ -41,12 +41,16 @@ $ ./build.sh -e core
 - Aufs support
 - clear linux on
 - winesync support
+- ACS override support
+- OpenRGB
+- VHBA
 
 [patches]
 - CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://www.users.on.net/~ckolivas/kernel/ )
 - le9( https://github.com/hakavlad/le9-patch )
+- Zen( https://github.com/zen-kernel/zen-kernel/tree/5.14/master )
 
 ◇CacULEのレスポンス向上コマンド
 $ sudo sysctl kernel.sched_interactivity_factor=50
