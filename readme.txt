@@ -41,7 +41,7 @@ $ ./build.sh -e core
 - Aufs support
 - clear linux on
 - winesync support
-- ACS override support
+- PCIe ACS Override support
 - OpenRGB
 - VHBA
 
