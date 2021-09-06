@@ -34,6 +34,7 @@ $ ./build.sh -e core
 - Default CPUFreq Governor -> schedutil
 - CPU idle governor -> TEO
 - nr_migrate = 256
+- vm_swappiness = 33
 - Core Scheduler for SMT on
 - UKSM support
 - BBR2 support
