@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-September 8,2021
+September 10,2021
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -49,6 +49,7 @@ $ ./build.sh -e core
 - VHBA on
 - spadfs support
 - bcachefs support
+- SLUB compatible RT
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
@@ -57,6 +58,7 @@ $ ./build.sh -e core
 - CK's hrtimer patchset( http://www.users.on.net/~ckolivas/kernel/ )
 - le9( https://github.com/hakavlad/le9-patch )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.14/master )
+- SLUB compatible RT( https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc09ee80c3b18ae1a897a30a17fe710b2b2f620a )
 
 ◇CacULEのレスポンス向上コマンド
 $ sudo sysctl kernel.sched_interactivity_factor=50
