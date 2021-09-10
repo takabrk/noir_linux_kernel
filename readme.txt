@@ -51,6 +51,7 @@ $ ./build.sh -e core
 - bcachefs support
 - SLUB from PREEMPT_RT
 - locking core from PREEMPT_RT
+- BMQ,PDS support(option)
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
@@ -60,6 +61,7 @@ $ ./build.sh -e core
 - le9( https://github.com/hakavlad/le9-patch )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.14/master )
 - PREEMPT_RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
+- Project C( https://gitlab.com/alfredchen/projectc )
 
 ◇CacULEのレスポンス向上コマンド
 $ sudo sysctl kernel.sched_interactivity_factor=50
