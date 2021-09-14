@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-September 13,2021
+September 14,2021
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -52,6 +52,7 @@ $ ./build.sh -e core
 - SLUB from PREEMPT_RT
 - locking core from PREEMPT_RT
 - lazy preempt x86 from PREEMPT_RT
+- printk queue from PREEMPT_RT
 - BMQ,PDS support(option)
 
 [patches]
