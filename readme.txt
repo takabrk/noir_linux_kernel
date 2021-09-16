@@ -51,7 +51,7 @@ $ ./build.sh -e core
 - bcachefs support
 - SLUB from PREEMPT_RT
 - locking core from PREEMPT_RT
-- lazy preempt x86 from PREEMPT_RT
+- lazy preempt from PREEMPT_RT
 - printk queue from PREEMPT_RT
 - crypto from PREEMPT_RT
 - BMQ,PDS support(option)
@@ -60,7 +60,7 @@ $ ./build.sh -e core
 - linux update patch( https://www.kernel.org/ )
 - CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
-- CK's hrtimer patchset( http://www.users.on.net/~ckolivas/kernel/ )
+- CK's hrtimer patchset( http://ck.kolivas.org/patches/5.0/5.12/5.12-ck1/patches/ )
 - le9( https://github.com/hakavlad/le9-patch )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.14/master )
 - PREEMPT_RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
