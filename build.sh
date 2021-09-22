@@ -11,7 +11,7 @@ do
   esac
 done
 VERSIONBASE="5.14"
-VERSIONPOINT="5.14.6"
+VERSIONPOINT="5.14.7"
 case $e_num in
     base)
            wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$VERSIONBASE.tar.xz
