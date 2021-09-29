@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-September 27,2021
+September 29,2021
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -27,7 +27,7 @@ $ ./build.sh -e core
 - Processer family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - Preemption Model -> Preemptible Kernel(lowlatency desktop)
-- CPU Timer frequency -> 2000Hz
+- CPU Timer frequency -> 1000Hz
 - RCU boost delay -> 339
 - Compiler optimization level -> Optimize for more performance(-O3)
 - Timer tick handling -> Full dynticks system

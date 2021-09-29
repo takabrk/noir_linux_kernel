@@ -14,7 +14,7 @@ VERSIONBASE="5.14"
 VERSIONPOINT="5.14.8"
 case $e_num in
     base)
-           wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$VERSIONBASE.tar.xz
+           wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-$VERSIONBASE.tar.xz
            tar -Jxvf linux-$VERSIONBASE.tar.xz
            #wget https://git.kernel.org/torvalds/t/linux-$VERSIONBASE.tar.gz
            #tar -zxvf linux-$VERSIONBASE.tar.gz
