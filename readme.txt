@@ -22,11 +22,11 @@ $ ./build.sh -e base
 $ ./build.sh -e core
 
 - Built on the GCC 11.1.0
-- CPU shceduler -> CacULE(RDB)
+- CPU scheduler -> CacULE(RDB)
 - Default I/O scheduler -> Kyber
-- Processer family -> Generic X86_64
+- Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
-- Preemption Model -> Preemptible Kernel(lowlatency desktop)
+- Preemption Model -> Preemptible Kernel(low latency desktop)
 - CPU Timer frequency -> 1000Hz
 - RCU boost delay -> 339
 - Compiler optimization level -> Optimize for more performance(-O3)
