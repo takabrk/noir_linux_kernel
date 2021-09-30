@@ -1,0 +1,26 @@
+Subject: kconfig: Disable config options which are not RT compatible
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Sun Jul 24 12:11:43 2011 +0200
+
+From: Thomas Gleixner <tglx@linutronix.de>
+
+Disable stuff which is known to have issues on RT
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+
+---
+ mm/Kconfig |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+---
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -374,7 +374,7 @@ config NOMMU_INITIAL_TRIM_EXCESS
+ 
+ config TRANSPARENT_HUGEPAGE
+ 	bool "Transparent Hugepage Support"
+-	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE
++	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE && !PREEMPT_RT
+ 	select COMPACTION
+ 	select XARRAY_MULTI
+ 	help

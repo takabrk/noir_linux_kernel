@@ -1,0 +1,42 @@
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Wed, 25 Aug 2021 12:33:14 +0200
+Subject: [PATCH] locking/rtmutex: Dequeue waiter on ww_mutex deadlock
+
+The rt_mutex based ww_mutex variant queues the new waiter first in the
+lock's rbtree before evaluating the ww_mutex specific conditions which
+might decide that the waiter should back out. This check and conditional
+exit happens before the waiter is enqueued into the PI chain.
+
+The failure handling at the call site assumes that the waiter, if it is the
+top most waiter on the lock, is queued in the PI chain and then proceeds to
+adjust the unmodified PI chain, which results in RB tree corruption.
+
+Dequeue the waiter from the lock waiter list in the ww_mutex error exit
+path to prevent this.
+
+Fixes: add461325ec5 ("locking/rtmutex: Extend the rtmutex core to support ww_mutex")
+Reported-by: Sebastian Siewior <bigeasy@linutronix.de>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Link: https://lkml.kernel.org/r/20210825102454.042280541@linutronix.de
+---
+ kernel/locking/rtmutex.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+--- a/kernel/locking/rtmutex.c
++++ b/kernel/locking/rtmutex.c
+@@ -1082,8 +1082,13 @@ static int __sched task_blocks_on_rt_mut
+ 		/* Check whether the waiter should back out immediately */
+ 		rtm = container_of(lock, struct rt_mutex, rtmutex);
+ 		res = __ww_mutex_add_waiter(waiter, rtm, ww_ctx);
+-		if (res)
++		if (res) {
++			raw_spin_lock(&task->pi_lock);
++			rt_mutex_dequeue(lock, waiter);
++			task->pi_blocked_on = NULL;
++			raw_spin_unlock(&task->pi_lock);
+ 			return res;
++		}
+ 	}
+ 
+ 	if (!owner)

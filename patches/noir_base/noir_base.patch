@@ -1,0 +1,87 @@
+Subject: [PATCH]noir linux kernel version
+---
+ Makefile | 4 ++++
+ 1 file changed, 4 insertions(+)
+diff --git a/Makefile b/Makefile
+index 51540b291738..ab8c480660a6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -18,6 +18,10 @@ $(if $(filter __%, $(MAKECMDGOALS)), \
+ PHONY := __all
+ __all:
+ 
++NRVERSION = -noir
++NRNAME = CacULE(RDB) Powered
++EXTRAVERSION := $(EXTRAVERSION)$(NRVERSION)
++
+ # We are using a recursive build, so we need to do a little thinking
+ # to get the ordering right.
+ #
+-- 
+2.25.1
+
+Subject: [PATCH]Subject: elevator: set default scheduler to KYBERf
+diff --git a/block/elevator.c b/block/elevator.c
+index 0a55c7aa9249f..214ca53eed6ca 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -625,7 +625,7 @@
+ 			!blk_mq_is_sbitmap_shared(q->tag_set->flags))
+ 		return NULL;
+ 
+-	return elevator_get(q, "mq-deadline", false);
++	return elevator_get(q, "kyber", false);
+ }
+ 
+ /*
+
+Subject: [PATCH]Disable alternative schedulers by default
+
+---
+ init/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 9a9b244d3ca34d..0965c9ff99c06b 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -788,7 +788,7 @@ menu "Scheduler features"
+ 
+ menuconfig SCHED_ALT
+ 	bool "Alternative CPU Schedulers"
+-	default y
++	default n
+ 	help
+ 	  This feature enable alternative CPU scheduler"
+
+Subject: [PATCH]change config 
+diff --git a/init/Kconfig b/init/Kconfig
+index 9a9b244d3ca34d..0965c9ff99c06b 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -213,7 +213,7 @@
+ 
+ choice
+ 	prompt "Kernel compression mode"
+-	default KERNEL_GZIP
++	default KERNEL_ZSTD
+ 	depends on HAVE_KERNEL_GZIP || HAVE_KERNEL_BZIP2 || HAVE_KERNEL_LZMA || HAVE_KERNEL_XZ || HAVE_KERNEL_LZO || HAVE_KERNEL_LZ4 || HAVE_KERNEL_ZSTD || HAVE_KERNEL_UNCOMPRESSED
+ 	help
+ 	  The linux kernel is a kind of self-extracting executable.
+@@ -328,6 +328,7 @@
+ 
+ config KERNEL_ZSTD_LEVEL_ULTRA
+     bool "Ultra compression"
++    default y
+     help
+         Selecting this overrides the chosen compression level and enables
+         the highest possible compression level for zstd (ultra-22).
+@@ -1437,7 +1438,7 @@
+ 
+ choice
+ 	prompt "Compiler optimization level"
+-	default CC_OPTIMIZE_FOR_PERFORMANCE
++	default CC_OPTIMIZE_FOR_PERFORMANCE_O3
+ 
+ config CC_OPTIMIZE_BASAL
+ 	bool "Optimize for performance (-O1)"

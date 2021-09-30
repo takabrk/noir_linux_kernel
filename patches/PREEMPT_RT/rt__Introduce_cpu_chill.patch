@@ -1,0 +1,149 @@
+Subject: rt: Introduce cpu_chill()
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Wed Mar  7 20:51:03 2012 +0100
+
+From: Thomas Gleixner <tglx@linutronix.de>
+
+Retry loops on RT might loop forever when the modifying side was
+preempted. Add cpu_chill() to replace cpu_relax(). cpu_chill()
+defaults to cpu_relax() for non RT. On RT it puts the looping task to
+sleep for a tick so the preempted task can make progress.
+
+Steven Rostedt changed it to use a hrtimer instead of msleep():
+|
+|Ulrich Obergfell pointed out that cpu_chill() calls msleep() which is woken
+|up by the ksoftirqd running the TIMER softirq. But as the cpu_chill() is
+|called from softirq context, it may block the ksoftirqd() from running, in
+|which case, it may never wake up the msleep() causing the deadlock.
+
++ bigeasy later changed to schedule_hrtimeout()
+|If a task calls cpu_chill() and gets woken up by a regular or spurious
+|wakeup and has a signal pending, then it exits the sleep loop in
+|do_nanosleep() and sets up the restart block. If restart->nanosleep.type is
+|not TI_NONE then this results in accessing a stale user pointer from a
+|previously interrupted syscall and a copy to user based on the stale
+|pointer or a BUG() when 'type' is not supported in nanosleep_copyout().
+
++ bigeasy: add PF_NOFREEZE:
+| [....] Waiting for /dev to be fully populated...
+| =====================================
+| [ BUG: udevd/229 still has locks held! ]
+| 3.12.11-rt17 #23 Not tainted
+| -------------------------------------
+| 1 lock held by udevd/229:
+|  #0:  (&type->i_mutex_dir_key#2){+.+.+.}, at: lookup_slow+0x28/0x98
+|
+| stack backtrace:
+| CPU: 0 PID: 229 Comm: udevd Not tainted 3.12.11-rt17 #23
+| (unwind_backtrace+0x0/0xf8) from (show_stack+0x10/0x14)
+| (show_stack+0x10/0x14) from (dump_stack+0x74/0xbc)
+| (dump_stack+0x74/0xbc) from (do_nanosleep+0x120/0x160)
+| (do_nanosleep+0x120/0x160) from (hrtimer_nanosleep+0x90/0x110)
+| (hrtimer_nanosleep+0x90/0x110) from (cpu_chill+0x30/0x38)
+| (cpu_chill+0x30/0x38) from (dentry_kill+0x158/0x1ec)
+| (dentry_kill+0x158/0x1ec) from (dput+0x74/0x15c)
+| (dput+0x74/0x15c) from (lookup_real+0x4c/0x50)
+| (lookup_real+0x4c/0x50) from (__lookup_hash+0x34/0x44)
+| (__lookup_hash+0x34/0x44) from (lookup_slow+0x38/0x98)
+| (lookup_slow+0x38/0x98) from (path_lookupat+0x208/0x7fc)
+| (path_lookupat+0x208/0x7fc) from (filename_lookup+0x20/0x60)
+| (filename_lookup+0x20/0x60) from (user_path_at_empty+0x50/0x7c)
+| (user_path_at_empty+0x50/0x7c) from (user_path_at+0x14/0x1c)
+| (user_path_at+0x14/0x1c) from (vfs_fstatat+0x48/0x94)
+| (vfs_fstatat+0x48/0x94) from (SyS_stat64+0x14/0x30)
+| (SyS_stat64+0x14/0x30) from (ret_fast_syscall+0x0/0x48)
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+
+---
+ include/linux/hrtimer.h |    8 ++++++++
+ kernel/time/hrtimer.c   |   31 ++++++++++++++++++++++++++++++-
+ 2 files changed, 38 insertions(+), 1 deletion(-)
+---
+--- a/include/linux/hrtimer.h
++++ b/include/linux/hrtimer.h
+@@ -42,6 +42,7 @@ enum hrtimer_mode {
+ 	HRTIMER_MODE_PINNED	= 0x02,
+ 	HRTIMER_MODE_SOFT	= 0x04,
+ 	HRTIMER_MODE_HARD	= 0x08,
++	HRTIMER_MODE_CHILL	= 0x10,
+ 
+ 	HRTIMER_MODE_ABS_PINNED = HRTIMER_MODE_ABS | HRTIMER_MODE_PINNED,
+ 	HRTIMER_MODE_REL_PINNED = HRTIMER_MODE_REL | HRTIMER_MODE_PINNED,
+@@ -124,6 +125,7 @@ struct hrtimer {
+ 	u8				is_rel;
+ 	u8				is_soft;
+ 	u8				is_hard;
++	u8				is_chill;
+ };
+ 
+ /**
+@@ -540,4 +542,10 @@ int hrtimers_dead_cpu(unsigned int cpu);
+ #define hrtimers_dead_cpu	NULL
+ #endif
+ 
++#ifdef CONFIG_PREEMPT_RT
++extern void cpu_chill(void);
++#else
++# define cpu_chill()	cpu_relax()
++#endif
++
+ #endif
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -1422,6 +1422,7 @@ static void __hrtimer_init(struct hrtime
+ 	base += hrtimer_clockid_to_base(clock_id);
+ 	timer->is_soft = softtimer;
+ 	timer->is_hard = !!(mode & HRTIMER_MODE_HARD);
++	timer->is_chill = !!(mode & HRTIMER_MODE_CHILL);
+ 	timer->base = &cpu_base->clock_base[base];
+ 	timerqueue_init(&timer->node);
+ }
+@@ -1788,7 +1789,7 @@ static enum hrtimer_restart hrtimer_wake
+ 
+ 	t->task = NULL;
+ 	if (task)
+-		wake_up_process(task);
++		wake_up_state(task, timer->is_chill ? TASK_RTLOCK_WAIT : TASK_NORMAL);
+ 
+ 	return HRTIMER_NORESTART;
+ }
+@@ -2006,6 +2007,34 @@ SYSCALL_DEFINE2(nanosleep_time32, struct
+ }
+ #endif
+ 
++#ifdef CONFIG_PREEMPT_RT
++/*
++ * Sleep for 1 ms in hope whoever holds what we want will let it go.
++ */
++void cpu_chill(void)
++{
++	unsigned int freeze_flag = current->flags & PF_NOFREEZE;
++	ktime_t chill_time;
++
++	local_irq_disable();
++	current_save_and_set_rtlock_wait_state();
++	local_irq_enable();
++
++	chill_time = ktime_set(0, NSEC_PER_MSEC);
++
++	current->flags |= PF_NOFREEZE;
++	schedule_hrtimeout(&chill_time,
++			   HRTIMER_MODE_REL_HARD| HRTIMER_MODE_CHILL);
++	if (!freeze_flag)
++		current->flags &= ~PF_NOFREEZE;
++
++	local_irq_disable();
++	current_restore_rtlock_saved_state();
++	local_irq_enable();
++}
++EXPORT_SYMBOL(cpu_chill);
++#endif
++
+ /*
+  * Functions related to boot-time initialization:
+  */

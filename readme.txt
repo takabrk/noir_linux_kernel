@@ -27,7 +27,7 @@ $ ./build.sh -e core
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - Preemption Model -> Preemptible Kernel(lowlatency desktop)
-- CPU Timer frequency -> 1000Hz
+- CPU Timer frequency -> 750Hz
 - RCU boost delay -> 339
 - Compiler optimization level -> Optimize for more performance(-O3)
 - Timer tick handling -> Full dynticks system

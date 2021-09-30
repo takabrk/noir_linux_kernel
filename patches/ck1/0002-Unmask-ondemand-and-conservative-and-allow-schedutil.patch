@@ -1,0 +1,72 @@
+From 70245442472f722670bf107cb4807c4d0f54f304 Mon Sep 17 00:00:00 2001
+From: Con Kolivas <kernel@kolivas.org>
+Date: Tue, 27 Apr 2021 17:10:04 +1000
+Subject: [PATCH 02/16] Unmask ondemand and conservative and allow schedutil to
+ be deselected.
+
+---
+ drivers/cpufreq/Kconfig     | 8 ++++----
+ drivers/cpufreq/Kconfig.x86 | 2 --
+ 2 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
+index 4edef95c5f04..03dd537ac072 100644
+--- a/drivers/cpufreq/Kconfig
++++ b/drivers/cpufreq/Kconfig
+@@ -40,13 +40,14 @@ choice
+ 	default CPU_FREQ_DEFAULT_GOV_SCHEDUTIL if ARM64 || ARM
+ 	default CPU_FREQ_DEFAULT_GOV_SCHEDUTIL if X86_INTEL_PSTATE && SMP
+ 	default CPU_FREQ_DEFAULT_GOV_ONDEMAND if !X86_INTEL_PSTATE
+-	default CPU_FREQ_DEFAULT_GOV_PERFORMANCE
++	default CPU_FREQ_DEFAULT_GOV_PERFORMANCE_NODEF
+ 	help
+ 	  This option sets which CPUFreq governor shall be loaded at
+ 	  startup. If in doubt, use the default setting.
+ 
+-config CPU_FREQ_DEFAULT_GOV_PERFORMANCE
++config CPU_FREQ_DEFAULT_GOV_PERFORMANCE_NODEF
+ 	bool "performance"
++	select CPU_FREQ_DEFAULT_GOV_PERFORMANCE
+ 	select CPU_FREQ_GOV_PERFORMANCE
+ 	help
+ 	  Use the CPUFreq governor 'performance' as default. This sets
+@@ -72,7 +73,6 @@ config CPU_FREQ_DEFAULT_GOV_USERSPACE
+ 
+ config CPU_FREQ_DEFAULT_GOV_ONDEMAND
+ 	bool "ondemand"
+-	depends on !(X86_INTEL_PSTATE && SMP)
+ 	select CPU_FREQ_GOV_ONDEMAND
+ 	select CPU_FREQ_GOV_PERFORMANCE
+ 	help
+@@ -85,7 +85,6 @@ config CPU_FREQ_DEFAULT_GOV_ONDEMAND
+ 
+ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
+ 	bool "conservative"
+-	depends on !(X86_INTEL_PSTATE && SMP)
+ 	select CPU_FREQ_GOV_CONSERVATIVE
+ 	select CPU_FREQ_GOV_PERFORMANCE
+ 	help
+@@ -190,6 +189,7 @@ config CPU_FREQ_GOV_CONSERVATIVE
+ config CPU_FREQ_GOV_SCHEDUTIL
+ 	bool "'schedutil' cpufreq policy governor"
+ 	depends on CPU_FREQ && SMP
++	default y if (X86_INTEL_PSTATE && SMP)
+ 	select CPU_FREQ_GOV_ATTR_SET
+ 	select IRQ_WORK
+ 	help
+diff --git a/drivers/cpufreq/Kconfig.x86 b/drivers/cpufreq/Kconfig.x86
+index 92701a18bdd9..7f49f2402ffa 100644
+--- a/drivers/cpufreq/Kconfig.x86
++++ b/drivers/cpufreq/Kconfig.x86
+@@ -8,8 +8,6 @@ config X86_INTEL_PSTATE
+ 	depends on X86
+ 	select ACPI_PROCESSOR if ACPI
+ 	select ACPI_CPPC_LIB if X86_64 && ACPI && SCHED_MC_PRIO
+-	select CPU_FREQ_GOV_PERFORMANCE
+-	select CPU_FREQ_GOV_SCHEDUTIL if SMP
+ 	help
+ 	  This driver provides a P state for Intel core processors.
+ 	  The driver implements an internal governor and will become
+-- 
+2.25.1
+

@@ -1,0 +1,36 @@
+From: Colin Ian King <colin.king@canonical.com>
+Date: Wed, 18 Aug 2021 14:18:40 +0100
+Subject: [PATCH 1/4] futex: Return error code instead of assigning it without
+ effect
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The check on the rt_waiter and top_waiter->pi_state is assigning an error
+return code to ret but this later gets re-assigned, hence the check is
+ineffective.
+
+Return -EINVAL rather than assigning it to ret which was the original
+intent.
+
+Fixes: dc7109aaa233 ("futex: Validate waiter correctly in futex_proxy_trylock_atomic()")
+Addresses-Coverity: ("Unused value")
+Signed-off-by: Colin Ian King <colin.king@canonical.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: André Almeida <andrealmeid@collabora.com>
+Link: https://lore.kernel.org/r/20210818131840.34262-1-colin.king@canonical.com
+---
+ kernel/futex.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/kernel/futex.c
++++ b/kernel/futex.c
+@@ -2025,7 +2025,7 @@ futex_proxy_trylock_atomic(u32 __user *p
+ 	 * and waiting on the 'waitqueue' futex which is always !PI.
+ 	 */
+ 	if (!top_waiter->rt_waiter || top_waiter->pi_state)
+-		ret = -EINVAL;
++		return -EINVAL;
+ 
+ 	/* Ensure we requeue to the expected futex. */
+ 	if (!match_futex(top_waiter->requeue_pi_key, key2))

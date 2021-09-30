@@ -1,0 +1,254 @@
+Subject: printk: remove NMI tracking
+From: John Ogness <john.ogness@linutronix.de>
+Date: Tue Jul 13 10:52:33 2021 +0206
+
+From: John Ogness <john.ogness@linutronix.de>
+
+All NMI contexts are handled the same as the safe context: store the
+message and defer printing. There is no need to have special NMI
+context tracking for this. Using in_nmi() is enough.
+
+There are several parts of the kernel that are manually calling into
+the printk NMI context tracking in order to cause general printk
+deferred printing:
+
+    arch/arm/kernel/smp.c
+    arch/powerpc/kexec/crash.c
+    kernel/trace/trace.c
+
+For these users, provide a new function pair
+printk_deferred_enter/exit that explicitly achieves the same
+objective.
+
+Signed-off-by: John Ogness <john.ogness@linutronix.de>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+---
+ arch/arm/kernel/smp.c       |    4 ++--
+ arch/powerpc/kexec/crash.c  |    2 +-
+ include/linux/hardirq.h     |    2 --
+ include/linux/printk.h      |   31 +++++++++++++++++++------------
+ init/Kconfig                |    5 -----
+ kernel/printk/internal.h    |    8 --------
+ kernel/printk/printk_safe.c |   37 +------------------------------------
+ kernel/trace/trace.c        |    4 ++--
+ 8 files changed, 25 insertions(+), 68 deletions(-)
+---
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -667,9 +667,9 @@ static void do_handle_IPI(int ipinr)
+ 		break;
+ 
+ 	case IPI_CPU_BACKTRACE:
+-		printk_nmi_enter();
++		printk_deferred_enter();
+ 		nmi_cpu_backtrace(get_irq_regs());
+-		printk_nmi_exit();
++		printk_deferred_exit();
+ 		break;
+ 
+ 	default:
+--- a/arch/powerpc/kexec/crash.c
++++ b/arch/powerpc/kexec/crash.c
+@@ -313,7 +313,7 @@ void default_machine_crash_shutdown(stru
+ 	int (*old_handler)(struct pt_regs *regs);
+ 
+ 	/* Avoid hardlocking with irresponsive CPU holding logbuf_lock */
+-	printk_nmi_enter();
++	printk_deferred_enter();
+ 
+ 	/*
+ 	 * This function is only called after the system
+--- a/include/linux/hardirq.h
++++ b/include/linux/hardirq.h
+@@ -116,7 +116,6 @@ extern void rcu_nmi_exit(void);
+ 	do {							\
+ 		lockdep_off();					\
+ 		arch_nmi_enter();				\
+-		printk_nmi_enter();				\
+ 		BUG_ON(in_nmi() == NMI_MASK);			\
+ 		__preempt_count_add(NMI_OFFSET + HARDIRQ_OFFSET);	\
+ 	} while (0)
+@@ -135,7 +134,6 @@ extern void rcu_nmi_exit(void);
+ 	do {							\
+ 		BUG_ON(!in_nmi());				\
+ 		__preempt_count_sub(NMI_OFFSET + HARDIRQ_OFFSET);	\
+-		printk_nmi_exit();				\
+ 		arch_nmi_exit();				\
+ 		lockdep_on();					\
+ 	} while (0)
+--- a/include/linux/printk.h
++++ b/include/linux/printk.h
+@@ -150,18 +150,6 @@ static inline __printf(1, 2) __cold
+ void early_printk(const char *s, ...) { }
+ #endif
+ 
+-#ifdef CONFIG_PRINTK_NMI
+-extern void printk_nmi_enter(void);
+-extern void printk_nmi_exit(void);
+-extern void printk_nmi_direct_enter(void);
+-extern void printk_nmi_direct_exit(void);
+-#else
+-static inline void printk_nmi_enter(void) { }
+-static inline void printk_nmi_exit(void) { }
+-static inline void printk_nmi_direct_enter(void) { }
+-static inline void printk_nmi_direct_exit(void) { }
+-#endif /* PRINTK_NMI */
+-
+ struct dev_printk_info;
+ 
+ #ifdef CONFIG_PRINTK
+@@ -181,6 +169,16 @@ int printk(const char *fmt, ...);
+  */
+ __printf(1, 2) __cold int printk_deferred(const char *fmt, ...);
+ 
++extern void __printk_safe_enter(void);
++extern void __printk_safe_exit(void);
++/*
++ * The printk_deferred_enter/exit macros are available only as a hack for
++ * some code paths that need to defer all printk console printing. Interrupts
++ * must be disabled for the deferred duration.
++ */
++#define printk_deferred_enter __printk_safe_enter
++#define printk_deferred_exit __printk_safe_exit
++
+ /*
+  * Please don't use printk_ratelimit(), because it shares ratelimiting state
+  * with all other unrelated printk_ratelimit() callsites.  Instead use
+@@ -225,6 +223,15 @@ int printk_deferred(const char *s, ...)
+ {
+ 	return 0;
+ }
++
++static inline void printk_deferred_enter(void)
++{
++}
++
++static inline void printk_deferred_exit(void)
++{
++}
++
+ static inline int printk_ratelimit(void)
+ {
+ 	return 0;
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1509,11 +1509,6 @@ config PRINTK
+ 	  very difficult to diagnose system problems, saying N here is
+ 	  strongly discouraged.
+ 
+-config PRINTK_NMI
+-	def_bool y
+-	depends on PRINTK
+-	depends on HAVE_NMI
+-
+ config BUG
+ 	bool "BUG() support" if EXPERT
+ 	default y
+--- a/kernel/printk/internal.h
++++ b/kernel/printk/internal.h
+@@ -6,12 +6,6 @@
+ 
+ #ifdef CONFIG_PRINTK
+ 
+-#define PRINTK_SAFE_CONTEXT_MASK	0x007ffffff
+-#define PRINTK_NMI_DIRECT_CONTEXT_MASK	0x008000000
+-#define PRINTK_NMI_CONTEXT_MASK		0xff0000000
+-
+-#define PRINTK_NMI_CONTEXT_OFFSET	0x010000000
+-
+ __printf(4, 0)
+ int vprintk_store(int facility, int level,
+ 		  const struct dev_printk_info *dev_info,
+@@ -19,8 +13,6 @@ int vprintk_store(int facility, int leve
+ 
+ __printf(1, 0) int vprintk_default(const char *fmt, va_list args);
+ __printf(1, 0) int vprintk_deferred(const char *fmt, va_list args);
+-void __printk_safe_enter(void);
+-void __printk_safe_exit(void);
+ 
+ bool printk_percpu_data_ready(void);
+ 
+--- a/kernel/printk/printk_safe.c
++++ b/kernel/printk/printk_safe.c
+@@ -4,12 +4,9 @@
+  */
+ 
+ #include <linux/preempt.h>
+-#include <linux/spinlock.h>
+-#include <linux/debug_locks.h>
+ #include <linux/kdb.h>
+ #include <linux/smp.h>
+ #include <linux/cpumask.h>
+-#include <linux/irq_work.h>
+ #include <linux/printk.h>
+ #include <linux/kprobes.h>
+ 
+@@ -17,35 +14,6 @@
+ 
+ static DEFINE_PER_CPU(int, printk_context);
+ 
+-#ifdef CONFIG_PRINTK_NMI
+-void noinstr printk_nmi_enter(void)
+-{
+-	this_cpu_add(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
+-}
+-
+-void noinstr printk_nmi_exit(void)
+-{
+-	this_cpu_sub(printk_context, PRINTK_NMI_CONTEXT_OFFSET);
+-}
+-
+-/*
+- * Marks a code that might produce many messages in NMI context
+- * and the risk of losing them is more critical than eventual
+- * reordering.
+- */
+-void printk_nmi_direct_enter(void)
+-{
+-	if (this_cpu_read(printk_context) & PRINTK_NMI_CONTEXT_MASK)
+-		this_cpu_or(printk_context, PRINTK_NMI_DIRECT_CONTEXT_MASK);
+-}
+-
+-void printk_nmi_direct_exit(void)
+-{
+-	this_cpu_and(printk_context, ~PRINTK_NMI_DIRECT_CONTEXT_MASK);
+-}
+-
+-#endif /* CONFIG_PRINTK_NMI */
+-
+ /* Can be preempted by NMI. */
+ void __printk_safe_enter(void)
+ {
+@@ -70,10 +38,7 @@ asmlinkage int vprintk(const char *fmt,
+ 	 * Use the main logbuf even in NMI. But avoid calling console
+ 	 * drivers that might have their own locks.
+ 	 */
+-	if (this_cpu_read(printk_context) &
+-	    (PRINTK_NMI_DIRECT_CONTEXT_MASK |
+-	     PRINTK_NMI_CONTEXT_MASK |
+-	     PRINTK_SAFE_CONTEXT_MASK)) {
++	if (this_cpu_read(printk_context) || in_nmi()) {
+ 		int len;
+ 
+ 		len = vprintk_store(0, LOGLEVEL_DEFAULT, NULL, fmt, args);
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@ -9815,7 +9815,7 @@ void ftrace_dump(enum ftrace_dump_mode o
+ 	tracing_off();
+ 
+ 	local_irq_save(flags);
+-	printk_nmi_direct_enter();
++	printk_deferred_enter();
+ 
+ 	/* Simulate the iterator */
+ 	trace_init_global_iter(&iter);
+@@ -9897,7 +9897,7 @@ void ftrace_dump(enum ftrace_dump_mode o
+ 		atomic_dec(&per_cpu_ptr(iter.array_buffer->data, cpu)->disabled);
+ 	}
+ 	atomic_dec(&dump_running);
+-	printk_nmi_direct_exit();
++	printk_deferred_exit();
+ 	local_irq_restore(flags);
+ }
+ EXPORT_SYMBOL_GPL(ftrace_dump);
