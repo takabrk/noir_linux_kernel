@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-September 30,2021
+October 1,2021
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -15,7 +15,12 @@ $ ./performanceup.sh
 カスタムカーネルには、様々なパッチを適用しています。
 noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
-◇バニラカーネルのソースコードのダウンロードとパッチ当て
+◇Noir Linux Kernelパッチの組み立て（基本的には既にnoir.patchは作成済みであるので、使う必要なし）
+
+$ cd patches
+$ ./build_noir_patch.sh -cacule
+
+◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
 $ ./build.sh -e base
 
 ◇前述を行った後にカスタムカーネルのビルドとインストール
@@ -26,7 +31,7 @@ $ ./build.sh -e core
 - Default I/O scheduler -> Kyber
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
-- Preemption Model -> Preemptible Kernel(lowlatency desktop)
+- Preemption Model -> Preemptible Kernel(low latency desktop)
 - CPU Timer frequency -> 750Hz
 - RCU boost delay -> 339
 - Compiler optimization level -> Optimize for more performance(-O3)
