@@ -18,7 +18,7 @@ noir.patchというファイルは、それらのパッチを統合した物で�
 ◇Noir Linux Kernelパッチの組み立て（基本的には既にnoir.patchは作成済みであるので、使う必要なし）
 
 $ cd patches
-$ ./build_noir_patch.sh -cacule
+$ ./build_noir_patch.sh -e cacule
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
 $ ./build.sh -e base
