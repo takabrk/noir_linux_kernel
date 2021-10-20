@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#October 18,2021
+#October 21,2021
 
-VERSIONPOINT="5.14.13"
+VERSIONPOINT="5.14.14"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -21,9 +21,47 @@ done
 
 #build noir.patch
 case $e_num in
+pds)
+cat   linux/patch-$VERSIONPOINT \
+      other/prjc_v5.14-r3.patch \
+      ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
+      ck1/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch \
+      ck1/0006-Convert-msleep-to-use-hrtimers-when-active.patch \
+      ck1/0008-Replace-all-calls-to-schedule_timeout_interruptible-.patch \
+      ck1/0009-Replace-all-calls-to-schedule_timeout_uninterruptibl.patch \
+      ck1/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch \
+      ck1/0014-Swap-sucks.patch \
+      other/0001-cpu-patches.patch \
+      other/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
+      other/0003-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
+      other/0004-mm-set-8-megabytes-for-address_space-level-file-read.patch \
+      other/0001-UKSM-for-5.14.patch \
+      other/0001-bbr2-5.14-introduce-BBRv2.patch \
+      other/0001-ntfs3-patches.patch \
+      other/0001-zstd-patches.patch \
+      other/le9ec-5.14.patch \
+      other/0001-aufs-20210906.patch \
+      other/0001-clearlinux-patches.patch \
+      other/0007-v5.14-winesync.patch \
+      other/acso.patch \
+      other/OpenRGB.patch \
+      other/VHBA.patch \
+      other/0006-x86-ACPI-State-Optimize-C3-entry-on-AMD-CPUs.patch \
+      other/0001-v4l2loopback-5.14-merge-v0.12.5.patch \
+      other/0001-zen-Allow-MSR-writes-by-default.patch \
+      other/0002-PCI-Add-Intel-remapped-NVMe-device-support.patch \
+      other/0001-sched-autogroup-Add-kernel-parameter-and-config-opti.patch \
+      other/0001-bcachefs-5.14-introduce-bcachefs-patchset.patch \
+      other/0001-spadfs-5.13-merge-v1.0.14.patch \
+      other/0003-block-set-rq_affinity-2-for-full-multithreading-I-O.patch \
+      other/0001-futex2-resync-from-gitlab.collabora.com.patch \
+      noir_base/noir_base.patch \
+      noir_base/custom_config.patch \
+      > noir.patch
+;;
+
 cacule)
 cat   linux/patch-$VERSIONPOINT \
-      other/cacule-5.14-full.patch \
       ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
       ck1/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch \
       ck1/0006-Convert-msleep-to-use-hrtimers-when-active.patch \
@@ -187,6 +225,7 @@ cat   linux/patch-$VERSIONPOINT \
       PREEMPT_RT/crypto-testmgr-Only-disable-migration-in-crypto_disa.patch \
       noir_base/noir_base.patch \
       noir_base/custom_config.patch \
+      other/cacule-5.14-full.patch \
       other/prjc_v5.14-r3.patch \
       > noir.patch
 ;;
