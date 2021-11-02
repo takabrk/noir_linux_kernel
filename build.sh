@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#October 28,2021
+#November 1,2021
 
 while getopts e: OPT
 do
@@ -10,8 +10,11 @@ do
          ;;
   esac
 done
-VERSIONBASE="5.14"
-VERSIONPOINT="5.14.15"
+VERSIONBASE="5.15"
+VERSIONPOINT="5.15"
+VERSIONBASE514="5.14"
+VERSIONPOINT514="5.14.15"
+
 case $e_num in
     base)
            wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-$VERSIONBASE.tar.xz
@@ -48,6 +51,42 @@ case $e_num in
            sudo dpkg -i *.deb
            sudo update-grub
            ;;
+    base514)
+           wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-$VERSIONBAS514.tar.xz
+           tar -Jxvf linux-$VERSIONBASE514.tar.xz
+           #wget https://git.kernel.org/torvalds/t/linux-$VERSIONBASE.tar.gz
+           #tar -zxvf linux-$VERSIONBASE514.tar.gz
+           cd linux-$VERSIONBASE514
+           #cp -a ../patches/other/REPORTING-BUGS ./
+           #cp -a ../patches/aufs5/Documentation ./
+           #cp -a ../patches/aufs5/fs ./
+           #cp -a ../patches/aufs5/include ./
+           patch -p1 < ../patches/noir.patch
+           cd ../
+           mv linux-$VERSIONBASE514 linux-$VERSIONPOINT514-noir
+           #rm -r linux-$VERSIONBASE514.tar.gz
+           rm -r linux-$VERSIONBASE514.tar.xz
+           ;;
+    core514)
+           cd linux-$VERSIONPOINT514-noir
+           make xconfig
+           sudo make-kpkg clean
+           time sudo make-kpkg -j3 --initrd linux_image linux_headers
+           #cd linux-$VERSIONBASE514-noir
+           #sudo make modules_install -j4
+           #cd ../
+           #rm -r linux_modules
+           #mkdir linux_modules
+           #cd linux-$VERSIONPOINT514-noir
+           #make INSTALL_MOD_PATH=../linux_modules modules_install -j4
+           sudo make-kpkg clean
+           cd ../
+           #zip -r linux-$VERSIONPOINT514-noir.zip linux-$VERSIONPOINT514-noir
+           sudo rm -r linux-$VERSIONPOINT514-noir
+           sudo dpkg -i *.deb
+           sudo update-grub
+           ;;
+
     distcc)
            cd linux-$VERSIONPOINT-noir
            make xconfig
