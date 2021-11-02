@@ -55,18 +55,18 @@ $ ./build.sh -e core
 - ZSTD kernel and initram support
 - Aufs support
 - clear linux on
-- winesync support
-- PCIe ACS Override support
-- OpenRGB support
 - VHBA on
 - spadfs support
 - bcachefs support
+- winesync support(5.14 only)
+- PCIe ACS Override support(5.14 only)
+- OpenRGB support(5.14 only)
 - SLUB from PREEMPT_RT(option)
 - locking core from PREEMPT_RT(option)
 - lazy preempt from PREEMPT_RT(option)
 - printk queue from PREEMPT_RT(option)
 - crypto from PREEMPT_RT(option)
-- CacULE support
+- CacULE support(5.14 only)
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
