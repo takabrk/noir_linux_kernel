@@ -1,7 +1,7 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#November 2,2021
+#November 3,2021
 
 VERSIONPOINT="5.15"
 VERSIONPOINT514="5.14.15"
