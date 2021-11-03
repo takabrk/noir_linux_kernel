@@ -24,7 +24,7 @@ done
 case $e_num in
 #linux/patch-$VERSIONPOINT \
 pds)
-cat   other515/0009-prjc_v5.15-r0.patch \
+cat   other515/prjc_v5.15-r0.patch \
       ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
       ck1/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch \
       ck1/0006-Convert-msleep-to-use-hrtimers-when-active.patch \
@@ -32,10 +32,13 @@ cat   other515/0009-prjc_v5.15-r0.patch \
       ck1/0009-Replace-all-calls-to-schedule_timeout_uninterruptibl.patch \
       ck1/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch \
       ck1/0014-Swap-sucks.patch \
+      other515/0001-amd64-patches.patch \
       other515/0001-aufs-20211018.patch \
       other515/0001-bbr2-5.15-introduce-BBRv2.patch \
+      other515/0001-bcachefs-5.15-introduce-bcachefs-patchset.patch \
       other515/0001-clearlinux-patches.patch \
       other515/0001-cpu-patches.patch \
+      other515/0001-cpufreq-patches.patch \
       other515/0001-futex2-resync-from-gitlab.collabora.com.patch \
       other515/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
       other515/0001-spadfs-5.15-merge-v1.0.14.patch \
