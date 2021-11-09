@@ -16,7 +16,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
-@@ -367,9 +367,7 @@ static u64 syslog_seq;
+@@ -362,9 +362,7 @@ static u64 syslog_seq;
  static size_t syslog_partial;
  static bool syslog_time;
  
@@ -27,7 +27,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  static u64 exclusive_console_stop_seq;
  static unsigned long console_dropped;
  
-@@ -379,6 +377,17 @@ struct latched_seq {
+@@ -374,6 +372,17 @@ struct latched_seq {
  };
  
  /*
@@ -45,7 +45,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
   * The next printk record to read after the last 'clear' command. There are
   * two copies (updated with seqcount_latch) so that reads can locklessly
   * access a valid value. Writers are synchronized by @syslog_lock.
-@@ -441,7 +450,7 @@ bool printk_percpu_data_ready(void)
+@@ -436,7 +445,7 @@ bool printk_percpu_data_ready(void)
  	return __printk_percpu_data_ready;
  }
  
@@ -54,7 +54,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  static void latched_seq_write(struct latched_seq *ls, u64 val)
  {
  	raw_write_seqcount_latch(&ls->latch);
-@@ -2302,9 +2311,9 @@ EXPORT_SYMBOL(printk);
+@@ -2278,9 +2287,9 @@ EXPORT_SYMBOL(_printk);
  
  #define prb_read_valid(rb, seq, r)	false
  #define prb_first_valid_seq(rb)		0
@@ -66,7 +66,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  static u64 exclusive_console_stop_seq;
  static unsigned long console_dropped;
  
-@@ -2620,7 +2629,7 @@ void console_unlock(void)
+@@ -2608,7 +2617,7 @@ void console_unlock(void)
  	bool do_cond_resched, retry;
  	struct printk_info info;
  	struct printk_record r;
@@ -75,7 +75,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  	if (console_suspended) {
  		up_console_sem();
-@@ -2664,12 +2673,14 @@ void console_unlock(void)
+@@ -2652,12 +2661,14 @@ void console_unlock(void)
  		size_t len;
  
  skip:
@@ -94,7 +94,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  		}
  
  		if (suppress_message_printing(r.info->level)) {
-@@ -2678,13 +2689,13 @@ void console_unlock(void)
+@@ -2666,13 +2677,13 @@ void console_unlock(void)
  			 * directly to the console when we received it, and
  			 * record that has level above the console loglevel.
  			 */
@@ -110,7 +110,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  			exclusive_console = NULL;
  		}
  
-@@ -2705,7 +2716,7 @@ void console_unlock(void)
+@@ -2693,7 +2704,7 @@ void console_unlock(void)
  		len = record_print_text(&r,
  				console_msg_format & MSG_FORMAT_SYSLOG,
  				printk_time);
@@ -119,7 +119,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  		/*
  		 * While actively printing out messages, if another printk()
-@@ -2733,9 +2744,6 @@ void console_unlock(void)
+@@ -2721,9 +2732,6 @@ void console_unlock(void)
  			cond_resched();
  	}
  
@@ -129,7 +129,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	console_locked = 0;
  	up_console_sem();
  
-@@ -2745,7 +2753,7 @@ void console_unlock(void)
+@@ -2733,7 +2741,7 @@ void console_unlock(void)
  	 * there's a new owner and the console_unlock() from them will do the
  	 * flush, no worries.
  	 */
@@ -138,7 +138,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	if (retry && console_trylock())
  		goto again;
  }
-@@ -2797,18 +2805,19 @@ void console_unblank(void)
+@@ -2785,18 +2793,19 @@ void console_unblank(void)
   */
  void console_flush_on_panic(enum con_flush_mode mode)
  {
@@ -170,7 +170,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	console_unlock();
  }
  
-@@ -3044,11 +3053,11 @@ void register_console(struct console *ne
+@@ -3032,11 +3041,11 @@ void register_console(struct console *ne
  		 * ignores console_lock.
  		 */
  		exclusive_console = newcon;

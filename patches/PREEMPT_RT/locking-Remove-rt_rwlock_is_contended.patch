@@ -18,7 +18,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 
 --- a/kernel/locking/spinlock_rt.c
 +++ b/kernel/locking/spinlock_rt.c
-@@ -246,12 +246,6 @@ void __sched rt_write_unlock(rwlock_t *r
+@@ -257,12 +257,6 @@ void __sched rt_write_unlock(rwlock_t *r
  }
  EXPORT_SYMBOL(rt_write_unlock);
  

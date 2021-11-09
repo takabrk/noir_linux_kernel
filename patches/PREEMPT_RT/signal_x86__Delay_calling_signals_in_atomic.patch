@@ -62,11 +62,11 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 +#endif
 +
  #ifndef CONFIG_COMPAT
+ #define compat_sigset_t compat_sigset_t
  typedef sigset_t compat_sigset_t;
- #endif
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
-@@ -1078,6 +1078,10 @@ struct task_struct {
+@@ -1080,6 +1080,10 @@ struct task_struct {
  	/* Restored if set_restore_sigmask() was used: */
  	sigset_t			saved_sigmask;
  	struct sigpending		pending;
@@ -96,7 +96,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
-@@ -1329,6 +1329,34 @@ force_sig_info_to_task(struct kernel_sig
+@@ -1317,6 +1317,34 @@ force_sig_info_to_task(struct kernel_sig
  	struct k_sigaction *action;
  	int sig = info->si_signo;
  

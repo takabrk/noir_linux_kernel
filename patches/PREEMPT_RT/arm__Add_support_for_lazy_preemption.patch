@@ -29,15 +29,15 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	select HAVE_RSEQ
 --- a/arch/arm/include/asm/thread_info.h
 +++ b/arch/arm/include/asm/thread_info.h
-@@ -54,6 +54,7 @@ struct cpu_context_save {
+@@ -52,6 +52,7 @@ struct cpu_context_save {
  struct thread_info {
  	unsigned long		flags;		/* low level flags */
  	int			preempt_count;	/* 0 => preemptable, <0 => bug */
 +	int			preempt_lazy_count; /* 0 => preemptable, <0 => bug */
- 	mm_segment_t		addr_limit;	/* address limit */
  	struct task_struct	*task;		/* main task structure */
  	__u32			cpu;		/* cpu */
-@@ -146,6 +147,7 @@ extern int vfp_restore_user_hwstate(stru
+ 	__u32			cpu_domain;	/* cpu domain */
+@@ -134,6 +135,7 @@ extern int vfp_restore_user_hwstate(stru
  #define TIF_SYSCALL_TRACEPOINT	6	/* syscall tracepoint instrumentation */
  #define TIF_SECCOMP		7	/* seccomp syscall filtering active */
  #define TIF_NOTIFY_SIGNAL	8	/* signal notifications exist */
@@ -45,7 +45,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  #define TIF_USING_IWMMXT	17
  #define TIF_MEMDIE		18	/* is terminating due to OOM killer */
-@@ -160,6 +162,7 @@ extern int vfp_restore_user_hwstate(stru
+@@ -148,6 +150,7 @@ extern int vfp_restore_user_hwstate(stru
  #define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
  #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
  #define _TIF_NOTIFY_SIGNAL	(1 << TIF_NOTIFY_SIGNAL)
@@ -53,7 +53,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #define _TIF_USING_IWMMXT	(1 << TIF_USING_IWMMXT)
  
  /* Checks for any syscall work in entry-common.S */
-@@ -169,7 +172,8 @@ extern int vfp_restore_user_hwstate(stru
+@@ -157,7 +160,8 @@ extern int vfp_restore_user_hwstate(stru
  /*
   * Change these and you break ASM code in entry-common.S
   */
@@ -70,9 +70,9 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
    DEFINE(TI_FLAGS,		offsetof(struct thread_info, flags));
    DEFINE(TI_PREEMPT,		offsetof(struct thread_info, preempt_count));
 +  DEFINE(TI_PREEMPT_LAZY,	offsetof(struct thread_info, preempt_lazy_count));
-   DEFINE(TI_ADDR_LIMIT,		offsetof(struct thread_info, addr_limit));
    DEFINE(TI_TASK,		offsetof(struct thread_info, task));
    DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
+   DEFINE(TI_CPU_DOMAIN,		offsetof(struct thread_info, cpu_domain));
 --- a/arch/arm/kernel/entry-armv.S
 +++ b/arch/arm/kernel/entry-armv.S
 @@ -206,11 +206,18 @@ ENDPROC(__dabt_svc)
@@ -114,7 +114,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  __und_fault:
 --- a/arch/arm/kernel/signal.c
 +++ b/arch/arm/kernel/signal.c
-@@ -649,7 +649,8 @@ do_work_pending(struct pt_regs *regs, un
+@@ -607,7 +607,8 @@ do_work_pending(struct pt_regs *regs, un
  	 */
  	trace_hardirqs_off();
  	do {

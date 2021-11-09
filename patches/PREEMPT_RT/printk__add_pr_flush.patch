@@ -24,16 +24,16 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/include/linux/printk.h
 +++ b/include/linux/printk.h
-@@ -170,6 +170,8 @@ int vprintk(const char *fmt, va_list arg
+@@ -161,6 +161,8 @@ int vprintk(const char *fmt, va_list arg
  asmlinkage __printf(1, 2) __cold
- int printk(const char *fmt, ...);
+ int _printk(const char *fmt, ...);
  
 +bool pr_flush(int timeout_ms, bool reset_on_progress);
 +
  /*
   * Please don't use printk_ratelimit(), because it shares ratelimiting state
   * with all other unrelated printk_ratelimit() callsites.  Instead use
-@@ -210,6 +212,11 @@ int printk(const char *s, ...)
+@@ -201,6 +203,11 @@ int _printk(const char *s, ...)
  	return 0;
  }
  
@@ -111,7 +111,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  /*
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
-@@ -3297,6 +3297,12 @@ void kmsg_dump(enum kmsg_dump_reason rea
+@@ -3285,6 +3285,12 @@ void kmsg_dump(enum kmsg_dump_reason rea
  			sync_mode = true;
  			pr_info("enabled sync mode\n");
  		}
@@ -124,7 +124,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	}
  
  	rcu_read_lock();
-@@ -3618,3 +3624,78 @@ bool kgdb_roundup_delay(unsigned int cpu
+@@ -3606,3 +3612,78 @@ bool kgdb_roundup_delay(unsigned int cpu
  }
  EXPORT_SYMBOL(kgdb_roundup_delay);
  #endif /* CONFIG_SMP */

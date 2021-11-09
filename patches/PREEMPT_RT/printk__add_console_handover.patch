@@ -41,7 +41,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	char	name[16];
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
-@@ -1750,6 +1750,8 @@ static bool console_may_sync(struct cons
+@@ -1746,6 +1746,8 @@ static bool console_may_sync(struct cons
  		return false;
  	if (con->write_atomic && kernel_sync_mode())
  		return true;
@@ -50,7 +50,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	if (con->write && (con->flags & CON_BOOT) && !con->thread)
  		return true;
  	return false;
-@@ -1765,7 +1767,14 @@ static bool call_sync_console_driver(str
+@@ -1761,7 +1763,14 @@ static bool call_sync_console_driver(str
  		return true;
  	}
  
@@ -66,7 +66,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  		if (console_trylock()) {
  			con->write(con, text, text_len);
  			console_unlock();
-@@ -2903,8 +2912,10 @@ void register_console(struct console *ne
+@@ -2891,8 +2900,10 @@ void register_console(struct console *ne
  	 * the real console are the same physical device, it's annoying to
  	 * see the beginning boot messages twice
  	 */

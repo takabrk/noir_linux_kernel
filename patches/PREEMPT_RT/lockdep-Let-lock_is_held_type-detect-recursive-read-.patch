@@ -13,9 +13,10 @@ as a read held lock.
 
 Fixes: e918188611f07 ("locking: More accurate annotations for read_lock()")
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-Acked-by: Waiman Long <longman@redhat.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Acked-by: Boqun Feng <boqun.feng@gmail.com>
-Link: https://lkml.kernel.org/r/20210910135312.4axzdxt74rgct2ur@linutronix.de
+Acked-by: Waiman Long <longman@redhat.com>
+Link: https://lkml.kernel.org/r/20210903084001.lblecrvz4esl4mrr@linutronix.de
 ---
  kernel/locking/lockdep.c |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

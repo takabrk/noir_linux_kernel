@@ -21,14 +21,14 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  arch/x86/kernel/unwind_frame.c  |   16 +++-----
  arch/x86/kernel/unwind_orc.c    |    2 -
  drivers/char/random.c           |    5 +-
- include/linux/printk.h          |   32 -----------------
+ include/linux/printk.h          |   34 ------------------
  include/linux/suspend.h         |   10 +----
  kernel/power/main.c             |   10 +----
  kernel/printk/Makefile          |    1 
- kernel/printk/internal.h        |   44 -----------------------
- kernel/printk/printk.c          |   75 +++++++++++++---------------------------
- kernel/printk/printk_safe.c     |   52 ---------------------------
- kernel/sched/core.c             |    4 +-
+ kernel/printk/internal.h        |   36 -------------------
+ kernel/printk/printk.c          |   74 +++++++++++++---------------------------
+ kernel/printk/printk_safe.c     |   52 ----------------------------
+ kernel/sched/core.c             |    9 ++--
  kernel/sched/deadline.c         |    2 -
  kernel/sched/fair.c             |    5 --
  kernel/sched/psi.c              |   14 +++----
@@ -37,9 +37,9 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  kernel/time/ntp.c               |   14 ++-----
  kernel/time/timekeeping.c       |   30 ++++++++--------
  kernel/time/timekeeping_debug.c |    2 -
- kernel/trace/trace.c            |    2 -
+ kernel/workqueue.c              |    4 --
  lib/ratelimit.c                 |    4 --
- 26 files changed, 81 insertions(+), 267 deletions(-)
+ 26 files changed, 83 insertions(+), 265 deletions(-)
  delete mode 100644 kernel/printk/internal.h
  delete mode 100644 kernel/printk/printk_safe.c
 ---
@@ -176,13 +176,13 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  /*
 --- a/include/linux/printk.h
 +++ b/include/linux/printk.h
-@@ -171,21 +171,6 @@ asmlinkage __printf(1, 2) __cold
- int printk(const char *fmt, ...);
+@@ -162,21 +162,6 @@ asmlinkage __printf(1, 2) __cold
+ int _printk(const char *fmt, ...);
  
  /*
 - * Special printk facility for scheduler/timekeeping use only, _DO_NOT_USE_ !
 - */
--__printf(1, 2) __cold int printk_deferred(const char *fmt, ...);
+-__printf(1, 2) __cold int _printk_deferred(const char *fmt, ...);
 -
 -extern void __printk_safe_enter(void);
 -extern void __printk_safe_exit(void);
@@ -198,12 +198,12 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
   * Please don't use printk_ratelimit(), because it shares ratelimiting state
   * with all other unrelated printk_ratelimit() callsites.  Instead use
   * printk_ratelimited() or plain old __ratelimit().
-@@ -224,19 +209,6 @@ int printk(const char *s, ...)
+@@ -215,19 +200,6 @@ int _printk(const char *s, ...)
  {
  	return 0;
  }
 -static inline __printf(1, 2) __cold
--int printk_deferred(const char *s, ...)
+-int _printk_deferred(const char *s, ...)
 -{
 -	return 0;
 -}
@@ -218,7 +218,16 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  static inline int printk_ratelimit(void)
  {
-@@ -508,13 +480,9 @@ extern int kptr_restrict;
+@@ -471,8 +443,6 @@ struct pi_entry {
+  * See the vsnprintf() documentation for format string extensions over C99.
+  */
+ #define printk(fmt, ...) printk_index_wrap(_printk, fmt, ##__VA_ARGS__)
+-#define printk_deferred(fmt, ...)					\
+-	printk_index_wrap(_printk_deferred, fmt, ##__VA_ARGS__)
+ 
+ /**
+  * pr_emerg - Print an emergency-level message
+@@ -610,13 +580,9 @@ struct pi_entry {
  #ifdef CONFIG_PRINTK
  #define printk_once(fmt, ...)					\
  	DO_ONCE_LITE(printk, fmt, ##__VA_ARGS__)
@@ -293,23 +302,27 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  }
 --- a/kernel/printk/Makefile
 +++ b/kernel/printk/Makefile
-@@ -1,5 +1,4 @@
+@@ -1,6 +1,5 @@
  # SPDX-License-Identifier: GPL-2.0-only
  obj-y	= printk.o
 -obj-$(CONFIG_PRINTK)	+= printk_safe.o
  obj-$(CONFIG_A11Y_BRAILLE_CONSOLE)	+= braille.o
  obj-$(CONFIG_PRINTK)	+= printk_ringbuffer.o
+ obj-$(CONFIG_PRINTK_INDEX)	+= index.o
 --- a/kernel/printk/internal.h
-+++ /dev/null
-@@ -1,44 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0-or-later */
--/*
-- * internal.h - printk internal definitions
-- */
++++ b/kernel/printk/internal.h
+@@ -2,7 +2,6 @@
+ /*
+  * internal.h - printk internal definitions
+  */
 -#include <linux/percpu.h>
--
--#ifdef CONFIG_PRINTK
--
+ 
+ #ifdef CONFIG_PRINTK
+ 
+@@ -12,41 +11,6 @@ enum printk_info_flags {
+ 	LOG_CONT	= 8,	/* text is a fragment of a continuation line */
+ };
+ 
 -__printf(4, 0)
 -int vprintk_store(int facility, int level,
 -		  const struct dev_printk_info *dev_info,
@@ -334,6 +347,8 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 -
 -void defer_console_output(void);
 -
+ u16 printk_parse_prefix(const char *text, int *level,
+ 			enum printk_info_flags *flags);
 -#else
 -
 -/*
@@ -345,7 +360,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 -#define printk_safe_exit_irqrestore(flags) local_irq_restore(flags)
 -
 -static inline bool printk_percpu_data_ready(void) { return false; }
--#endif /* CONFIG_PRINTK */
+ #endif /* CONFIG_PRINTK */
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
 @@ -44,6 +44,7 @@
@@ -356,15 +371,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #include <linux/kgdb.h>
  #include <linux/kthread.h>
  #include <linux/clocksource.h>
-@@ -61,7 +62,6 @@
- #include "printk_ringbuffer.h"
- #include "console_cmdline.h"
- #include "braille.h"
--#include "internal.h"
- 
- int console_printk[4] = {
- 	CONSOLE_LOGLEVEL_DEFAULT,	/* console_loglevel */
-@@ -228,19 +228,7 @@ static int nr_ext_console_drivers;
+@@ -228,19 +229,7 @@ static int nr_ext_console_drivers;
  
  static int __down_trylock_console_sem(unsigned long ip)
  {
@@ -385,7 +392,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  		return 1;
  	mutex_acquire(&console_lock_dep_map, 0, 1, ip);
  	return 0;
-@@ -249,13 +237,9 @@ static int __down_trylock_console_sem(un
+@@ -249,13 +238,9 @@ static int __down_trylock_console_sem(un
  
  static void __up_console_sem(unsigned long ip)
  {
@@ -399,7 +406,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  }
  #define up_console_sem() __up_console_sem(_RET_IP_)
  
-@@ -422,7 +406,7 @@ static struct printk_ringbuffer *prb = &
+@@ -417,7 +402,7 @@ static struct printk_ringbuffer *prb = &
   */
  static bool __printk_percpu_data_ready __read_mostly;
  
@@ -408,7 +415,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  {
  	return __printk_percpu_data_ready;
  }
-@@ -2026,9 +2010,9 @@ static u16 printk_sprint(char *text, u16
+@@ -2023,9 +2008,9 @@ static u16 printk_sprint(char *text, u16
  }
  
  __printf(4, 0)
@@ -421,7 +428,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  {
  	const u32 caller_id = printk_caller_id();
  	struct prb_reserved_entry e;
-@@ -2175,11 +2159,28 @@ asmlinkage int vprintk_emit(int facility
+@@ -2171,11 +2156,28 @@ asmlinkage int vprintk_emit(int facility
  }
  EXPORT_SYMBOL(vprintk_emit);
  
@@ -450,9 +457,9 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 +}
 +EXPORT_SYMBOL(vprintk);
  
- /**
-  * printk - print a kernel message
-@@ -3149,32 +3150,6 @@ void wake_up_klogd(void)
+ asmlinkage __visible int _printk(const char *fmt, ...)
+ {
+@@ -3136,32 +3138,6 @@ void wake_up_klogd(void)
  	preempt_enable();
  }
  
@@ -470,7 +477,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 -	return r;
 -}
 -
--int printk_deferred(const char *fmt, ...)
+-int _printk_deferred(const char *fmt, ...)
 -{
 -	va_list args;
 -	int r;
@@ -542,7 +549,19 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 -EXPORT_SYMBOL(vprintk);
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -3176,8 +3176,8 @@ static int select_fallback_rq(int cpu, s
+@@ -2944,9 +2944,8 @@ void force_compatible_cpus_allowed_ptr(s
+ 
+ out_set_mask:
+ 	if (printk_ratelimit()) {
+-		printk_deferred("Overriding affinity for process %d (%s) to CPUs %*pbl\n",
+-				task_pid_nr(p), p->comm,
+-				cpumask_pr_args(override_mask));
++		printk("Overriding affinity for process %d (%s) to CPUs %*pbl\n",
++		       task_pid_nr(p), p->comm, cpumask_pr_args(override_mask));
+ 	}
+ 
+ 	WARN_ON(set_cpus_allowed_ptr(p, override_mask));
+@@ -3376,8 +3375,8 @@ static int select_fallback_rq(int cpu, s
  		 * leave kernel.
  		 */
  		if (p->mm && printk_ratelimit()) {
@@ -566,7 +585,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	}
 --- a/kernel/sched/fair.c
 +++ b/kernel/sched/fair.c
-@@ -4205,10 +4205,7 @@ static inline void check_schedstat_requi
+@@ -4237,10 +4237,7 @@ static inline void check_schedstat_requi
  			trace_sched_stat_iowait_enabled()  ||
  			trace_sched_stat_blocked_enabled() ||
  			trace_sched_stat_runtime_enabled())  {
@@ -759,24 +778,34 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  			   (s64)t->tv_sec, t->tv_nsec / NSEC_PER_MSEC);
  }
  
---- a/kernel/trace/trace.c
-+++ b/kernel/trace/trace.c
-@@ -9815,7 +9815,6 @@ void ftrace_dump(enum ftrace_dump_mode o
- 	tracing_off();
- 
- 	local_irq_save(flags);
--	printk_deferred_enter();
- 
- 	/* Simulate the iterator */
- 	trace_init_global_iter(&iter);
-@@ -9897,7 +9896,6 @@ void ftrace_dump(enum ftrace_dump_mode o
- 		atomic_dec(&per_cpu_ptr(iter.array_buffer->data, cpu)->disabled);
- 	}
- 	atomic_dec(&dump_running);
--	printk_deferred_exit();
- 	local_irq_restore(flags);
- }
- EXPORT_SYMBOL_GPL(ftrace_dump);
+--- a/kernel/workqueue.c
++++ b/kernel/workqueue.c
+@@ -4836,9 +4836,7 @@ void show_workqueue_state(void)
+ 				 * drivers that queue work while holding locks
+ 				 * also taken in their write paths.
+ 				 */
+-				printk_deferred_enter();
+ 				show_pwq(pwq);
+-				printk_deferred_exit();
+ 			}
+ 			raw_spin_unlock_irqrestore(&pwq->pool->lock, flags);
+ 			/*
+@@ -4862,7 +4860,6 @@ void show_workqueue_state(void)
+ 		 * queue work while holding locks also taken in their write
+ 		 * paths.
+ 		 */
+-		printk_deferred_enter();
+ 		pr_info("pool %d:", pool->id);
+ 		pr_cont_pool_info(pool);
+ 		pr_cont(" hung=%us workers=%d",
+@@ -4877,7 +4874,6 @@ void show_workqueue_state(void)
+ 			first = false;
+ 		}
+ 		pr_cont("\n");
+-		printk_deferred_exit();
+ 	next_pool:
+ 		raw_spin_unlock_irqrestore(&pool->lock, flags);
+ 		/*
 --- a/lib/ratelimit.c
 +++ b/lib/ratelimit.c
 @@ -47,9 +47,7 @@ int ___ratelimit(struct ratelimit_state

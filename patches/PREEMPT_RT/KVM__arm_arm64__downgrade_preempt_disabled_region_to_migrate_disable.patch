@@ -27,7 +27,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/arch/arm64/kvm/arm.c
 +++ b/arch/arm64/kvm/arm.c
-@@ -772,7 +772,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_v
+@@ -811,7 +811,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_v
  		 * involves poking the GIC, which must be done in a
  		 * non-preemptible context.
  		 */
@@ -36,7 +36,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  		kvm_pmu_flush_hwstate(vcpu);
  
-@@ -821,7 +821,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_v
+@@ -835,7 +835,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_v
  				kvm_timer_sync_user(vcpu);
  			kvm_vgic_sync_hwstate(vcpu);
  			local_irq_enable();
@@ -45,7 +45,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  			continue;
  		}
  
-@@ -893,7 +893,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_v
+@@ -907,7 +907,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_v
  		/* Exit types that need handling before we can be preempted */
  		handle_exit_early(vcpu, ret);
  

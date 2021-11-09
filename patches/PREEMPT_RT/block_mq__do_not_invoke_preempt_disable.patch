@@ -18,7 +18,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/block/blk-mq.c
 +++ b/block/blk-mq.c
-@@ -1552,14 +1552,14 @@ static void __blk_mq_delay_run_hw_queue(
+@@ -1559,14 +1559,14 @@ static void __blk_mq_delay_run_hw_queue(
  		return;
  
  	if (!async && !(hctx->flags & BLK_MQ_F_BLOCKING)) {

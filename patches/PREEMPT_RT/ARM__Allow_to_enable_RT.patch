@@ -30,5 +30,5 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	select PERF_USE_VMALLOC
 +	select HAVE_POSIX_CPU_TIMERS_TASK_WORK if !KVM
  	select RTC_LIB
- 	select SET_FS
  	select SYS_SUPPORTS_APM_EMULATION
+ 	select TRACE_IRQFLAGS_SUPPORT if !CPU_V7M

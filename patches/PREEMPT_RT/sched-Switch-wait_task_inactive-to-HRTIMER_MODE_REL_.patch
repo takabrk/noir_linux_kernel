@@ -28,7 +28,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -3047,7 +3047,7 @@ unsigned long wait_task_inactive(struct
+@@ -3250,7 +3250,7 @@ unsigned long wait_task_inactive(struct
  			ktime_t to = NSEC_PER_SEC / HZ;
  
  			set_current_state(TASK_UNINTERRUPTIBLE);

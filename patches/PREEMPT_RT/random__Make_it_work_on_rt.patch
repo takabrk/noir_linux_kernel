@@ -26,7 +26,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/arch/x86/kernel/cpu/mshyperv.c
 +++ b/arch/x86/kernel/cpu/mshyperv.c
-@@ -81,11 +81,12 @@ EXPORT_SYMBOL_GPL(hv_remove_vmbus_handle
+@@ -75,11 +75,12 @@ void hv_remove_vmbus_handler(void)
  DEFINE_IDTENTRY_SYSVEC(sysvec_hyperv_stimer0)
  {
  	struct pt_regs *old_regs = set_irq_regs(regs);
@@ -76,7 +76,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	add_interrupt_bench(cycles);
 --- a/drivers/hv/hyperv_vmbus.h
 +++ b/drivers/hv/hyperv_vmbus.h
-@@ -18,6 +18,7 @@
+@@ -19,6 +19,7 @@
  #include <linux/atomic.h>
  #include <linux/hyperv.h>
  #include <linux/interrupt.h>
@@ -94,7 +94,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  #include <linux/delay.h>
  #include <linux/notifier.h>
-@@ -1340,6 +1341,8 @@ static void vmbus_isr(void)
+@@ -1337,6 +1338,8 @@ static void vmbus_isr(void)
  	void *page_addr = hv_cpu->synic_event_page;
  	struct hv_message *msg;
  	union hv_synic_event_flags *event;
@@ -103,7 +103,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	bool handled = false;
  
  	if (unlikely(page_addr == NULL))
-@@ -1384,7 +1387,7 @@ static void vmbus_isr(void)
+@@ -1381,7 +1384,7 @@ static void vmbus_isr(void)
  			tasklet_schedule(&hv_cpu->msg_dpc);
  	}
  
@@ -158,7 +158,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  		note_interrupt(desc, retval);
 --- a/kernel/irq/manage.c
 +++ b/kernel/irq/manage.c
-@@ -1282,6 +1282,12 @@ static int irq_thread(void *data)
+@@ -1281,6 +1281,12 @@ static int irq_thread(void *data)
  		if (action_ret == IRQ_WAKE_THREAD)
  			irq_wake_secondary(desc, action);
  

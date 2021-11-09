@@ -18,8 +18,8 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
  include/linux/console.h |    4 +
  include/linux/printk.h  |    6 +
- kernel/printk/printk.c  |  179 +++++++++++++++++++++++++++++++++++++++++++++---
- 3 files changed, 179 insertions(+), 10 deletions(-)
+ kernel/printk/printk.c  |  178 +++++++++++++++++++++++++++++++++++++++++++++---
+ 3 files changed, 178 insertions(+), 10 deletions(-)
 ---
 --- a/include/linux/console.h
 +++ b/include/linux/console.h
@@ -66,7 +66,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #include <linux/sched/clock.h>
  #include <linux/sched/debug.h>
  #include <linux/sched/task_stack.h>
-@@ -360,6 +361,9 @@ enum log_flags {
+@@ -355,6 +356,9 @@ static int console_msg_format = MSG_FORM
  static DEFINE_MUTEX(syslog_lock);
  
  #ifdef CONFIG_PRINTK
@@ -76,7 +76,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  DECLARE_WAIT_QUEUE_HEAD(log_wait);
  /* All 3 protected by @syslog_lock. */
  /* the next printk record to read by syslog(READ) or /proc/kmsg */
-@@ -387,6 +391,20 @@ static struct latched_seq console_seq =
+@@ -382,6 +386,20 @@ static struct latched_seq console_seq =
  	.val[1]		= 0,
  };
  
@@ -97,7 +97,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  /*
   * The next printk record to read after the last 'clear' command. There are
   * two copies (updated with seqcount_latch) so that reads can locklessly
-@@ -404,9 +422,6 @@ static struct latched_seq clear_seq = {
+@@ -399,9 +417,6 @@ static struct latched_seq clear_seq = {
  #define PREFIX_MAX		32
  #endif
  
@@ -107,7 +107,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  /* the maximum size allowed to be reserved for a record */
  #define LOG_LINE_MAX		(CONSOLE_LOG_MAX - PREFIX_MAX)
  
-@@ -1778,6 +1793,116 @@ static inline void printk_delay(int leve
+@@ -1773,6 +1788,116 @@ static inline void printk_delay(int leve
  	}
  }
  
@@ -224,7 +224,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  /*
   * Special console_lock variants that help to reduce the risk of soft-lockups.
   * They allow to pass console_lock to another printk() call using a busy wait.
-@@ -1952,6 +2077,8 @@ static void call_console_drivers(const c
+@@ -1947,6 +2072,8 @@ static void call_console_drivers(const c
  		if (!cpu_online(smp_processor_id()) &&
  		    !(con->flags & CON_ANYTIME))
  			continue;
@@ -233,15 +233,15 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  		if (con->flags & CON_EXTENDED)
  			con->write(con, ext_text, ext_len);
  		else {
-@@ -2117,6 +2244,7 @@ int vprintk_store(int facility, int leve
+@@ -2114,6 +2241,7 @@ int vprintk_store(int facility, int leve
  	const u32 caller_id = printk_caller_id();
  	struct prb_reserved_entry e;
- 	enum log_flags lflags = 0;
+ 	enum printk_info_flags flags = 0;
 +	bool final_commit = false;
  	struct printk_record r;
  	unsigned long irqflags;
  	u16 trunc_msg_len = 0;
-@@ -2127,6 +2255,7 @@ int vprintk_store(int facility, int leve
+@@ -2124,6 +2252,7 @@ int vprintk_store(int facility, int leve
  	u16 text_len;
  	int ret = 0;
  	u64 ts_nsec;
@@ -249,37 +249,36 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  	/*
  	 * Since the duration of printk() can vary depending on the message
-@@ -2165,6 +2294,7 @@ int vprintk_store(int facility, int leve
- 	if (lflags & LOG_CONT) {
+@@ -2162,6 +2291,7 @@ int vprintk_store(int facility, int leve
+ 	if (flags & LOG_CONT) {
  		prb_rec_init_wr(&r, reserve_size);
  		if (prb_reserve_in_last(&e, prb, &r, caller_id, LOG_LINE_MAX)) {
 +			seq = r.info->seq;
  			text_len = printk_sprint(&r.text_buf[r.info->text_len], reserve_size,
- 						 facility, &lflags, fmt, args);
+ 						 facility, &flags, fmt, args);
  			r.info->text_len += text_len;
-@@ -2172,6 +2302,7 @@ int vprintk_store(int facility, int leve
- 			if (lflags & LOG_NEWLINE) {
+@@ -2169,6 +2299,7 @@ int vprintk_store(int facility, int leve
+ 			if (flags & LOG_NEWLINE) {
  				r.info->flags |= LOG_NEWLINE;
  				prb_final_commit(&e);
 +				final_commit = true;
  			} else {
  				prb_commit(&e);
  			}
-@@ -2196,6 +2327,8 @@ int vprintk_store(int facility, int leve
+@@ -2192,6 +2323,7 @@ int vprintk_store(int facility, int leve
+ 		if (!prb_reserve(&e, prb, &r))
  			goto out;
  	}
- 
 +	seq = r.info->seq;
-+
+ 
  	/* fill message */
- 	text_len = printk_sprint(&r.text_buf[0], reserve_size, facility, &lflags, fmt, args);
- 	if (trunc_msg_len)
-@@ -2210,13 +2343,25 @@ int vprintk_store(int facility, int leve
+ 	text_len = printk_sprint(&r.text_buf[0], reserve_size, facility, &flags, fmt, args);
+@@ -2207,13 +2339,25 @@ int vprintk_store(int facility, int leve
  		memcpy(&r.info->dev_info, dev_info, sizeof(r.info->dev_info));
  
  	/* A message without a trailing newline can be continued. */
--	if (!(lflags & LOG_NEWLINE))
-+	if (!(lflags & LOG_NEWLINE)) {
+-	if (!(flags & LOG_NEWLINE))
++	if (!(flags & LOG_NEWLINE)) {
  		prb_commit(&e);
 -	else
 +	} else {
@@ -302,7 +301,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	printk_exit_irqrestore(recursion_ptr, irqflags);
  	return ret;
  }
-@@ -2306,13 +2451,13 @@ EXPORT_SYMBOL(printk);
+@@ -2282,13 +2426,13 @@ EXPORT_SYMBOL(_printk);
  
  #else /* CONFIG_PRINTK */
  
@@ -318,7 +317,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  static u64 exclusive_console_stop_seq;
  static unsigned long console_dropped;
-@@ -2604,6 +2749,8 @@ static int have_callable_console(void)
+@@ -2592,6 +2736,8 @@ static int have_callable_console(void)
   */
  static inline int can_use_console(void)
  {
@@ -327,7 +326,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	return cpu_online(raw_smp_processor_id()) || have_callable_console();
  }
  
-@@ -2673,7 +2820,7 @@ void console_unlock(void)
+@@ -2661,7 +2807,7 @@ void console_unlock(void)
  		size_t len;
  
  skip:
@@ -336,7 +335,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  		if (!prb_read_valid(prb, seq, &r))
  			break;
  
-@@ -2753,7 +2900,7 @@ void console_unlock(void)
+@@ -2741,7 +2887,7 @@ void console_unlock(void)
  	 * there's a new owner and the console_unlock() from them will do the
  	 * flush, no worries.
  	 */
@@ -345,7 +344,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	if (retry && console_trylock())
  		goto again;
  }
-@@ -3053,7 +3200,7 @@ void register_console(struct console *ne
+@@ -3041,7 +3187,7 @@ void register_console(struct console *ne
  		 * ignores console_lock.
  		 */
  		exclusive_console = newcon;
@@ -354,7 +353,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  		/* Get a consistent copy of @syslog_seq. */
  		mutex_lock(&syslog_lock);
-@@ -3423,6 +3570,18 @@ void kmsg_dump(enum kmsg_dump_reason rea
+@@ -3411,6 +3557,18 @@ void kmsg_dump(enum kmsg_dump_reason rea
  {
  	struct kmsg_dumper *dumper;
  

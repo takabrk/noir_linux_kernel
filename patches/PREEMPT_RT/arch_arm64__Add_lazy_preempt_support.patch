@@ -25,7 +25,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/arch/arm64/Kconfig
 +++ b/arch/arm64/Kconfig
-@@ -194,6 +194,7 @@ config ARM64
+@@ -192,6 +192,7 @@ config ARM64
  	select HAVE_PERF_REGS
  	select HAVE_PERF_USER_STACK_DUMP
  	select HAVE_REGS_AND_STACK_ACCESS_API
@@ -124,8 +124,8 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #endif
 --- a/arch/arm64/kernel/signal.c
 +++ b/arch/arm64/kernel/signal.c
-@@ -929,7 +929,7 @@ asmlinkage void do_notify_resume(struct
- 				 unsigned long thread_flags)
+@@ -920,7 +920,7 @@ static void do_signal(struct pt_regs *re
+ void do_notify_resume(struct pt_regs *regs, unsigned long thread_flags)
  {
  	do {
 -		if (thread_flags & _TIF_NEED_RESCHED) {

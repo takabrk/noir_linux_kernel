@@ -17,14 +17,14 @@ held.
 Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Link: https://https://lkml.kernel.org/r/.kernel.org/linux-mm/20190211113829.sqf6bdi4c4cdd3rp@linutronix.de/
+Link: https://lkml.kernel.org/r/20190211113829.sqf6bdi4c4cdd3rp@linutronix.de
 ---
  mm/workingset.c |    5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)
 ---
 --- a/mm/workingset.c
 +++ b/mm/workingset.c
-@@ -432,6 +432,8 @@ static struct list_lru shadow_nodes;
+@@ -433,6 +433,8 @@ static struct list_lru shadow_nodes;
  
  void workingset_update_node(struct xa_node *node)
  {
@@ -33,7 +33,7 @@ Link: https://https://lkml.kernel.org/r/.kernel.org/linux-mm/20190211113829.sqf6
  	/*
  	 * Track non-empty nodes that contain only shadow entries;
  	 * unlink those that contain pages or are being freed.
-@@ -440,7 +442,8 @@ void workingset_update_node(struct xa_no
+@@ -441,7 +443,8 @@ void workingset_update_node(struct xa_no
  	 * already where they should be. The list_empty() test is safe
  	 * as node->private_list is protected by the i_pages lock.
  	 */

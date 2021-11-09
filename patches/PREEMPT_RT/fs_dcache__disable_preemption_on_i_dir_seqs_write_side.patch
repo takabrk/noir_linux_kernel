@@ -4,89 +4,61 @@ Date: Fri Oct 20 11:29:53 2017 +0200
 
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 
-i_dir_seq is an opencoded seqcounter. Based on the code it looks like we
-could have two writers in parallel despite the fact that the d_lock is
-held. The problem is that during the write process on RT the preemption
-is still enabled and if this process is interrupted by a reader with RT
-priority then we lock up.
-To avoid that lock up I am disabling the preemption during the update.
-The rename of i_dir_seq is here to ensure to catch new write sides in
-future.
+i_dir_seq is a sequence counter with a lock which is represented by the lowest
+bit. The writer atomically updates the counter which ensures that it can be
+modified by only one writer at a time.
+The commit introducing this change claims that the lock has been integrated
+into the counter for space reasons within the inode struct. The i_dir_seq
+member is within a union which shares also a pointer. That means by using
+seqlock_t we would have a sequence counter and a lock without increasing the
+size of the data structure on 64bit and 32bit would grow by 4 bytes. With
+lockdep enabled the size would grow and on PREEMPT_RT the spinlock_t is also
+larger.
 
-Cc: stable-rt@vger.kernel.org
+In order to keep this construct working on PREEMPT_RT, the writer needs to
+disable preemption while obtaining the lock on the sequence counter / starting
+the write critical section. The writer acquires an otherwise unrelated
+spinlock_t which serves the same purpose on !PREEMPT_RT. With enabled
+preemption a high priority reader could preempt the writer and live lock the
+system while waiting for the locked bit to disappear.
+
+Another solution would be to have global spinlock_t which is always acquired
+by the writer. The reader would then acquire the lock if the sequence count is
+odd and by doing so force the writer out of the critical section. The global
+spinlock_t could be replaced by a hashed lock based on the address of the inode
+to lower the lock contention.
+
+For now, manually disable preemption on PREEMPT_RT to avoid live locks.
+
 Reported-by: Oleg.Karfich@wago.com
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-
-
 ---
- fs/dcache.c        |   12 +++++++-----
- fs/inode.c         |    2 +-
- include/linux/fs.h |    2 +-
- 3 files changed, 9 insertions(+), 7 deletions(-)
+ fs/dcache.c |   10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 ---
 --- a/fs/dcache.c
 +++ b/fs/dcache.c
-@@ -2538,9 +2538,10 @@ EXPORT_SYMBOL(d_rehash);
+@@ -2537,7 +2537,13 @@ EXPORT_SYMBOL(d_rehash);
+ 
  static inline unsigned start_dir_add(struct inode *dir)
  {
- 
-+	preempt_disable_rt();
+-
++	/*
++	 * The caller has a spinlock_t (dentry::d_lock) acquired which disables
++	 * preemption on !PREEMPT_RT. On PREEMPT_RT the lock does not disable
++	 * preemption and it has be done explicitly.
++	 */
++	if (IS_ENABLED(CONFIG_PREEMPT_RT))
++		preempt_disable();
  	for (;;) {
--		unsigned n = dir->i_dir_seq;
--		if (!(n & 1) && cmpxchg(&dir->i_dir_seq, n, n + 1) == n)
-+		unsigned n = dir->__i_dir_seq;
-+		if (!(n & 1) && cmpxchg(&dir->__i_dir_seq, n, n + 1) == n)
- 			return n;
- 		cpu_relax();
- 	}
-@@ -2548,7 +2549,8 @@ static inline unsigned start_dir_add(str
- 
+ 		unsigned n = dir->i_dir_seq;
+ 		if (!(n & 1) && cmpxchg(&dir->i_dir_seq, n, n + 1) == n)
+@@ -2549,6 +2555,8 @@ static inline unsigned start_dir_add(str
  static inline void end_dir_add(struct inode *dir, unsigned n)
  {
--	smp_store_release(&dir->i_dir_seq, n + 2);
-+	smp_store_release(&dir->__i_dir_seq, n + 2);
-+	preempt_enable_rt();
+ 	smp_store_release(&dir->i_dir_seq, n + 2);
++	if (IS_ENABLED(CONFIG_PREEMPT_RT))
++		preempt_enable();
  }
  
  static void d_wait_lookup(struct dentry *dentry)
-@@ -2584,7 +2586,7 @@ struct dentry *d_alloc_parallel(struct d
- 
- retry:
- 	rcu_read_lock();
--	seq = smp_load_acquire(&parent->d_inode->i_dir_seq);
-+	seq = smp_load_acquire(&parent->d_inode->__i_dir_seq);
- 	r_seq = read_seqbegin(&rename_lock);
- 	dentry = __d_lookup_rcu(parent, name, &d_seq);
- 	if (unlikely(dentry)) {
-@@ -2612,7 +2614,7 @@ struct dentry *d_alloc_parallel(struct d
- 	}
- 
- 	hlist_bl_lock(b);
--	if (unlikely(READ_ONCE(parent->d_inode->i_dir_seq) != seq)) {
-+	if (unlikely(READ_ONCE(parent->d_inode->__i_dir_seq) != seq)) {
- 		hlist_bl_unlock(b);
- 		rcu_read_unlock();
- 		goto retry;
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -157,7 +157,7 @@ int inode_init_always(struct super_block
- 	inode->i_pipe = NULL;
- 	inode->i_cdev = NULL;
- 	inode->i_link = NULL;
--	inode->i_dir_seq = 0;
-+	inode->__i_dir_seq = 0;
- 	inode->i_rdev = 0;
- 	inode->dirtied_when = 0;
- 
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -699,7 +699,7 @@ struct inode {
- 		struct pipe_inode_info	*i_pipe;
- 		struct cdev		*i_cdev;
- 		char			*i_link;
--		unsigned		i_dir_seq;
-+		unsigned		__i_dir_seq;
- 	};
- 
- 	__u32			i_generation;

@@ -21,7 +21,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 
 --- a/arch/arm64/kernel/fpsimd.c
 +++ b/arch/arm64/kernel/fpsimd.c
-@@ -177,10 +177,19 @@ static void __get_cpu_fpsimd_context(voi
+@@ -179,10 +179,19 @@ static void __get_cpu_fpsimd_context(voi
   *
   * The double-underscore version must only be called if you know the task
   * can't be preempted.
@@ -42,7 +42,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  	__get_cpu_fpsimd_context();
  }
  
-@@ -201,7 +210,10 @@ static void __put_cpu_fpsimd_context(voi
+@@ -203,7 +212,10 @@ static void __put_cpu_fpsimd_context(voi
  static void put_cpu_fpsimd_context(void)
  {
  	__put_cpu_fpsimd_context();

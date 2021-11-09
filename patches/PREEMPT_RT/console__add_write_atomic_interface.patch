@@ -51,7 +51,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/arch/powerpc/include/asm/smp.h
 +++ b/arch/powerpc/include/asm/smp.h
-@@ -58,6 +58,7 @@ struct smp_ops_t {
+@@ -62,6 +62,7 @@ struct smp_ops_t {
  
  extern int smp_send_nmi_ipi(int cpu, void (*fn)(struct pt_regs *), u64 delay_us);
  extern int smp_send_safe_nmi_ipi(int cpu, void (*fn)(struct pt_regs *), u64 delay_us);
@@ -84,7 +84,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	smp_send_debugger_break();
 --- a/arch/powerpc/kernel/smp.c
 +++ b/arch/powerpc/kernel/smp.c
-@@ -582,6 +582,11 @@ static void debugger_ipi_callback(struct
+@@ -589,6 +589,11 @@ static void debugger_ipi_callback(struct
  	debugger_ipi(regs);
  }
  
@@ -144,7 +144,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #endif /* _KGDB_H_ */
 --- a/include/linux/printk.h
 +++ b/include/linux/printk.h
-@@ -289,10 +289,18 @@ static inline void dump_stack(void)
+@@ -280,10 +280,18 @@ static inline void dump_stack(void)
  extern int __printk_cpu_trylock(void);
  extern void __printk_wait_on_cpu_lock(void);
  extern void __printk_cpu_unlock(void);
@@ -163,7 +163,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #endif /* CONFIG_SMP */
  
  /**
-@@ -324,6 +332,21 @@ extern void __printk_cpu_unlock(void);
+@@ -315,6 +323,21 @@ extern void __printk_cpu_unlock(void);
  		local_irq_restore(flags);	\
  	} while (0)
  
@@ -187,7 +187,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  /**
 --- a/kernel/debug/debug_core.c
 +++ b/kernel/debug/debug_core.c
-@@ -241,35 +241,42 @@ NOKPROBE_SYMBOL(kgdb_call_nmi_hook);
+@@ -238,35 +238,42 @@ NOKPROBE_SYMBOL(kgdb_call_nmi_hook);
  static DEFINE_PER_CPU(call_single_data_t, kgdb_roundup_csd) =
  	CSD_INIT(kgdb_call_nmi_hook, NULL);
  
@@ -259,7 +259,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #include <linux/sched/clock.h>
  #include <linux/sched/debug.h>
  #include <linux/sched/task_stack.h>
-@@ -3594,6 +3595,7 @@ EXPORT_SYMBOL_GPL(kmsg_dump_rewind);
+@@ -3582,6 +3583,7 @@ EXPORT_SYMBOL_GPL(kmsg_dump_rewind);
  #ifdef CONFIG_SMP
  static atomic_t printk_cpulock_owner = ATOMIC_INIT(-1);
  static atomic_t printk_cpulock_nested = ATOMIC_INIT(0);
@@ -267,7 +267,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  /**
   * __printk_wait_on_cpu_lock() - Busy wait until the printk cpu-reentrant
-@@ -3673,6 +3675,9 @@ EXPORT_SYMBOL(__printk_cpu_trylock);
+@@ -3661,6 +3663,9 @@ EXPORT_SYMBOL(__printk_cpu_trylock);
   */
  void __printk_cpu_unlock(void)
  {
@@ -277,7 +277,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	if (atomic_read(&printk_cpulock_nested)) {
  		atomic_dec(&printk_cpulock_nested);
  		return;
-@@ -3683,6 +3688,12 @@ void __printk_cpu_unlock(void)
+@@ -3671,6 +3676,12 @@ void __printk_cpu_unlock(void)
  	 * LMM(__printk_cpu_unlock:A)
  	 */
  
@@ -290,7 +290,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	/*
  	 * Guarantee loads and stores from this CPU when it was the
  	 * lock owner are visible to the next lock owner. This pairs
-@@ -3703,6 +3714,21 @@ void __printk_cpu_unlock(void)
+@@ -3691,6 +3702,21 @@ void __printk_cpu_unlock(void)
  	 */
  	atomic_set_release(&printk_cpulock_owner,
  			   -1); /* LMM(__printk_cpu_unlock:B) */

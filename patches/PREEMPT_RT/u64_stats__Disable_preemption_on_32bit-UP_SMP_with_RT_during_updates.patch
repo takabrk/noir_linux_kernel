@@ -31,7 +31,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	seqcount_t	seq;
  #endif
  };
-@@ -115,7 +115,7 @@ static inline void u64_stats_inc(u64_sta
+@@ -125,7 +125,7 @@ static inline void u64_stats_inc(u64_sta
  }
  #endif
  
@@ -40,7 +40,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #define u64_stats_init(syncp)	seqcount_init(&(syncp)->seq)
  #else
  static inline void u64_stats_init(struct u64_stats_sync *syncp)
-@@ -125,15 +125,19 @@ static inline void u64_stats_init(struct
+@@ -135,15 +135,19 @@ static inline void u64_stats_init(struct
  
  static inline void u64_stats_update_begin(struct u64_stats_sync *syncp)
  {
@@ -62,7 +62,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #endif
  }
  
-@@ -142,8 +146,11 @@ u64_stats_update_begin_irqsave(struct u6
+@@ -152,8 +156,11 @@ u64_stats_update_begin_irqsave(struct u6
  {
  	unsigned long flags = 0;
  
@@ -76,7 +76,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	write_seqcount_begin(&syncp->seq);
  #endif
  	return flags;
-@@ -153,15 +160,18 @@ static inline void
+@@ -163,15 +170,18 @@ static inline void
  u64_stats_update_end_irqrestore(struct u64_stats_sync *syncp,
  				unsigned long flags)
  {
@@ -98,7 +98,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	return read_seqcount_begin(&syncp->seq);
  #else
  	return 0;
-@@ -170,7 +180,7 @@ static inline unsigned int __u64_stats_f
+@@ -180,7 +190,7 @@ static inline unsigned int __u64_stats_f
  
  static inline unsigned int u64_stats_fetch_begin(const struct u64_stats_sync *syncp)
  {
@@ -107,7 +107,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	preempt_disable();
  #endif
  	return __u64_stats_fetch_begin(syncp);
-@@ -179,7 +189,7 @@ static inline unsigned int u64_stats_fet
+@@ -189,7 +199,7 @@ static inline unsigned int u64_stats_fet
  static inline bool __u64_stats_fetch_retry(const struct u64_stats_sync *syncp,
  					 unsigned int start)
  {
@@ -116,7 +116,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	return read_seqcount_retry(&syncp->seq, start);
  #else
  	return false;
-@@ -189,7 +199,7 @@ static inline bool __u64_stats_fetch_ret
+@@ -199,7 +209,7 @@ static inline bool __u64_stats_fetch_ret
  static inline bool u64_stats_fetch_retry(const struct u64_stats_sync *syncp,
  					 unsigned int start)
  {
@@ -125,7 +125,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	preempt_enable();
  #endif
  	return __u64_stats_fetch_retry(syncp, start);
-@@ -203,7 +213,9 @@ static inline bool u64_stats_fetch_retry
+@@ -213,7 +223,9 @@ static inline bool u64_stats_fetch_retry
   */
  static inline unsigned int u64_stats_fetch_begin_irq(const struct u64_stats_sync *syncp)
  {
@@ -136,7 +136,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  	local_irq_disable();
  #endif
  	return __u64_stats_fetch_begin(syncp);
-@@ -212,7 +224,9 @@ static inline unsigned int u64_stats_fet
+@@ -222,7 +234,9 @@ static inline unsigned int u64_stats_fet
  static inline bool u64_stats_fetch_retry_irq(const struct u64_stats_sync *syncp,
  					     unsigned int start)
  {

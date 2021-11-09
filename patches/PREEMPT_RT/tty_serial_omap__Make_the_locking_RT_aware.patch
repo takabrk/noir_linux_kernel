@@ -17,9 +17,9 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
 --- a/drivers/tty/serial/omap-serial.c
 +++ b/drivers/tty/serial/omap-serial.c
-@@ -1311,13 +1311,10 @@ serial_omap_console_write(struct console
- 
- 	pm_runtime_get_sync(up->dev);
+@@ -1255,13 +1255,10 @@ serial_omap_console_write(struct console
+ 	unsigned int ier;
+ 	int locked = 1;
  
 -	local_irq_save(flags);
 -	if (up->port.sysrq)
@@ -34,9 +34,9 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  
  	/*
  	 * First save the IER then disable the interrupts
-@@ -1346,8 +1343,7 @@ serial_omap_console_write(struct console
- 	pm_runtime_mark_last_busy(up->dev);
- 	pm_runtime_put_autosuspend(up->dev);
+@@ -1288,8 +1285,7 @@ serial_omap_console_write(struct console
+ 		check_modem_status(up);
+ 
  	if (locked)
 -		spin_unlock(&up->port.lock);
 -	local_irq_restore(flags);
