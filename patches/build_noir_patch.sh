@@ -32,7 +32,6 @@ cat   linux/patch-$VERSIONPOINT \
       ck1/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch \
       ck1/0014-Swap-sucks.patch \
       other515/0001-amd64-patches.patch \
-      other515/0001-aufs-20211018.patch \
       other515/0001-bbr2-5.15-introduce-BBRv2.patch \
       other515/0001-bcachefs-5.15-introduce-bcachefs-patchset.patch \
       other515/0001-clearlinux-patches.patch \
@@ -71,7 +70,6 @@ cat   linux/patch-$VERSIONPOINT \
       ck1/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch \
       ck1/0014-Swap-sucks.patch \
       other515/0001-amd64-patches.patch \
-      other515/0001-aufs-20211018.patch \
       other515/0001-bbr2-5.15-introduce-BBRv2.patch \
       other515/0001-bcachefs-5.15-introduce-bcachefs-patchset.patch \
       other515/0001-clearlinux-patches.patch \
