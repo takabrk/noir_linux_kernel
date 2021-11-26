@@ -53,7 +53,6 @@ $ ./build.sh -e core
 - BBR2 support
 - futex/futex2 support
 - ZSTD kernel and initram support
-- Aufs support
 - clear linux on
 - VHBA on
 - PCIe ACS Override support
