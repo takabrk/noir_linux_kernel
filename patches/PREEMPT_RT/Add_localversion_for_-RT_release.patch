@@ -15,4 +15,4 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 --- /dev/null
 +++ b/localversion-rt
 @@ -0,0 +1 @@
-+-rt17
++-rt22

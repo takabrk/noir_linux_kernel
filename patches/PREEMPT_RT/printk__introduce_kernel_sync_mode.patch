@@ -38,9 +38,9 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 +#ifdef CONFIG_PRINTK
 +	char	sync_buf[CONSOLE_LOG_MAX];
 +#endif
+ 	uint	ispeed;
+ 	uint	ospeed;
  	void	*data;
- 	struct	 console *next;
- };
 --- a/include/linux/printk.h
 +++ b/include/linux/printk.h
 @@ -47,6 +47,12 @@ static inline const char *printk_skip_he
