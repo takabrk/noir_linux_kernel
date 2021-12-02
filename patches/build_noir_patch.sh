@@ -59,9 +59,8 @@ cat   linux/patch-$VERSIONPOINT \
       > noir.patch
 ;;
 
-cacule)
+TT)
 cat   linux/patch-$VERSIONPOINT \
-      other515/prjc_v5.15-r0.patch \
       ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
       ck1/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch \
       ck1/0006-Convert-msleep-to-use-hrtimers-when-active.patch \
@@ -91,10 +90,9 @@ cat   linux/patch-$VERSIONPOINT \
       other515/VHBA.patch \
       other515/OpenRGB.patch \
       other515/acso.patch \
-      other515/0002-ZEN-intel-pstate-Implement-enable-parameter.patch \
-      other515/0001-cacule-patches.patch \
-      noir_base/noir_base.patch \
+      noir_base/noir_base2.patch \
       noir_base/custom_config.patch \
+      other515/tt-cfs-5.15.patch \
       > noir.patch
 ;;
 

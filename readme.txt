@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-December 2,2021
+December 3,2021
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -19,13 +19,14 @@ $ ./performanceup.sh
 noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
 ◇Noir Linux Kernelパッチの組み立て（基本的には既にnoir.patchは作成済みであるので、使う必要なし）
-◯CacULEの場合
-$ cd patches
-$ ./build_noir_patch.sh -e cacule
-
 ◯PDSの場合
 $ cd patches
 $ ./build_noir_patch.sh -e pds
+
+
+◯TTの場合
+$ cd patches
+$ ./build_noir_patch.sh -e TT
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
 $ ./build.sh -e base
@@ -59,25 +60,18 @@ $ ./build.sh -e core
 - OpenRGB support
 - spadfs support
 - bcachefs support
-- winesync support(5.14 only)
-- SLUB from PREEMPT_RT(option)
-- locking core from PREEMPT_RT(option)
-- lazy preempt from PREEMPT_RT(option)
-- printk queue from PREEMPT_RT(option)
-- crypto from PREEMPT_RT(option)
-- CacULE support(5.14 only)
+- TT scheduler support(option)
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
-- CacULE( https://github.com/hamadmarri/cacule-cpu-scheduler )
+- Project C( https://gitlab.com/alfredchen/projectc )
+- TT scheduler( https://github.com/hamadmarri/TT-CPU-Scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://ck.kolivas.org/patches/5.0/5.12/5.12-ck1/patches/ )
 - le9( https://github.com/hakavlad/le9-patch )
-- Zen( https://github.com/zen-kernel/zen-kernel/tree/5.14/master )
-- PREEMPT_RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
-- Project C( https://gitlab.com/alfredchen/projectc )
+- Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
 
-◇CacULEのレスポンス向上コマンド
+◇TT schedulerのレスポンス向上コマンド
 $ sudo sysctl kernel.sched_interactivity_factor=50
 $ sudo sysctl kernel.sched_max_lifetime_ms=60000
 
