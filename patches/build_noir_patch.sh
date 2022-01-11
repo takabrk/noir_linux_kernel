@@ -1,7 +1,7 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#January 6,2022
+#January 11,2022
 
 VERSIONPOINT="5.15.13"
 NOIR_VERSION="noir"
