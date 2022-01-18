@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-January 15,2022
+January 18,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -49,17 +49,10 @@ $ ./build.sh -e core
 - nr_migrate = 256
 - rq_affinity = 2
 - vm_swappiness = 33
-- Core Scheduler for SMT on
 - UKSM support
 - BBR2 support
-- futex/futex2 support
-- ZSTD kernel and initram support
 - clear linux on
-- VHBA on
-- PCIe ACS Override support
-- OpenRGB support
 - spadfs support
-- bcachefs support
 - TT scheduler support(option)
 
 [patches]
@@ -68,7 +61,6 @@ $ ./build.sh -e core
 - TT scheduler( https://github.com/hamadmarri/TT-CPU-Scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://ck.kolivas.org/patches/5.0/5.12/5.12-ck1/patches/ )
-- le9( https://github.com/hakavlad/le9-patch )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
 
 ◇TT schedulerのレスポンス向上コマンド
