@@ -44,6 +44,8 @@ cat   linux/patch-$VERSIONPOINT \
       other516/0003-block-set-rq_affinity-2-for-full-multithreading-I-O.patch \
       other516/0004-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
       other516/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
+      other516/0001-pci-Enable-overrides-for-missing-ACS-capabilities.patch \
+      other516/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
       noir_base/noir_base3.patch \
       noir_base/custom_config.patch \
       > noir.patch

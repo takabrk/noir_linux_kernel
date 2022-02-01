@@ -1,31 +1,31 @@
-From df7e6d3159d24b09d1b2b9ee16208a5e3194bc9c Mon Sep 17 00:00:00 2001
-From: Tor Vic <torvic9@mailbox.org>
-Date: Tue, 7 Dec 2021 10:01:04 +0100
+From d0088e1f6a53185a931d6d5e6317b89265294994 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andr=C3=A9=20Almeida?= <andrealmeid@collabora.com>
+Date: Mon, 25 Oct 2021 09:49:42 -0300
 Subject: [PATCH] futex: Add entry point for FUTEX_WAIT_MULTIPLE (opcode 31)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
 Add an option to wait on multiple futexes using the old interface, that
-uses opcode 31 through futex() syscall. Do that by just translating the
+uses opcode 31 through futex() syscall. Do that by just translation the
 old interface to use the new code. This allows old and stable versions
 of Proton to still use fsync in new kernel releases.
 
-[torvic9: adapted André's commit for futex_waitv changes in 5.16]
+Signed-off-by: André Almeida <andrealmeid@collabora.com>
 ---
  include/uapi/linux/futex.h | 13 +++++++
  kernel/futex/syscalls.c    | 75 +++++++++++++++++++++++++++++++++++++-
  2 files changed, 87 insertions(+), 1 deletion(-)
 
 diff --git a/include/uapi/linux/futex.h b/include/uapi/linux/futex.h
-index 71a5df8d2..cf7fc988c 100644
+index 71a5df8d2689..d375ab21cbf8 100644
 --- a/include/uapi/linux/futex.h
 +++ b/include/uapi/linux/futex.h
 @@ -22,6 +22,7 @@
  #define FUTEX_WAIT_REQUEUE_PI	11
  #define FUTEX_CMP_REQUEUE_PI	12
  #define FUTEX_LOCK_PI2		13
-+#define FUTEX_WAIT_MULTIPLE		31
++#define FUTEX_WAIT_MULTIPLE	31
  
  #define FUTEX_PRIVATE_FLAG	128
  #define FUTEX_CLOCK_REALTIME	256
@@ -49,7 +49,7 @@ index 71a5df8d2..cf7fc988c 100644
   * Support for robust futexes: the kernel cleans up held futexes at
   * thread exit time.
 diff --git a/kernel/futex/syscalls.c b/kernel/futex/syscalls.c
-index 6f91a07a6..2f4d4c04e 100644
+index 6f91a07a6a83..2f4d4c04ede2 100644
 --- a/kernel/futex/syscalls.c
 +++ b/kernel/futex/syscalls.c
 @@ -158,6 +158,7 @@ static __always_inline bool futex_cmd_has_timeout(u32 cmd)
@@ -162,5 +162,5 @@ index 6f91a07a6..2f4d4c04e 100644
  }
  #endif /* CONFIG_COMPAT_32BIT_TIME */
 -- 
-2.34.1.75.gabe6bb3905
+2.33.1
 

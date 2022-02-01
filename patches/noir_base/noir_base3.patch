@@ -10,7 +10,7 @@ index 51540b291738..ab8c480660a6 100644
  PHONY := __all
  __all:
  
-+NRVERSION = -noir
++NRVERSION = -noir-v1
 +NRNAME =  With Extra patchsets
 +EXTRAVERSION := $(EXTRAVERSION)$(NRVERSION)
 +
