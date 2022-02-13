@@ -336,7 +336,7 @@ index a4e3ef2952401..6ed13398ca2ce 100644
  to substitute the syntax for the name when evaluating the command::
  
 diff --git a/Makefile b/Makefile
-index 08510230b42f3..0cbab4df51b92 100644
+index 08510230b42f3..1f32bb42f3288 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,7 +1,7 @@
@@ -344,7 +344,7 @@ index 08510230b42f3..0cbab4df51b92 100644
  VERSION = 5
  PATCHLEVEL = 16
 -SUBLEVEL = 0
-+SUBLEVEL = 8
++SUBLEVEL = 9
  EXTRAVERSION =
  NAME = Gobble Gobble
  
@@ -4759,7 +4759,7 @@ index c3bd993fdd0cf..0576d5c991384 100644
  {
  	struct kvm_s390_local_interrupt *li = &vcpu->arch.local_int;
 diff --git a/arch/s390/kvm/kvm-s390.c b/arch/s390/kvm/kvm-s390.c
-index 14a18ba5ff2c8..8fc9c79c899b5 100644
+index 14a18ba5ff2c8..41a6fe086fdc3 100644
 --- a/arch/s390/kvm/kvm-s390.c
 +++ b/arch/s390/kvm/kvm-s390.c
 @@ -3449,7 +3449,7 @@ bool kvm_arch_no_poll(struct kvm_vcpu *vcpu)
@@ -4789,6 +4789,15 @@ index 14a18ba5ff2c8..8fc9c79c899b5 100644
  	__disable_ibs_on_vcpu(vcpu);
  
  	for (i = 0; i < online_vcpus; i++) {
+@@ -4706,6 +4711,8 @@ static long kvm_s390_guest_sida_op(struct kvm_vcpu *vcpu,
+ 		return -EINVAL;
+ 	if (mop->size + mop->sida_offset > sida_size(vcpu->arch.sie_block))
+ 		return -E2BIG;
++	if (!kvm_s390_pv_cpu_is_protected(vcpu))
++		return -EINVAL;
+ 
+ 	switch (mop->op) {
+ 	case KVM_S390_MEMOP_SIDA_READ:
 diff --git a/arch/s390/kvm/kvm-s390.h b/arch/s390/kvm/kvm-s390.h
 index c07a050d757d3..1876ab0c293fe 100644
 --- a/arch/s390/kvm/kvm-s390.h
@@ -7230,6 +7239,24 @@ index 85d919bf60c78..3ed5eaf3446a2 100644
  STORE_INT(deadline_fifo_batch_store, &dd->fifo_batch, 0, INT_MAX);
  #undef STORE_FUNCTION
  #undef STORE_INT
+diff --git a/crypto/algapi.c b/crypto/algapi.c
+index a366cb3e8aa18..76fdaa16bd4a0 100644
+--- a/crypto/algapi.c
++++ b/crypto/algapi.c
+@@ -1324,3 +1324,4 @@ module_exit(crypto_algapi_exit);
+ 
+ MODULE_LICENSE("GPL");
+ MODULE_DESCRIPTION("Cryptographic algorithms API");
++MODULE_SOFTDEP("pre: cryptomgr");
+diff --git a/crypto/api.c b/crypto/api.c
+index cf0869dd130b3..7ddfe946dd56b 100644
+--- a/crypto/api.c
++++ b/crypto/api.c
+@@ -643,4 +643,3 @@ EXPORT_SYMBOL_GPL(crypto_req_done);
+ 
+ MODULE_DESCRIPTION("Cryptographic core API");
+ MODULE_LICENSE("GPL");
+-MODULE_SOFTDEP("pre: cryptomgr");
 diff --git a/crypto/jitterentropy.c b/crypto/jitterentropy.c
 index 4dc2261cdeefb..788d90749715a 100644
 --- a/crypto/jitterentropy.c
@@ -8037,7 +8064,7 @@ index c75fb600740cc..99ae919255f4d 100644
  		tcomplete->type = BINDER_WORK_TRANSACTION_ONEWAY_SPAM_SUSPECT;
  	else
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index aba0c67d1bd65..1cdf8cfcc31b3 100644
+index aba0c67d1bd65..94bc5dbb31e1e 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2043,6 +2043,9 @@ static bool ata_log_supported(struct ata_device *dev, u8 log)
@@ -8050,7 +8077,37 @@ index aba0c67d1bd65..1cdf8cfcc31b3 100644
  	if (ata_read_log_page(dev, ATA_LOG_DIRECTORY, 0, ap->sector_buf, 1))
  		return false;
  	return get_unaligned_le16(&ap->sector_buf[log * 2]) ? true : false;
-@@ -4123,6 +4126,13 @@ static const struct ata_blacklist_entry ata_device_blacklist [] = {
+@@ -2483,23 +2486,21 @@ static void ata_dev_config_cpr(struct ata_device *dev)
+ 	struct ata_cpr_log *cpr_log = NULL;
+ 	u8 *desc, *buf = NULL;
+ 
+-	if (!ata_identify_page_supported(dev,
+-				 ATA_LOG_CONCURRENT_POSITIONING_RANGES))
++	if (ata_id_major_version(dev->id) < 11 ||
++	    !ata_log_supported(dev, ATA_LOG_CONCURRENT_POSITIONING_RANGES))
+ 		goto out;
+ 
+ 	/*
+-	 * Read IDENTIFY DEVICE data log, page 0x47
+-	 * (concurrent positioning ranges). We can have at most 255 32B range
+-	 * descriptors plus a 64B header.
++	 * Read the concurrent positioning ranges log (0x47). We can have at
++	 * most 255 32B range descriptors plus a 64B header.
+ 	 */
+ 	buf_len = (64 + 255 * 32 + 511) & ~511;
+ 	buf = kzalloc(buf_len, GFP_KERNEL);
+ 	if (!buf)
+ 		goto out;
+ 
+-	err_mask = ata_read_log_page(dev, ATA_LOG_IDENTIFY_DEVICE,
+-				     ATA_LOG_CONCURRENT_POSITIONING_RANGES,
+-				     buf, buf_len >> 9);
++	err_mask = ata_read_log_page(dev, ATA_LOG_CONCURRENT_POSITIONING_RANGES,
++				     0, buf, buf_len >> 9);
+ 	if (err_mask)
+ 		goto out;
+ 
+@@ -4123,6 +4124,13 @@ static const struct ata_blacklist_entry ata_device_blacklist [] = {
  	{ "WDC WD3000JD-*",		NULL,	ATA_HORKAGE_WD_BROKEN_LPM },
  	{ "WDC WD3200JD-*",		NULL,	ATA_HORKAGE_WD_BROKEN_LPM },
  
@@ -23152,6 +23209,24 @@ index d4a48916bfb67..3a19a05ef55a7 100644
  	ret = devm_request_threaded_irq(host->controller_dev, irq,
  					meson_mx_mmc_irq,
  					meson_mx_mmc_irq_thread, IRQF_ONESHOT,
+diff --git a/drivers/mmc/host/moxart-mmc.c b/drivers/mmc/host/moxart-mmc.c
+index 16d1c7a43d331..b6eb75f4bbfc6 100644
+--- a/drivers/mmc/host/moxart-mmc.c
++++ b/drivers/mmc/host/moxart-mmc.c
+@@ -705,12 +705,12 @@ static int moxart_remove(struct platform_device *pdev)
+ 	if (!IS_ERR_OR_NULL(host->dma_chan_rx))
+ 		dma_release_channel(host->dma_chan_rx);
+ 	mmc_remove_host(mmc);
+-	mmc_free_host(mmc);
+ 
+ 	writel(0, host->base + REG_INTERRUPT_MASK);
+ 	writel(0, host->base + REG_POWER_CONTROL);
+ 	writel(readl(host->base + REG_CLOCK_CONTROL) | CLK_OFF,
+ 	       host->base + REG_CLOCK_CONTROL);
++	mmc_free_host(mmc);
+ 
+ 	return 0;
+ }
 diff --git a/drivers/mmc/host/mtk-sd.c b/drivers/mmc/host/mtk-sd.c
 index 632775217d35c..d5a9c269d4926 100644
 --- a/drivers/mmc/host/mtk-sd.c
@@ -47259,7 +47334,7 @@ index 02a44d28bdafc..ab23da2120b94 100644
 +	smb311_server_values.max_credits = sz;
 +}
 diff --git a/fs/ksmbd/smb2pdu.c b/fs/ksmbd/smb2pdu.c
-index b8b3a4c28b749..32300bd6af7ab 100644
+index b8b3a4c28b749..1ff1e52f398fc 100644
 --- a/fs/ksmbd/smb2pdu.c
 +++ b/fs/ksmbd/smb2pdu.c
 @@ -299,16 +299,15 @@ int smb2_set_rsp_credits(struct ksmbd_work *work)
@@ -47398,6 +47473,15 @@ index b8b3a4c28b749..32300bd6af7ab 100644
  	}
  
  binding_session:
+@@ -2687,7 +2688,7 @@ int smb2_open(struct ksmbd_work *work)
+ 					(struct create_posix *)context;
+ 				if (le16_to_cpu(context->DataOffset) +
+ 				    le32_to_cpu(context->DataLength) <
+-				    sizeof(struct create_posix)) {
++				    sizeof(struct create_posix) - 4) {
+ 					rc = -EINVAL;
+ 					goto err_out1;
+ 				}
 diff --git a/fs/ksmbd/smb2pdu.h b/fs/ksmbd/smb2pdu.h
 index 4a3e4339d4c4f..725b800c29c8a 100644
 --- a/fs/ksmbd/smb2pdu.h
@@ -48200,6 +48284,24 @@ index f011e4c407f2e..bbc22fad8d802 100644
  	uint64_t			id;
  	atomic_t			karma;
  	enum drm_sched_priority		s_priority;
+diff --git a/include/linux/ata.h b/include/linux/ata.h
+index 199e47e97d645..21292b5bbb550 100644
+--- a/include/linux/ata.h
++++ b/include/linux/ata.h
+@@ -324,12 +324,12 @@ enum {
+ 	ATA_LOG_NCQ_NON_DATA	= 0x12,
+ 	ATA_LOG_NCQ_SEND_RECV	= 0x13,
+ 	ATA_LOG_IDENTIFY_DEVICE	= 0x30,
++	ATA_LOG_CONCURRENT_POSITIONING_RANGES = 0x47,
+ 
+ 	/* Identify device log pages: */
+ 	ATA_LOG_SECURITY	  = 0x06,
+ 	ATA_LOG_SATA_SETTINGS	  = 0x08,
+ 	ATA_LOG_ZONED_INFORMATION = 0x09,
+-	ATA_LOG_CONCURRENT_POSITIONING_RANGES = 0x47,
+ 
+ 	/* Identify device SATA settings log:*/
+ 	ATA_LOG_DEVSLP_OFFSET	  = 0x30,
 diff --git a/include/linux/blk-pm.h b/include/linux/blk-pm.h
 index b80c65aba2493..2580e05a8ab67 100644
 --- a/include/linux/blk-pm.h
@@ -55254,6 +55356,53 @@ index 1e99ba1b9d723..008f1b05a7a9f 100644
  	return xprt;
  }
  
+diff --git a/net/tipc/link.c b/net/tipc/link.c
+index 09ae8448f394f..4e7936d9b4424 100644
+--- a/net/tipc/link.c
++++ b/net/tipc/link.c
+@@ -2199,7 +2199,7 @@ static int tipc_link_proto_rcv(struct tipc_link *l, struct sk_buff *skb,
+ 	struct tipc_msg *hdr = buf_msg(skb);
+ 	struct tipc_gap_ack_blks *ga = NULL;
+ 	bool reply = msg_probe(hdr), retransmitted = false;
+-	u16 dlen = msg_data_sz(hdr), glen = 0;
++	u32 dlen = msg_data_sz(hdr), glen = 0;
+ 	u16 peers_snd_nxt =  msg_next_sent(hdr);
+ 	u16 peers_tol = msg_link_tolerance(hdr);
+ 	u16 peers_prio = msg_linkprio(hdr);
+@@ -2213,6 +2213,10 @@ static int tipc_link_proto_rcv(struct tipc_link *l, struct sk_buff *skb,
+ 	void *data;
+ 
+ 	trace_tipc_proto_rcv(skb, false, l->name);
++
++	if (dlen > U16_MAX)
++		goto exit;
++
+ 	if (tipc_link_is_blocked(l) || !xmitq)
+ 		goto exit;
+ 
+@@ -2308,7 +2312,8 @@ static int tipc_link_proto_rcv(struct tipc_link *l, struct sk_buff *skb,
+ 
+ 		/* Receive Gap ACK blocks from peer if any */
+ 		glen = tipc_get_gap_ack_blks(&ga, l, hdr, true);
+-
++		if(glen > dlen)
++			break;
+ 		tipc_mon_rcv(l->net, data + glen, dlen - glen, l->addr,
+ 			     &l->mon_state, l->bearer_id);
+ 
+diff --git a/net/tipc/monitor.c b/net/tipc/monitor.c
+index 407619697292f..2f4d23238a7e3 100644
+--- a/net/tipc/monitor.c
++++ b/net/tipc/monitor.c
+@@ -496,6 +496,8 @@ void tipc_mon_rcv(struct net *net, void *data, u16 dlen, u32 addr,
+ 	state->probing = false;
+ 
+ 	/* Sanity check received domain record */
++	if (new_member_cnt > MAX_MON_DOMAIN)
++		return;
+ 	if (dlen < dom_rec_len(arrv_dom, 0))
+ 		return;
+ 	if (dlen != dom_rec_len(arrv_dom, new_member_cnt))
 diff --git a/net/unix/garbage.c b/net/unix/garbage.c
 index 12e2ddaf887f2..d45d5366115a7 100644
 --- a/net/unix/garbage.c
