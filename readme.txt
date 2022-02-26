@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-February 24,2022
+February 27,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -24,9 +24,9 @@ $ cd patches
 $ ./build_noir_patch.sh -e pds
 
 
-◯TTの場合
+◯CFS/低レイテンシーの場合
 $ cd patches
-$ ./build_noir_patch.sh -e TT
+$ ./build_noir_patch.sh -e LL
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
 $ ./build.sh -e base
@@ -35,7 +35,7 @@ $ ./build.sh -e base
 $ ./build.sh -e core
 
 - Built on the GCC 11.1.0
-- CPU scheduler -> PDS
+- CPU scheduler -> CFS
 - Default I/O scheduler -> Kyber
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
@@ -55,7 +55,10 @@ $ ./build.sh -e core
 - spadfs support
 - futex support
 - PCIe ACS support
-- TT scheduler support(option)
+- OpenRGB support
+- Zen Interactive Tune support
+- CK's hightimer support
+- PDS/BMQ CPU scheduler support(option)
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
@@ -64,15 +67,6 @@ $ ./build.sh -e core
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://ck.kolivas.org/patches/5.0/5.12/5.12-ck1/patches/ )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
-
-◇TT schedulerのレスポンス向上コマンド
-$ sudo sysctl kernel.sched_interactivity_factor=50
-$ sudo sysctl kernel.sched_max_lifetime_ms=60000
-
-永続化したい場合は、/etc/sysctl.d/90-override.confに以下を追加
-
-kernel.sched_interactivity_factor=50
-kernel.sched_max_lifetime_ms=60000
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。

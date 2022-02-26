@@ -10,7 +10,7 @@ index 51540b291738..ab8c480660a6 100644
  PHONY := __all
  __all:
  
-+NRVERSION = -noir
++NRVERSION = -noir-v1
 +NRNAME =  With Extra patchsets
 +EXTRAVERSION := $(EXTRAVERSION)$(NRVERSION)
 +
@@ -35,25 +35,6 @@ index 0a55c7aa9249f..214ca53eed6ca 100644
  
  /*
 
-Subject: [PATCH]Disable alternative schedulers by default
-
----
- init/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/init/Kconfig b/init/Kconfig
-index 9a9b244d3ca34d..0965c9ff99c06b 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -788,7 +788,7 @@ menu "Scheduler features"
- 
- menuconfig SCHED_ALT
- 	bool "Alternative CPU Schedulers"
--	default y
-+	default n
- 	help
- 	  This feature enable alternative CPU scheduler"
-
 Subject: [PATCH]change config 
 diff --git a/init/Kconfig b/init/Kconfig
 index 9a9b244d3ca34d..0965c9ff99c06b 100644
@@ -68,14 +49,6 @@ index 9a9b244d3ca34d..0965c9ff99c06b 100644
  	depends on HAVE_KERNEL_GZIP || HAVE_KERNEL_BZIP2 || HAVE_KERNEL_LZMA || HAVE_KERNEL_XZ || HAVE_KERNEL_LZO || HAVE_KERNEL_LZ4 || HAVE_KERNEL_ZSTD || HAVE_KERNEL_UNCOMPRESSED
  	help
  	  The linux kernel is a kind of self-extracting executable.
-@@ -328,6 +328,7 @@
- 
- config KERNEL_ZSTD_LEVEL_ULTRA
-     bool "Ultra compression"
-+    default y
-     help
-         Selecting this overrides the chosen compression level and enables
-         the highest possible compression level for zstd (ultra-22).
 @@ -1437,7 +1438,7 @@
  
  choice
