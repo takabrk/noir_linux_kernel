@@ -11,7 +11,7 @@ do
   esac
 done
 VERSIONBASE="5.16"
-VERSIONPOINT="5.16.11"
+VERSIONPOINT="5.16.12"
 
 case $e_num in
     base)
