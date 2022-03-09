@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#March 2,2022
+#March 9,2022
 
-VERSIONPOINT="5.16.12"
+VERSIONPOINT="5.16.13"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
