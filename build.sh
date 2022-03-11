@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#March 9,2022
+#March 11,2022
 
 while getopts e: OPT
 do
@@ -11,7 +11,7 @@ do
   esac
 done
 VERSIONBASE="5.16"
-VERSIONPOINT="5.16.13"
+VERSIONPOINT="5.16.14"
 
 case $e_num in
     base)
