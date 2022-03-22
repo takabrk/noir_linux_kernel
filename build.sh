@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#March 17,2022
+#March 22,2022
 
 while getopts e: OPT
 do
@@ -11,7 +11,9 @@ do
   esac
 done
 VERSIONBASE="5.16"
-VERSIONPOINT="5.16.15"
+VERSIONPOINT="5.16.16"
+VERSIONBASE2="5.17"
+VERSIONPOINT2="5.17"
 
 case $e_num in
     base)
@@ -20,10 +22,6 @@ case $e_num in
            #wget https://git.kernel.org/torvalds/t/linux-$VERSIONBASE.tar.gz
            #tar -zxvf linux-$VERSIONBASE.tar.gz
            cd linux-$VERSIONBASE
-           #cp -a ../patches/other/REPORTING-BUGS ./
-           #cp -a ../patches/aufs5/Documentation ./
-           #cp -a ../patches/aufs5/fs ./
-           #cp -a ../patches/aufs5/include ./
            patch -p1 < ../patches/noir.patch
            cd ../
            mv linux-$VERSIONBASE linux-$VERSIONPOINT-noir
@@ -46,6 +44,37 @@ case $e_num in
            cd ../
            #zip -r linux-$VERSIONPOINT-noir.zip linux-$VERSIONPOINT-noir
            sudo rm -r linux-$VERSIONPOINT-noir
+           sudo dpkg -i *.deb
+           sudo update-grub
+           ;;
+    base2)
+           wget https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/linux-$VERSIONBASE2.tar.xz
+           tar -Jxvf linux-$VERSIONBASE2.tar.xz
+           #wget https://git.kernel.org/torvalds/t/linux-$VERSIONBASE2.tar.gz
+           #tar -zxvf linux-$VERSIONBASE2.tar.gz
+           cd linux-$VERSIONBASE2
+           patch -p1 < ../patches/noir.patch
+           cd ../
+           mv linux-$VERSIONBASE2 linux-$VERSIONPOINT2-noir
+           #rm -r linux-$VERSIONBASE2.tar.gz
+           rm -r linux-$VERSIONBASE2.tar.xz
+           ;;
+    core2)
+           cd linux-$VERSIONPOINT2-noir
+           make xconfig
+           sudo make-kpkg clean
+           time sudo make-kpkg -j3 --initrd linux_image linux_headers
+           #cd linux-$VERSIONBASE2-noir
+           #sudo make modules_install -j4
+           #cd ../
+           #rm -r linux_modules
+           #mkdir linux_modules
+           #cd linux-$VERSIONPOINT2-noir
+           #make INSTALL_MOD_PATH=../linux_modules modules_install -j4
+           sudo make-kpkg clean
+           cd ../
+           #zip -r linux-$VERSIONPOINT2-noir.zip linux-$VERSIONPOINT2-noir
+           sudo rm -r linux-$VERSIONPOINT2-noir
            sudo dpkg -i *.deb
            sudo update-grub
            ;;

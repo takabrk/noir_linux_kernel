@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-March 17,2022
+March 22,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -19,20 +19,27 @@ $ ./performanceup.sh
 noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
 ◇Noir Linux Kernelパッチの組み立て（基本的には既にnoir.patchは作成済みであるので、使う必要なし）
-◯PDSの場合
+◯Linux 5.16系の場合
 $ cd patches
-$ ./build_noir_patch.sh -e pds
+$ ./build_noir_patch.sh -e 516
 
-
-◯CFS/低レイテンシーの場合
+◯Linux 5.17系の場合
 $ cd patches
-$ ./build_noir_patch.sh -e LL
+$ ./build_noir_patch.sh -e 517
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
+- Linux 5.16系のソースコード取得・パッチ当て
 $ ./build.sh -e base
 
+- Linux 5.17系のソースコード取得・パッチ当て
+$ ./build.sh -e base2
+
 ◇前述を行った後にカスタムカーネルのビルドとインストール
+- Linux 5.16系のビルド・インストール
 $ ./build.sh -e core
+
+- Linux 5.17系のビルド・インストール
+$ ./build.sh -e core2
 
 - Built on the GCC 11.1.0
 - CPU scheduler -> CFS
@@ -58,12 +65,9 @@ $ ./build.sh -e core
 - OpenRGB support
 - Zen Interactive Tune support
 - CK's hightimer support
-- PDS/BMQ CPU scheduler support(option)
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
-- Project C( https://gitlab.com/alfredchen/projectc )
-- TT scheduler( https://github.com/hamadmarri/TT-CPU-Scheduler )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - CK's hrtimer patchset( http://ck.kolivas.org/patches/5.0/5.12/5.12-ck1/patches/ )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
