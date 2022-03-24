@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#March 23,2022
+#March 24,2022
 
 while getopts e: OPT
 do

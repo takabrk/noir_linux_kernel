@@ -1,6 +1,6 @@
-From d7e2ec738dfced3f1be4a52fead944d0aff059db Mon Sep 17 00:00:00 2001
+From d1e4408419cbd94fd686d66542ebdef551cd4d37 Mon Sep 17 00:00:00 2001
 From: Piotr Gorski <lucjan.lucjanov@gmail.com>
-Date: Mon, 21 Mar 2022 14:37:12 +0100
+Date: Tue, 22 Mar 2022 14:17:12 +0100
 Subject: [PATCH] UKSM for 5.17
 
 Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
@@ -21,10 +21,10 @@ Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
  mm/Makefile                 |    3 +-
  mm/ksm.c                    |   11 -
  mm/memory.c                 |   33 +-
- mm/mmap.c                   |   36 +
+ mm/mmap.c                   |   28 +
  mm/uksm.c                   | 5620 +++++++++++++++++++++++++++++++++++
  mm/vmstat.c                 |    3 +
- 19 files changed, 6544 insertions(+), 26 deletions(-)
+ 19 files changed, 6536 insertions(+), 26 deletions(-)
  create mode 100644 Documentation/vm/uksm.txt
  create mode 100644 include/linux/sradix-tree.h
  create mode 100644 include/linux/uksm.h
@@ -1173,7 +1173,7 @@ index c125c4969..0c1a9f527 100644
  		}
  		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
 diff --git a/mm/mmap.c b/mm/mmap.c
-index f61a15474..45903fe27 100644
+index f61a15474..7f9aed96e 100644
 --- a/mm/mmap.c
 +++ b/mm/mmap.c
 @@ -47,6 +47,7 @@
@@ -1291,31 +1291,16 @@ index f61a15474..45903fe27 100644
  out:
  	perf_event_mmap(vma);
  	mm->total_vm += len >> PAGE_SHIFT;
-@@ -3156,6 +3180,11 @@ void exit_mmap(struct mm_struct *mm)
- 
- 		set_bit(MMF_OOM_SKIP, &mm->flags);
+@@ -3187,6 +3211,8 @@ void exit_mmap(struct mm_struct *mm)
+ 		cond_resched();
  	}
-+	/*
-+	 * Taking write lock on mmap does not harm others,
-+	 * but it's crucial for uksm to avoid races.
-+	 */
-+	mmap_write_lock(mm);
- 
- 	mmap_write_lock(mm);
- 	if (mm->locked_vm)
-@@ -3189,6 +3218,11 @@ void exit_mmap(struct mm_struct *mm)
  	mm->mmap = NULL;
- 	mmap_write_unlock(mm);
- 	vm_unacct_memory(nr_accounted);
-+
-+	mm->mmap = NULL;
 +	mm->mm_rb = RB_ROOT;
 +	vmacache_invalidate(mm);
-+	mmap_write_unlock(mm);
+ 	mmap_write_unlock(mm);
+ 	vm_unacct_memory(nr_accounted);
  }
- 
- /* Insert vm structure into process list sorted by address
-@@ -3296,6 +3330,7 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
+@@ -3296,6 +3322,7 @@ struct vm_area_struct *copy_vma(struct vm_area_struct **vmap,
  			new_vma->vm_ops->open(new_vma);
  		vma_link(mm, new_vma, prev, rb_link, rb_parent);
  		*need_rmap_locks = false;
@@ -1323,7 +1308,7 @@ index f61a15474..45903fe27 100644
  	}
  	return new_vma;
  
-@@ -3460,6 +3495,7 @@ static struct vm_area_struct *__install_special_mapping(
+@@ -3460,6 +3487,7 @@ static struct vm_area_struct *__install_special_mapping(
  	vm_stat_account(mm, vma->vm_flags, len >> PAGE_SHIFT);
  
  	perf_event_mmap(vma);

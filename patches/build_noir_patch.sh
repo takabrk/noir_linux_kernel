@@ -66,6 +66,7 @@ cat ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
       other516/0003-block-set-rq_affinity-2-for-full-multithreading-I-O.patch \
       other517/0004-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
       other517/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
+      other517/zen.patch \
       noir_base/noir_base.patch \
       noir_base/custom_config.patch \
       > noir.patch
