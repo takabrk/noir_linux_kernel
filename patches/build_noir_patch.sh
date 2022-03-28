@@ -1,10 +1,10 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#March 23,2022
+#March 28,2022
 
 VERSIONPOINT="5.16.17"
-VERSIONPOINT2="5.17"
+VERSIONPOINT2="5.17.1"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -48,10 +48,10 @@ cat   linux/patch-$VERSIONPOINT \
       noir_base/custom_config.patch \
       > noir.patch
 ;;
-#linux/patch-$VERSIONPOINT2 \
 
 517)
-cat ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
+cat linux/patch-$VERSIONPOINT2 \
+      ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
       ck1/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch \
       ck1/0006-Convert-msleep-to-use-hrtimers-when-active.patch \
       ck1/0008-Replace-all-calls-to-schedule_timeout_interruptible-.patch \
