@@ -1,12 +1,12 @@
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-04-14 10:18:45.720040186 +0900
-+++ noir_base/.config	2022-03-24 13:01:18.560324000 +0900
+--- /dev/null	2022-04-20 07:55:49.517380098 +0900
++++ noir_base/.config	2022-04-14 13:52:11.784163000 +0900
 @@ -0,0 +1,10651 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
-+# Linux/x86 5.17.0-noir Kernel Configuration
++# Linux/x86 5.17.3-noir Kernel Configuration
 +#
 +CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 11.1.0-1ubuntu1~20.04) 11.1.0"
 +CONFIG_CC_IS_GCC=y
@@ -3171,7 +3171,7 @@ index 000000000000..dcbcaa389249
 +# CONFIG_NET_DSA_XRS700X_I2C is not set
 +# CONFIG_NET_DSA_XRS700X_MDIO is not set
 +CONFIG_NET_DSA_QCA8K=m
-+CONFIG_NET_DSA_REALTEK_SMI=m
++# CONFIG_NET_DSA_REALTEK is not set
 +CONFIG_NET_DSA_SMSC_LAN9303=m
 +CONFIG_NET_DSA_SMSC_LAN9303_I2C=m
 +CONFIG_NET_DSA_SMSC_LAN9303_MDIO=m
