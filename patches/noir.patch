@@ -95835,7 +95835,7 @@ index 51540b291738..ab8c480660a6 100644
  PHONY := __all
  __all:
  
-+NRVERSION = -noir
++NRVERSION = -noir-v1
 +NRNAME =  With Extra patchsets
 +EXTRAVERSION := $(EXTRAVERSION)$(NRVERSION)
 +
@@ -95886,12 +95886,12 @@ index 9a9b244d3ca34d..0965c9ff99c06b 100644
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-04-20 07:55:49.517380098 +0900
-+++ noir_base/.config	2022-04-14 13:52:11.784163000 +0900
+--- /dev/null	2022-04-25 22:49:41.814709721 +0900
++++ noir_base/.config	2022-04-20 17:38:49.602759000 +0900
 @@ -0,0 +1,10651 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
-+# Linux/x86 5.17.3-noir Kernel Configuration
++# Linux/x86 5.17.4-noir Kernel Configuration
 +#
 +CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 11.1.0-1ubuntu1~20.04) 11.1.0"
 +CONFIG_CC_IS_GCC=y

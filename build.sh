@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#April 20,2022
+#April 26,2022
 
 while getopts e: OPT
 do
@@ -28,7 +28,7 @@ case $e_num in
            ;;
     core)
            cd linux-$VERSIONPOINT-noir
-           make xconfig
+           make menuconfig
            sudo make-kpkg clean
            time sudo make-kpkg -j3 --initrd linux_image linux_headers
            #cd linux-$VERSIONBASE-noir
