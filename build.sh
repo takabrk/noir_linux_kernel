@@ -29,6 +29,7 @@ case $e_num in
     core)
            cd linux-$VERSIONPOINT-noir
            make menuconfig
+           #make xconfig
            sudo make-kpkg clean
            time sudo make-kpkg -j3 --initrd linux_image linux_headers
            #cd linux-$VERSIONBASE-noir
