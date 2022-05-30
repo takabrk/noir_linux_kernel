@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-May 26,2022
+May 30,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -46,10 +46,7 @@ $ ./build.sh -e core
 - nr_migrate = 256
 - rq_affinity = 2
 - vm_swappiness = 33
-- UKSM support
-- BBR2 support
 - clear linux on
-- spadfs support
 - futex support
 - PCIe ACS support
 - OpenRGB support
