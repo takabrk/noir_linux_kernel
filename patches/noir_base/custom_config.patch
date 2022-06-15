@@ -1,12 +1,12 @@
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-06-10 05:34:43.604052656 +0900
-+++ noir_base/.config	2022-05-30 19:08:28.433593000 +0900
-@@ -0,0 +1,10712 @@
+--- /dev/null	2022-06-15 11:59:28.952072693 +0900
++++ noir_base/.config	2022-06-10 05:53:12.118746000 +0900
+@@ -0,0 +1,10713 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
-+# Linux/x86 5.18.0-noir Kernel Configuration
++# Linux/x86 5.18.3-noir Kernel Configuration
 +#
 +CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 11.2.0-19ubuntu1) 11.2.0"
 +CONFIG_CC_IS_GCC=y
@@ -2385,6 +2385,7 @@ index 000000000000..dcbcaa389249
 +CONFIG_EFI_DEV_PATH_PARSER=y
 +CONFIG_EFI_EARLYCON=y
 +CONFIG_EFI_CUSTOM_SSDT_OVERLAYS=y
++# CONFIG_EFI_DISABLE_RUNTIME is not set
 +
 +#
 +# Tegra firmware driver
@@ -5868,7 +5869,7 @@ index 000000000000..dcbcaa389249
 +CONFIG_DVB_BUDGET_AV=m
 +CONFIG_VIDEO_IPU3_CIO2=m
 +# CONFIG_CIO2_BRIDGE is not set
-+CONFIG_RADIO_ADAPTERS=y
++CONFIG_RADIO_ADAPTERS=m
 +CONFIG_RADIO_MAXIRADIO=m
 +CONFIG_RADIO_SAA7706H=m
 +CONFIG_RADIO_SHARK=m
