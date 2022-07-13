@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#July 8,2022
+#July 13,2022
 
-VERSIONPOINT="5.18.10"
+VERSIONPOINT="5.18.11"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -23,13 +23,7 @@ done
 case $e_num in
 518)
 cat linux/patch-$VERSIONPOINT \
-      ck1/0004-Create-highres-timeout-variants-of-schedule_timeout-.patch \
-      ck1/0005-Special-case-calls-of-schedule_timeout-1-to-use-the-.patch \
-      ck1/0006-Convert-msleep-to-use-hrtimers-when-active.patch \
-      ck1/0008-Replace-all-calls-to-schedule_timeout_interruptible-.patch \
-      ck1/0009-Replace-all-calls-to-schedule_timeout_uninterruptibl.patch \
-      ck1/0010-Don-t-use-hrtimer-overlay-when-pm_freezing-since-som.patch \
-      ck1/0014-Swap-sucks.patch \
+      other518/0001-bcachefs-5.18-introduce-bcachefs-patchset.patch \
       other518/0001-clearlinux-patches.patch \
       other518/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
       other518/0004-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
