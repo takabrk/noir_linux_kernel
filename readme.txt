@@ -31,7 +31,7 @@ $ ./build.sh -e base
 $ ./build.sh -e core
 
 
-- Built on the GCC 11.1.0
+- Built on the GCC 11.2.0
 - CPU scheduler -> CFS
 - Default I/O scheduler -> Kyber
 - Processor family -> Generic X86_64
@@ -51,7 +51,8 @@ $ ./build.sh -e core
 - PCIe ACS support
 - OpenRGB support
 - Zen Interactive Tune support
-- CK's hightimer support
+- Core scheduling for SMT ON
+- bcache support
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
