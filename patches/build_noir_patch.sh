@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#July 30,2022
+#August 2,2022
 
-VERSIONPOINT="5.18.15"
+VERSIONPOINT="5.19"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -20,15 +20,16 @@ do
 done
 
 #build noir.patch
+#linux/patch-$VERSIONPOINT \
+      #other519/0001-bcachefs-5.18-introduce-bcachefs-patchset.patch \
+      #other519/0001-clearlinux-patches.patch \
+      #other519/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
+      #other519/0004-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
+      #other519/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
 case $e_num in
-518)
-cat linux/patch-$VERSIONPOINT \
-      other518/0001-bcachefs-5.18-introduce-bcachefs-patchset.patch \
-      other518/0001-clearlinux-patches.patch \
-      other518/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
-      other518/0004-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
-      other518/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
-      other518/zen.patch \
+519)
+cat  other519/zen.patch \
+     other519/zen_sub.patch \
       noir_base/noir_base.patch \
       noir_base/custom_config.patch \
       > noir.patch
