@@ -21,15 +21,13 @@ done
 
 #build noir.patch
 #linux/patch-$VERSIONPOINT \
-      #other519/0001-bcachefs-5.18-introduce-bcachefs-patchset.patch \
-      #other519/0001-clearlinux-patches.patch \
-      #other519/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
-      #other519/0004-sched-core-nr_migrate-256-increases-number-of-tasks-.patch \
-      #other519/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
 case $e_num in
 519)
-cat  other519/zen.patch \
-     other519/zen_sub.patch \
+cat   other519/zen.patch \
+      other519/zen_sub.patch \
+      other519/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
+      other519/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
+      other519/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
       noir_base/noir_base.patch \
       noir_base/custom_config.patch \
       > noir.patch
