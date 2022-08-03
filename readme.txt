@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-August 2,2022
+August 3,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -36,7 +36,7 @@ $ ./build.sh -e core
 - Default I/O scheduler -> Kyber
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
-- Preemption Model -> Preemptible Kernel(low latency desktop)
+- Preemption Model -> Full Preemptible Kernel(low latency desktop)
 - CPU Timer frequency -> 750Hz
 - RCU boost delay -> 339
 - Compiler optimization level -> Optimize for more performance(-O3)
@@ -58,6 +58,8 @@ $ ./build.sh -e core
 - linux update patch( https://www.kernel.org/ )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
+- Xanmod( https://github.com/xanmod/linux-patches )
+- PREEMPT RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。
