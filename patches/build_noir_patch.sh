@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#August 2,2022
+#August 12,2022
 
-VERSIONPOINT="5.19"
+VERSIONPOINT="5.19.1"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -20,7 +20,6 @@ do
 done
 
 #build noir.patch
-#linux/patch-$VERSIONPOINT \
 case $e_num in
 519)
 cat   other519/zen.patch \
@@ -31,6 +30,8 @@ cat   other519/zen.patch \
       other519/patch-5.19-rt10.patch \
       noir_base/noir_base.patch \
       noir_base/custom_config.patch \
+      other519/0007-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
+      linux/patch-$VERSIONPOINT \
       > noir.patch
 ;;
 
