@@ -45,14 +45,12 @@ $ ./build.sh -e core
 - CPU idle governor -> TEO
 - nr_migrate = 256
 - rq_affinity = 2
-- vm_swappiness = 33
-- clear linux on
+- vm_swappiness = 30
 - futex support
 - PCIe ACS support
 - OpenRGB support
 - Zen Interactive Tune support
 - Core scheduling for SMT ON
-- bcache support
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
