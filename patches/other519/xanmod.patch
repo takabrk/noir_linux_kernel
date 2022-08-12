@@ -1,0 +1,174 @@
+From 1302d9b283ec1438ce95e58fa346b5cdde1a8bc3 Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <kernel@xanmod.org>
+Date: Mon, 14 Dec 2020 16:24:26 +0000
+Subject: [PATCH 04/10] XANMOD: block: set rq_affinity to force full
+ multithreading I/O requests
+
+Signed-off-by: Alexandre Frade <kernel@xanmod.org>
+---
+ include/linux/blkdev.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index 2f7b43444..651d1227d 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -578,6 +578,7 @@ struct request_queue {
+ 
+ #define QUEUE_FLAG_MQ_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
+ 				 (1 << QUEUE_FLAG_SAME_COMP) |		\
++				 (1 << QUEUE_FLAG_SAME_FORCE) |		\
+ 				 (1 << QUEUE_FLAG_NOWAIT))
+ 
+ void blk_queue_flag_set(unsigned int flag, struct request_queue *q);
+-- 
+2.37.1.377.g679aad9e82
+From de284998a774ddd91fca26d29ade00c65bab80ab Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <admfrade@gmail.com>
+Date: Mon, 29 Jan 2018 16:59:22 +0000
+Subject: [PATCH 05/10] XANMOD: dcache: cache_pressure = 50 decreases the rate
+ at which VFS caches are reclaimed
+
+Signed-off-by: Alexandre Frade <admfrade@gmail.com>
+Signed-off-by: Alexandre Frade <kernel@xanmod.org>
+---
+ fs/dcache.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 93f4f5ee0..0c29a4bde 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -71,7 +71,7 @@
+  * If no ancestor relationship:
+  * arbitrary, since it's serialized on rename_lock
+  */
+-int sysctl_vfs_cache_pressure __read_mostly = 100;
++int sysctl_vfs_cache_pressure __read_mostly = 50;
+ EXPORT_SYMBOL_GPL(sysctl_vfs_cache_pressure);
+ 
+ __cacheline_aligned_in_smp DEFINE_SEQLOCK(rename_lock);
+-- 
+2.37.1.377.g679aad9e82
+
+From 0ddd3bec5fb24beace4cea29deb5a5bec15f908f Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <kernel@xanmod.org>
+Date: Wed, 15 Jun 2022 17:07:29 +0000
+Subject: [PATCH 06/10] XANMOD: sched/autogroup: Add kernel parameter and
+ config option to enable/disable autogroup feature by default
+
+Signed-off-by: Alexandre Frade <kernel@xanmod.org>
+---
+ Documentation/admin-guide/kernel-parameters.txt |  6 ++++--
+ init/Kconfig                                    | 12 ++++++++++++
+ kernel/sched/autogroup.c                        |  9 ++++++---
+ 3 files changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 7dd12dc17..a04a00171 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -376,6 +376,10 @@
+ 	autoconf=	[IPV6]
+ 			See Documentation/networking/ipv6.rst.
+ 
++	autogroup=	[KNL] Enable or disable scheduler automatic task group
++			creation.
++			Format: <bool>
++
+ 	show_lapic=	[APIC,X86] Advanced Programmable Interrupt Controller
+ 			Limit apic dumping. The parameter defines the maximal
+ 			number of local apics being dumped. Also it is possible
+@@ -3533,8 +3537,6 @@
+ 	noapic		[SMP,APIC] Tells the kernel to not make use of any
+ 			IOAPICs that may be present in the system.
+ 
+-	noautogroup	Disable scheduler automatic task group creation.
+-
+ 	nobats		[PPC] Do not use BATs for mapping kernel lowmem
+ 			on "Classic" PPC cores.
+ 
+diff --git a/init/Kconfig b/init/Kconfig
+index ca4e43b7f..712982cbf 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1294,6 +1294,18 @@ config SCHED_AUTOGROUP
+ 	  desktop applications.  Task group autogeneration is currently based
+ 	  upon task session.
+ 
++config SCHED_AUTOGROUP_DEFAULT_ENABLED
++	bool "Enable automatic process group scheduling feature"
++	default y
++	depends on SCHED_AUTOGROUP
++	help
++	  If set, automatic process group scheduling will be enabled per
++	  default but can be disabled through passing autogroup=0 on the
++	  kernel commandline during boot or a value of 0 via the file
++	  proc/sys/kernel/sched_autogroup_enabled.
++
++	  If unsure say Y.
++
+ config SYSFS_DEPRECATED
+ 	bool "Enable deprecated sysfs features to support old userspace tools"
+ 	depends on SYSFS
+diff --git a/kernel/sched/autogroup.c b/kernel/sched/autogroup.c
+index 4ebaf97f7..934287557 100644
+--- a/kernel/sched/autogroup.c
++++ b/kernel/sched/autogroup.c
+@@ -4,7 +4,8 @@
+  * Auto-group scheduling implementation:
+  */
+ 
+-unsigned int __read_mostly sysctl_sched_autogroup_enabled = 1;
++unsigned int __read_mostly sysctl_sched_autogroup_enabled =
++		IS_ENABLED(CONFIG_SCHED_AUTOGROUP_DEFAULT_ENABLED) ? 1 : 0;
+ static struct autogroup autogroup_default;
+ static atomic_t autogroup_seq_nr;
+ 
+@@ -219,11 +220,13 @@ void sched_autogroup_exit(struct signal_struct *sig)
+ 
+ static int __init setup_autogroup(char *str)
+ {
+-	sysctl_sched_autogroup_enabled = 0;
++	unsigned long enabled;
++	if (!kstrtoul(str, 0, &enabled))
++		sysctl_sched_autogroup_enabled = enabled ? 1 : 0;
+ 
+ 	return 1;
+ }
+-__setup("noautogroup", setup_autogroup);
++__setup("autogroup=", setup_autogroup);
+ 
+ #ifdef CONFIG_PROC_FS
+ 
+-- 
+2.37.1.377.g679aad9e82
+
+From 940c833a75f2686d638ac0a7a92b35d90ab493bc Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <admfrade@gmail.com>
+Date: Mon, 29 Jan 2018 17:31:25 +0000
+Subject: [PATCH 07/10] XANMOD: mm/vmscan: vm_swappiness = 30 decreases the
+ amount of swapping
+
+Signed-off-by: Alexandre Frade <admfrade@gmail.com>
+Signed-off-by: Alexandre Frade <kernel@xanmod.org>
+---
+ mm/vmscan.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index cd9d3535a..c501775e3 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -176,7 +176,7 @@ struct scan_control {
+ /*
+  * From 0 .. 200.  Higher means more swappy.
+  */
+-int vm_swappiness = 60;
++int vm_swappiness = 30;
+ 
+ static void set_task_reclaim_state(struct task_struct *task,
+ 				   struct reclaim_state *rs)
+-- 
+2.37.1.377.g679aad9e82
+

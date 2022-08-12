@@ -22,17 +22,16 @@ done
 #build noir.patch
 case $e_num in
 519)
-cat   other519/zen.patch \
-      other519/zen_sub.patch \
-      other519/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
-      other519/0001-LL-kconfig-add-750Hz-timer-interrupt-kernel-config-o.patch \
-      other519/0005-mm-set-8-megabytes-for-address_space-level-file-read.patch \
-      other519/patch-5.19-rt10.patch \
-      noir_base/noir_base.patch \
-      noir_base/custom_config.patch \
-      other519/0007-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
-      linux/patch-$VERSIONPOINT \
-      > noir.patch
+cat noir_base/noir_base.patch \
+    noir_base/custom_config.patch \
+    other519/zen_interactive_tune.patch \
+    other519/zen_other.patch \
+    other519/LL.patch \
+    other519/xanmod.patch \
+    other519/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
+    other519/patch-5.19-rt10.patch \
+    linux/patch-$VERSIONPOINT \
+    > noir.patch
 ;;
 
 esac
