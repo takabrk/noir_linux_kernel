@@ -31,6 +31,7 @@ cat noir_base/noir_base.patch \
     other519/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
     other519/patch-5.19-rt10.patch \
     linux/patch-$VERSIONPOINT \
+    other519/MGLRU.patch \
     > noir.patch
 ;;
 
