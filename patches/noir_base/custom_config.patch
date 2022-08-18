@@ -1,12 +1,12 @@
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-08-16 09:24:26.646739193 +0900
-+++ noir_base/.config	2022-08-12 10:34:30.250435000 +0900
+--- /dev/null	2022-08-18 09:38:59.110724738 +0900
++++ noir_base/.config	2022-08-16 10:45:00.298748000 +0900
 @@ -0,0 +1,10779 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
-+# Linux/x86 5.19.1-noir-v2 Kernel Configuration
++# Linux/x86 5.19.1-noir-v3 Kernel Configuration
 +#
 +CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 11.2.0-19ubuntu1) 11.2.0"
 +CONFIG_CC_IS_GCC=y
