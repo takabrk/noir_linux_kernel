@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-August 26,2022
+August 28,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -59,6 +59,7 @@ $ ./build.sh -e core
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
 - Xanmod( https://github.com/xanmod/linux-patches )
 - PREEMPT RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
+- sched/fair: Avoid unnecessary migrations within SMT domains( https://lore.kernel.org/lkml/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com/T/ )
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。

@@ -1,7 +1,7 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#August 26,2022
+#August 28,2022
 
 VERSIONPOINT="5.19.4"
 NOIR_VERSION="noir"
@@ -32,6 +32,7 @@ cat noir_base/noir_base.patch \
     other519/patch-5.19-rt10.patch \
     linux/patch-$VERSIONPOINT \
     other519/MGLRU.patch \
+    other519/sched_fair_Avoid_unnecessary_migrations_within_SMT_domains.patch \
     > noir.patch
 ;;
 
