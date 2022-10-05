@@ -19,9 +19,9 @@ $ ./performanceup.sh
 noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
 ◇Noir Linux Kernelパッチの組み立て（基本的には既にnoir.patchは作成済みであるので、使う必要なし）
-◯Linux 5.19系の場合
+◯Linux 6.0系の場合
 $ cd patches
-$ ./build_noir_patch.sh -e 519
+$ ./build_noir_patch.sh -e 600
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
 - ソースコード取得・パッチ当て
@@ -39,7 +39,6 @@ $ ./build.sh -e core
 - Preemption Model -> Full Preemptible Kernel(low latency desktop)
 - CPU Timer frequency -> 750Hz
 - RCU boost delay -> 339
-- Compiler optimization level -> Optimize for more performance(-O3)
 - Timer tick handling -> Full dynticks system
 - Default CPUFreq Governor -> schedutil
 - CPU idle governor -> TEO
@@ -51,15 +50,12 @@ $ ./build.sh -e core
 - OpenRGB support
 - Zen Interactive Tune support
 - Core scheduling for SMT ON
-- Multi gen LRU support
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
 - sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
-- Xanmod( https://github.com/xanmod/linux-patches )
 - PREEMPT RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
-- sched/fair: Avoid unnecessary migrations within SMT domains( https://lore.kernel.org/lkml/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com/T/ )
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。
