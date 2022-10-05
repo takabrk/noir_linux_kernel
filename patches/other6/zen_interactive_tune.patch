@@ -1,0 +1,225 @@
+From 09cfea0a5c42c170abffc02e56023c0d7c1fb152 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:10:06 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Base config item
+
+---
+ init/Kconfig | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 1a3c8951d24cb..c66ca9376c5ab 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -112,6 +112,12 @@ config THREAD_INFO_IN_TASK
+ 
+ menu "General setup"
+ 
++config ZEN_INTERACTIVE
++	bool "Tune kernel for interactivity"
++	default y
++	help
++	  Tunes the kernel for responsiveness at the cost of throughput and power usage.
++
+ config BROKEN
+ 	bool
+ 
+From 787639e257de22f8b9647eeec421ff99d257de58 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:21:09 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Enable background reclaim of hugepages
+
+Use [defer+madvise] as default khugepaged defrag strategy:
+
+For some reason, the default strategy to respond to THP fault fallbacks
+is still just madvise, meaning stall if the program wants transparent
+hugepages, but don't trigger a background reclaim / compaction if THP
+begins to fail allocations.  This creates a snowball affect where we
+still use the THP code paths, but we almost always fail once a system
+has been active and busy for a while.
+
+The option "defer" was created for interactive systems where THP can
+still improve performance.  If we have to fallback to a regular page due
+to an allocation failure or anything else, we will trigger a background
+reclaim and compaction so future THP attempts succeed and previous
+attempts eventually have their smaller pages combined without stalling
+running applications.
+
+We still want madvise to stall applications that explicitely want THP,
+so defer+madvise _does_ make a ton of sense.  Make it the default for
+interactive systems, especially if the kernel maintainer left
+transparent hugepages on "always".
+
+Reasoning and details in the original patch: https://lwn.net/Articles/711248/
+---
+ init/Kconfig     | 4 ++++
+ mm/huge_memory.c | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 763f167b3f4843..1492239b80d9ef 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -123,6 +123,10 @@ config ZEN_INTERACTIVE
+ 	    Default scheduler for SQ..: mq-deadline -> bfq
+ 	    Default scheduler for MQ..:        none -> kyber
+ 
++	  --- Virtual Memory Subsystem ---------------------------
++
++	    Background-reclaim hugepages...:   no   ->   yes
++
+ config BROKEN
+ 	bool
+ 
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index f42bb51e023a03..9dd1a01b8eca11 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -60,7 +60,11 @@ unsigned long transparent_hugepage_flags __read_mostly =
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE_MADVISE
+ 	(1<<TRANSPARENT_HUGEPAGE_REQ_MADV_FLAG)|
+ #endif
++#ifdef CONFIG_ZEN_INTERACTIVE
++	(1<<TRANSPARENT_HUGEPAGE_DEFRAG_KSWAPD_OR_MADV_FLAG)|
++#else
+ 	(1<<TRANSPARENT_HUGEPAGE_DEFRAG_REQ_MADV_FLAG)|
++#endif
+ 	(1<<TRANSPARENT_HUGEPAGE_DEFRAG_KHUGEPAGED_FLAG)|
+ 	(1<<TRANSPARENT_HUGEPAGE_USE_ZERO_PAGE_FLAG);
+ 
+
+From da126add4e0188b794094251278509aa8da92173 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:28:13 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Tune CFS for interactivity
+
+5.7:
+Take "sysctl_sched_nr_migrate" tune from early XanMod builds of 128. As
+of 5.7, XanMod uses 256 but that may affect applications that require
+timely response to IRQs.
+
+5.15:
+Per comment [1] on our ZEN INTERACTIVE commit, reducing the cost of
+migration causes the system less responsive under high load.  Most
+likely the combination of reduced migration cost + the higher number of
+tasks that can be migrated at once contributes to this.
+
+To better handle this situation, restore the mainline migration cost
+value and also reduce the max number of tasks that can be migrated in
+batch from 128 to 64.
+
+If this doesn't help, we'll restore the reduced migration cost and keep
+total number of tasks that can be migrated at once to 32.
+
+[1] https://github.com/zen-kernel/zen-kernel/commit/be5ba234ca0a5aabe74bfc7e1f636f085bd3823c#commitcomment-63159674
+---
+ init/Kconfig        |  8 ++++++++
+ kernel/sched/core.c |  4 +++-
+ kernel/sched/fair.c | 23 +++++++++++++++++++++++
+ 3 files changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index f637fa63130025..df90cfea491697 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -128,6 +128,14 @@ config ZEN_INTERACTIVE
+ 	    Background-reclaim hugepages...:   no   ->   yes
+ 	    MG-LRU minimum cache TTL.......:   0    ->   1000 ms
+ 
++	  --- CFS CPU Scheduler ----------------------------------
++
++	    Scheduling latency.............:   6    ->   4    ms
++	    Minimal granularity............:   0.75 ->   0.4  ms
++	    Wakeup granularity.............:   1    ->   0.5  ms
++	    Bandwidth slice size...........:   5    ->   3    ms
++	    Task rebalancing threshold.....:  32    ->  64
++
+ config BROKEN
+ 	bool
+ 
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index ee28253c9ac0c2..4f709eb1b45dc2 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -142,7 +142,9 @@ __read_mostly int sysctl_resched_latency_warn_once = 1;
+  * Number of tasks to iterate in a single balance run.
+  * Limited because this is done with IRQs disabled.
+  */
+-#ifdef CONFIG_PREEMPT_RT
++#ifdef CONFIG_ZEN_INTERACTIVE
++const_debug unsigned int sysctl_sched_nr_migrate = 64;
++#elif defined(CONFIG_PREEMPT_RT)
+ const_debug unsigned int sysctl_sched_nr_migrate = 8;
+ #else
+ const_debug unsigned int sysctl_sched_nr_migrate = 32;
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 914096c5b1ae1e..6b00fd116af78a 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -68,8 +68,13 @@
+  *
+  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++unsigned int sysctl_sched_latency			= 4000000ULL;
++static unsigned int normalized_sysctl_sched_latency	= 4000000ULL;
++#else
+ unsigned int sysctl_sched_latency			= 6000000ULL;
+ static unsigned int normalized_sysctl_sched_latency	= 6000000ULL;
++#endif
+ 
+ /*
+  * The initial- and re-scaling of tunables is configurable
+@@ -89,8 +94,13 @@ unsigned int sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
+  *
+  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++unsigned int sysctl_sched_min_granularity			= 400000ULL;
++static unsigned int normalized_sysctl_sched_min_granularity	= 400000ULL;
++#else
+ unsigned int sysctl_sched_min_granularity			= 750000ULL;
+ static unsigned int normalized_sysctl_sched_min_granularity	= 750000ULL;
++#endif
+ 
+ /*
+  * Minimal preemption granularity for CPU-bound SCHED_IDLE tasks.
+@@ -103,7 +113,11 @@ unsigned int sysctl_sched_idle_min_granularity			= 750000ULL;
+ /*
+  * This value is kept at sysctl_sched_latency/sysctl_sched_min_granularity
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++static unsigned int sched_nr_latency = 10;
++#else
+ static unsigned int sched_nr_latency = 8;
++#endif
+ 
+ /*
+  * After fork, child runs first. If set to 0 (default) then
+@@ -120,8 +134,13 @@ unsigned int sysctl_sched_child_runs_first __read_mostly;
+  *
+  * (default: 1 msec * (1 + ilog(ncpus)), units: nanoseconds)
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++unsigned int sysctl_sched_wakeup_granularity			= 500000UL;
++static unsigned int normalized_sysctl_sched_wakeup_granularity	= 500000UL;
++#else
+ unsigned int sysctl_sched_wakeup_granularity			= 1000000UL;
+ static unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
++#endif
+ 
+ const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
+ 
+@@ -174,8 +193,12 @@ int __weak arch_asym_cpu_priority(int cpu)
+  *
+  * (default: 5 msec, units: microseconds)
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++static unsigned int sysctl_sched_cfs_bandwidth_slice		= 3000UL;
++#else
+ static unsigned int sysctl_sched_cfs_bandwidth_slice		= 5000UL;
+ #endif
++#endif
+ 
+ #ifdef CONFIG_SYSCTL
+ static struct ctl_table sched_fair_sysctls[] = {

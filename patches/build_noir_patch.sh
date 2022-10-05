@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#September 29,2022
+#October 5,2022
 
-VERSIONPOINT="5.19.12"
+VERSIONPOINT="6.0"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -21,19 +21,15 @@ done
 
 #build noir.patch
 case $e_num in
-519)
+600)
 cat noir_base/noir_base.patch \
     noir_base/custom_config.patch \
-    other519/zen_interactive_tune.patch \
-    other519/zen_other.patch \
-    other519/LL.patch \
-    other519/xanmod.patch \
-    other519/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
-    other519/patch-5.19-rt10.patch \
-    linux/patch-$VERSIONPOINT \
-    other519/MGLRU.patch \
-    other519/sched_fair_Avoid_unnecessary_migrations_within_SMT_domains.patch \
+    other6/zen_interactive_tune.patch \
+    other6/zen_other.patch \
+    other6/LL.patch \
+    other6/patch-6.0-rt11.patch \
     > noir.patch
+#    linux/patch-$VERSIONPOINT \
 ;;
 
 esac
