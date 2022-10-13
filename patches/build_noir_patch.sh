@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#October 5,2022
+#October 13,2022
 
-VERSIONPOINT="6.0"
+VERSIONPOINT="6.0.1"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -28,8 +28,8 @@ cat noir_base/noir_base.patch \
     other6/zen_other.patch \
     other6/LL.patch \
     other6/patch-6.0-rt11.patch \
+    linux/patch-$VERSIONPOINT \
     > noir.patch
-#    linux/patch-$VERSIONPOINT \
 ;;
 
 esac
