@@ -29,6 +29,7 @@ cat noir_base/noir_base.patch \
     other6/LL.patch \
     other6/patch-6.0-rt11.patch \
     linux/patch-$VERSIONPOINT \
+    other6/0001-futex-6.0-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
     > noir.patch
 ;;
 
