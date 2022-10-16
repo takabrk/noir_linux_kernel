@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-October 14,2022
+October 16,2022
 
 このカスタムカーネルは、Ubuntu/Debian向けです。
 Ubuntu公式のカーネルと比較して、レスポンス性能やデスクトップ用途・ゲーミング用途におけるパフォーマンスを大きく引き上げる事が出来ます。
@@ -50,12 +50,15 @@ $ ./build.sh -e core
 - OpenRGB support
 - Zen Interactive Tune support
 - Core scheduling for SMT ON
+- Clear Linux support
+- WineSync support
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
-- sirlucjan's patches( https://github.com/sirlucjan/kernel-patches )
 - Zen( https://github.com/zen-kernel/zen-kernel/tree/5.15/master )
 - PREEMPT RT( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
+- https://github.com/sirlucjan/kernel-patches 
+- https://github.com/Frogging-Family/linux-tkg/tree/master/linux-tkg-patches
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。

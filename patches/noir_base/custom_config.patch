@@ -1,12 +1,12 @@
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-10-14 09:39:51.292054513 +0900
-+++ noir_base/.config	2022-10-05 10:58:19.201491000 +0900
-@@ -0,0 +1,10810 @@
+--- /dev/null	2022-10-16 09:54:46.692076616 +0900
++++ noir_base/.config	2022-10-16 10:49:29.641204000 +0900
+@@ -0,0 +1,10811 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
-+# Linux/x86 6.0.0-noir Kernel Configuration
++# Linux/x86 6.0.2-noir Kernel Configuration
 +#
 +CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 11.2.0-19ubuntu1) 11.2.0"
 +CONFIG_CC_IS_GCC=y
@@ -2655,6 +2655,7 @@ index 000000000000..dcbcaa389249
 +CONFIG_PCI_ENDPOINT_TEST=m
 +# CONFIG_XILINX_SDFEC is not set
 +CONFIG_MISC_RTSX=m
++# CONFIG_WINESYNC is not set
 +CONFIG_C2PORT=m
 +CONFIG_C2PORT_DURAMAR_2150=m
 +
