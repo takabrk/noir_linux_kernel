@@ -1,9 +1,9 @@
 #!/bin/sh
 #noir linux kernel patchsets build script
 #Created by takamitsu hamada
-#October 16,2022
+#October 23,2022
 
-VERSIONPOINT="6.0.2"
+VERSIONPOINT="6.0.3"
 NOIR_VERSION="noir"
 truncate noir.patch --size 0
 truncate noir_base/custom_config.patch --size 0
@@ -32,6 +32,8 @@ cat noir_base/noir_base.patch \
     other6/0001-futex-6.0-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
     other6/0002-clear-patches.patch \
     other6/0007-v6.0-winesync.patch \
+    other6/0001-tcp_bbr2-introduce-BBRv2.patch \
+    other6/0001-zram-cachyos-patches.patch \
     > noir.patch
 ;;
 
