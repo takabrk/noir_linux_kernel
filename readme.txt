@@ -18,10 +18,9 @@ $ ./performanceup.sh
 カスタムカーネルには、様々なパッチを適用しています。
 noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
-◇Noir Linux Kernelパッチの組み立て（基本的には既にnoir.patchは作成済みであるので、使う必要なし）
+◇Noir Linux Kernelパッチの組み立て
 ◯Linux 6.0系の場合
-$ cd patches
-$ ./build_noir_patch.sh -e 600
+$ ./build.sh -e 600
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
 - ソースコード取得・パッチ当て

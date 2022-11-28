@@ -61,8 +61,8 @@ index 9a9b244d3ca34d..0965c9ff99c06b 100644
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-11-26 18:18:57.093367440 +0900
-+++ noir_base/.config	2022-10-27 12:25:06.549240000 +0900
+--- /dev/null	2022-11-28 10:15:27.456031169 +0900
++++ patches/noir_base/.config	2022-10-27 12:25:06.549240000 +0900
 @@ -0,0 +1,10815 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
