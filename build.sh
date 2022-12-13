@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#December 10,2022
+#December 13,2022
 
 . ./config
 
@@ -21,18 +21,19 @@ case $e_num in
 
 #build custom_config.patch
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
+#patches/linux/patch-$VERSIONPOINT \
         cat patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
             patches/other6/zen_interactive_tune.patch \
             patches/other6/zen_other.patch \
+            patches/other6/patch-6.1-rc7-rt5.patch \
             patches/other6/LL.patch \
-            patches/other6/patch-6.0-rt11.patch \
-            patches/linux/patch-$VERSIONPOINT \
-            patches/other6/0001-futex-6.0-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
-            patches/other6/0002-clear-patches.patch \
-            patches/other6/0007-v6.0-winesync.patch \
+            patches/other6/0001-futex-patches.patch \
+            patches/other6/0001-clearlinux-6.1-introduce-clearlinux-patchset.patch \
+            patches/other6/0001-winesync-Introduce-the-winesync-driver-and-character.patch \
             patches/other6/0001-tcp_bbr2-introduce-BBRv2.patch \
-            patches/other6/0001-zram-cachyos-patches.patch \
+            patches/other6/0001-zswap-patches.patch \
+            patches/other6/0001-arch-patches.patch \
             > noir.patch
             ;;
 
