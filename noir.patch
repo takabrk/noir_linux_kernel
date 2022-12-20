@@ -10,7 +10,7 @@ index 51540b291738..ab8c480660a6 100644
  PHONY := __all
  __all:
  
-+NRVERSION = -noir
++NRVERSION = -noir-v1
 +NRNAME =  With Extra patchsets
 +EXTRAVERSION := $(EXTRAVERSION)$(NRVERSION)
 +
@@ -61,7 +61,7 @@ index 9a9b244d3ca34d..0965c9ff99c06b 100644
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2022-12-13 09:53:25.465411650 +0900
+--- /dev/null	2022-12-20 09:52:45.264086869 +0900
 +++ patches/noir_base/.config	2022-12-10 10:42:24.365118000 +0900
 @@ -0,0 +1,10823 @@
 +#
@@ -13343,7 +13343,788 @@ index 285acc4aaccc1e..492e88a99c0727 100644
 +	{ PCI_ANY_ID, PCI_ANY_ID, pcie_acs_overrides },
  	{ 0 }
  };
- diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+ 
+
+From b88b54d2df7b41ba362df4bf6df7c69536b5bda0 Mon Sep 17 00:00:00 2001
+From: graysky <therealgraysky@proton.me>
+Date: Fri, 4 Nov 2022 15:34:36 -0400
+Subject: [PATCH] ZEN: Add graysky's more-uarches
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+From https://github.com/graysky2/kernel_compiler_patch
+
+more uarches for kernel 5.17+
+
+FEATURES
+This patch adds additional CPU options to the Linux kernel accessible under:
+ Processor type and features  --->
+  Processor family --->
+
+With the release of gcc 11.1 and clang 12.0, several generic 64-bit levels are
+offered which are good for supported Intel or AMD CPUs:
+• x86-64-v2
+• x86-64-v3
+• x86-64-v4
+
+Users of glibc 2.33 and above can see which level is supported by current
+hardware by running:
+  /lib/ld-linux-x86-64.so.2 --help | grep supported
+
+Alternatively, compare the flags from /proc/cpuinfo to this list.[1]
+
+CPU-specific microarchitectures include:
+• AMD Improved K8-family
+• AMD K10-family
+• AMD Family 10h (Barcelona)
+• AMD Family 14h (Bobcat)
+• AMD Family 16h (Jaguar)
+• AMD Family 15h (Bulldozer)
+• AMD Family 15h (Piledriver)
+• AMD Family 15h (Steamroller)
+• AMD Family 15h (Excavator)
+• AMD Family 17h (Zen)
+• AMD Family 17h (Zen 2)
+• AMD Family 19h (Zen 3)†
+• AMD Family 19h (Zen 4)§
+• Intel Silvermont low-power processors
+• Intel Goldmont low-power processors (Apollo Lake and Denverton)
+• Intel Goldmont Plus low-power processors (Gemini Lake)
+• Intel 1st Gen Core i3/i5/i7 (Nehalem)
+• Intel 1.5 Gen Core i3/i5/i7 (Westmere)
+• Intel 2nd Gen Core i3/i5/i7 (Sandybridge)
+• Intel 3rd Gen Core i3/i5/i7 (Ivybridge)
+• Intel 4th Gen Core i3/i5/i7 (Haswell)
+• Intel 5th Gen Core i3/i5/i7 (Broadwell)
+• Intel 6th Gen Core i3/i5/i7 (Skylake)
+• Intel 6th Gen Core i7/i9 (Skylake X)
+• Intel 8th Gen Core i3/i5/i7 (Cannon Lake)
+• Intel 10th Gen Core i7/i9 (Ice Lake)
+• Intel Xeon (Cascade Lake)
+• Intel Xeon (Cooper Lake)*
+• Intel 3rd Gen 10nm++ i3/i5/i7/i9-family (Tiger Lake)*
+• Intel 3rd Gen 10nm++ Xeon (Sapphire Rapids)‡
+• Intel 11th Gen i3/i5/i7/i9-family (Rocket Lake)‡
+• Intel 12th Gen i3/i5/i7/i9-family (Alder Lake)‡
+• Intel 13th Gen i3/i5/i7/i9-family (Raptor Lake)§
+• Intel 14th Gen i3/i5/i7/i9-family (Meteor Lake)§
+
+Notes: If not otherwise noted, gcc >=9.1 is required for support.
+       *Requires gcc >=10.1 or clang >=10.0
+       †Required gcc >=10.3 or clang >=12.0
+       ‡Required gcc >=11.1 or clang >=12.0
+       §Required gcc >=13.0 or clang >=15.0.5
+
+It also offers to compile passing the 'native' option which, "selects the CPU
+to generate code for at compilation time by determining the processor type of
+the compiling machine. Using -march=native enables all instruction subsets
+supported by the local machine and will produce code optimized for the local
+machine under the constraints of the selected instruction set."[2]
+
+Users of Intel CPUs should select the 'Intel-Native' option and users of AMD
+CPUs should select the 'AMD-Native' option.
+
+MINOR NOTES RELATING TO INTEL ATOM PROCESSORS
+This patch also changes -march=atom to -march=bonnell in accordance with the
+gcc v4.9 changes. Upstream is using the deprecated -match=atom flags when I
+believe it should use the newer -march=bonnell flag for atom processors.[3]
+
+It is not recommended to compile on Atom-CPUs with the 'native' option.[4] The
+recommendation is to use the 'atom' option instead.
+
+BENEFITS
+Small but real speed increases are measurable using a make endpoint comparing
+a generic kernel to one built with one of the respective microarchs.
+
+See the following experimental evidence supporting this statement:
+https://github.com/graysky2/kernel_gcc_patch
+
+REQUIREMENTS
+linux version 5.17+
+gcc version >=9.0 or clang version >=9.0
+
+ACKNOWLEDGMENTS
+This patch builds on the seminal work by Jeroen.[5]
+
+REFERENCES
+1.  https://gitlab.com/x86-psABIs/x86-64-ABI/-/commit/77566eb03bc6a326811cb7e9
+2.  https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html#index-x86-Options
+3.  https://bugzilla.kernel.org/show_bug.cgi?id=77461
+4.  https://github.com/graysky2/kernel_gcc_patch/issues/15
+5.  http://www.linuxforge.net/docs/linux/linux-gcc.php
+---
+ arch/x86/Kconfig.cpu            | 416 ++++++++++++++++++++++++++++++--
+ arch/x86/Makefile               |  43 +++-
+ arch/x86/include/asm/vermagic.h |  72 ++++++
+ 3 files changed, 514 insertions(+), 17 deletions(-)
+
+diff --git a/arch/x86/Kconfig.cpu b/arch/x86/Kconfig.cpu
+index 542377cd419d78..08d887d1220dcc 100644
+--- a/arch/x86/Kconfig.cpu
++++ b/arch/x86/Kconfig.cpu
+@@ -157,7 +157,7 @@ config MPENTIUM4
+ 
+ 
+ config MK6
+-	bool "K6/K6-II/K6-III"
++	bool "AMD K6/K6-II/K6-III"
+ 	depends on X86_32
+ 	help
+ 	  Select this for an AMD K6-family processor.  Enables use of
+@@ -165,7 +165,7 @@ config MK6
+ 	  flags to GCC.
+ 
+ config MK7
+-	bool "Athlon/Duron/K7"
++	bool "AMD Athlon/Duron/K7"
+ 	depends on X86_32
+ 	help
+ 	  Select this for an AMD Athlon K7-family processor.  Enables use of
+@@ -173,12 +173,106 @@ config MK7
+ 	  flags to GCC.
+ 
+ config MK8
+-	bool "Opteron/Athlon64/Hammer/K8"
++	bool "AMD Opteron/Athlon64/Hammer/K8"
+ 	help
+ 	  Select this for an AMD Opteron or Athlon64 Hammer-family processor.
+ 	  Enables use of some extended instructions, and passes appropriate
+ 	  optimization flags to GCC.
+ 
++config MK8SSE3
++	bool "AMD Opteron/Athlon64/Hammer/K8 with SSE3"
++	help
++	  Select this for improved AMD Opteron or Athlon64 Hammer-family processors.
++	  Enables use of some extended instructions, and passes appropriate
++	  optimization flags to GCC.
++
++config MK10
++	bool "AMD 61xx/7x50/PhenomX3/X4/II/K10"
++	help
++	  Select this for an AMD 61xx Eight-Core Magny-Cours, Athlon X2 7x50,
++	  Phenom X3/X4/II, Athlon II X2/X3/X4, or Turion II-family processor.
++	  Enables use of some extended instructions, and passes appropriate
++	  optimization flags to GCC.
++
++config MBARCELONA
++	bool "AMD Barcelona"
++	help
++	  Select this for AMD Family 10h Barcelona processors.
++
++	  Enables -march=barcelona
++
++config MBOBCAT
++	bool "AMD Bobcat"
++	help
++	  Select this for AMD Family 14h Bobcat processors.
++
++	  Enables -march=btver1
++
++config MJAGUAR
++	bool "AMD Jaguar"
++	help
++	  Select this for AMD Family 16h Jaguar processors.
++
++	  Enables -march=btver2
++
++config MBULLDOZER
++	bool "AMD Bulldozer"
++	help
++	  Select this for AMD Family 15h Bulldozer processors.
++
++	  Enables -march=bdver1
++
++config MPILEDRIVER
++	bool "AMD Piledriver"
++	help
++	  Select this for AMD Family 15h Piledriver processors.
++
++	  Enables -march=bdver2
++
++config MSTEAMROLLER
++	bool "AMD Steamroller"
++	help
++	  Select this for AMD Family 15h Steamroller processors.
++
++	  Enables -march=bdver3
++
++config MEXCAVATOR
++	bool "AMD Excavator"
++	help
++	  Select this for AMD Family 15h Excavator processors.
++
++	  Enables -march=bdver4
++
++config MZEN
++	bool "AMD Zen"
++	help
++	  Select this for AMD Family 17h Zen processors.
++
++	  Enables -march=znver1
++
++config MZEN2
++	bool "AMD Zen 2"
++	help
++	  Select this for AMD Family 17h Zen 2 processors.
++
++	  Enables -march=znver2
++
++config MZEN3
++	bool "AMD Zen 3"
++	depends on (CC_IS_GCC && GCC_VERSION >= 100300) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	help
++	  Select this for AMD Family 19h Zen 3 processors.
++
++	  Enables -march=znver3
++
++config MZEN4
++	bool "AMD Zen 4"
++	depends on (CC_IS_GCC && GCC_VERSION >= 130000) || (CC_IS_CLANG && CLANG_VERSION >= 150500)
++	help
++	  Select this for AMD Family 19h Zen 4 processors.
++
++	  Enables -march=znver4
++
+ config MCRUSOE
+ 	bool "Crusoe"
+ 	depends on X86_32
+@@ -270,7 +364,7 @@ config MPSC
+ 	  in /proc/cpuinfo. Family 15 is an older Xeon, Family 6 a newer one.
+ 
+ config MCORE2
+-	bool "Core 2/newer Xeon"
++	bool "Intel Core 2"
+ 	help
+ 
+ 	  Select this for Intel Core 2 and newer Core 2 Xeons (Xeon 51xx and
+@@ -278,6 +372,8 @@ config MCORE2
+ 	  family in /proc/cpuinfo. Newer ones have 6 and older ones 15
+ 	  (not a typo)
+ 
++	  Enables -march=core2
++
+ config MATOM
+ 	bool "Intel Atom"
+ 	help
+@@ -287,6 +383,202 @@ config MATOM
+ 	  accordingly optimized code. Use a recent GCC with specific Atom
+ 	  support in order to fully benefit from selecting this option.
+ 
++config MNEHALEM
++	bool "Intel Nehalem"
++	select X86_P6_NOP
++	help
++
++	  Select this for 1st Gen Core processors in the Nehalem family.
++
++	  Enables -march=nehalem
++
++config MWESTMERE
++	bool "Intel Westmere"
++	select X86_P6_NOP
++	help
++
++	  Select this for the Intel Westmere formerly Nehalem-C family.
++
++	  Enables -march=westmere
++
++config MSILVERMONT
++	bool "Intel Silvermont"
++	select X86_P6_NOP
++	help
++
++	  Select this for the Intel Silvermont platform.
++
++	  Enables -march=silvermont
++
++config MGOLDMONT
++	bool "Intel Goldmont"
++	select X86_P6_NOP
++	help
++
++	  Select this for the Intel Goldmont platform including Apollo Lake and Denverton.
++
++	  Enables -march=goldmont
++
++config MGOLDMONTPLUS
++	bool "Intel Goldmont Plus"
++	select X86_P6_NOP
++	help
++
++	  Select this for the Intel Goldmont Plus platform including Gemini Lake.
++
++	  Enables -march=goldmont-plus
++
++config MSANDYBRIDGE
++	bool "Intel Sandy Bridge"
++	select X86_P6_NOP
++	help
++
++	  Select this for 2nd Gen Core processors in the Sandy Bridge family.
++
++	  Enables -march=sandybridge
++
++config MIVYBRIDGE
++	bool "Intel Ivy Bridge"
++	select X86_P6_NOP
++	help
++
++	  Select this for 3rd Gen Core processors in the Ivy Bridge family.
++
++	  Enables -march=ivybridge
++
++config MHASWELL
++	bool "Intel Haswell"
++	select X86_P6_NOP
++	help
++
++	  Select this for 4th Gen Core processors in the Haswell family.
++
++	  Enables -march=haswell
++
++config MBROADWELL
++	bool "Intel Broadwell"
++	select X86_P6_NOP
++	help
++
++	  Select this for 5th Gen Core processors in the Broadwell family.
++
++	  Enables -march=broadwell
++
++config MSKYLAKE
++	bool "Intel Skylake"
++	select X86_P6_NOP
++	help
++
++	  Select this for 6th Gen Core processors in the Skylake family.
++
++	  Enables -march=skylake
++
++config MSKYLAKEX
++	bool "Intel Skylake X"
++	select X86_P6_NOP
++	help
++
++	  Select this for 6th Gen Core processors in the Skylake X family.
++
++	  Enables -march=skylake-avx512
++
++config MCANNONLAKE
++	bool "Intel Cannon Lake"
++	select X86_P6_NOP
++	help
++
++	  Select this for 8th Gen Core processors
++
++	  Enables -march=cannonlake
++
++config MICELAKE
++	bool "Intel Ice Lake"
++	select X86_P6_NOP
++	help
++
++	  Select this for 10th Gen Core processors in the Ice Lake family.
++
++	  Enables -march=icelake-client
++
++config MCASCADELAKE
++	bool "Intel Cascade Lake"
++	select X86_P6_NOP
++	help
++
++	  Select this for Xeon processors in the Cascade Lake family.
++
++	  Enables -march=cascadelake
++
++config MCOOPERLAKE
++	bool "Intel Cooper Lake"
++	depends on (CC_IS_GCC && GCC_VERSION > 100100) || (CC_IS_CLANG && CLANG_VERSION >= 100000)
++	select X86_P6_NOP
++	help
++
++	  Select this for Xeon processors in the Cooper Lake family.
++
++	  Enables -march=cooperlake
++
++config MTIGERLAKE
++	bool "Intel Tiger Lake"
++	depends on  (CC_IS_GCC && GCC_VERSION > 100100) || (CC_IS_CLANG && CLANG_VERSION >= 100000)
++	select X86_P6_NOP
++	help
++
++	  Select this for third-generation 10 nm process processors in the Tiger Lake family.
++
++	  Enables -march=tigerlake
++
++config MSAPPHIRERAPIDS
++	bool "Intel Sapphire Rapids"
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	select X86_P6_NOP
++	help
++
++	  Select this for third-generation 10 nm process processors in the Sapphire Rapids family.
++
++	  Enables -march=sapphirerapids
++
++config MROCKETLAKE
++	bool "Intel Rocket Lake"
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	select X86_P6_NOP
++	help
++
++	  Select this for eleventh-generation processors in the Rocket Lake family.
++
++	  Enables -march=rocketlake
++
++config MALDERLAKE
++	bool "Intel Alder Lake"
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	select X86_P6_NOP
++	help
++
++	  Select this for twelfth-generation processors in the Alder Lake family.
++
++	  Enables -march=alderlake
++
++config MRAPTORLAKE
++	bool "Intel Raptor Lake"
++	depends on (CC_IS_GCC && GCC_VERSION >= 130000) || (CC_IS_CLANG && CLANG_VERSION >= 150500)
++	select X86_P6_NOP
++	help
++
++	  Select this for thirteenth-generation processors in the Raptor Lake family.
++
++	  Enables -march=raptorlake
++
++config MMETEORLAKE
++	bool "Intel Meteor Lake"
++	depends on (CC_IS_GCC && GCC_VERSION >= 130000) || (CC_IS_CLANG && CLANG_VERSION >= 150500)
++	select X86_P6_NOP
++	help
++
++	  Select this for fourteenth-generation processors in the Meteor Lake family.
++
++	  Enables -march=meteorlake
++
+ config GENERIC_CPU
+ 	bool "Generic-x86-64"
+ 	depends on X86_64
+@@ -294,6 +586,50 @@ config GENERIC_CPU
+ 	  Generic x86-64 CPU.
+ 	  Run equally well on all x86-64 CPUs.
+ 
++config GENERIC_CPU2
++	bool "Generic-x86-64-v2"
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	depends on X86_64
++	help
++	  Generic x86-64 CPU.
++	  Run equally well on all x86-64 CPUs with min support of x86-64-v2.
++
++config GENERIC_CPU3
++	bool "Generic-x86-64-v3"
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	depends on X86_64
++	help
++	  Generic x86-64-v3 CPU with v3 instructions.
++	  Run equally well on all x86-64 CPUs with min support of x86-64-v3.
++
++config GENERIC_CPU4
++	bool "Generic-x86-64-v4"
++	depends on (CC_IS_GCC && GCC_VERSION > 110000) || (CC_IS_CLANG && CLANG_VERSION >= 120000)
++	depends on X86_64
++	help
++	  Generic x86-64 CPU with v4 instructions.
++	  Run equally well on all x86-64 CPUs with min support of x86-64-v4.
++
++config MNATIVE_INTEL
++	bool "Intel-Native optimizations autodetected by the compiler"
++	help
++
++	  Clang 3.8, GCC 4.2 and above support -march=native, which automatically detects
++	  the optimum settings to use based on your processor. Do NOT use this
++	  for AMD CPUs.  Intel Only!
++
++	  Enables -march=native
++
++config MNATIVE_AMD
++	bool "AMD-Native optimizations autodetected by the compiler"
++	help
++
++	  Clang 3.8, GCC 4.2 and above support -march=native, which automatically detects
++	  the optimum settings to use based on your processor. Do NOT use this
++	  for Intel CPUs.  AMD Only!
++
++	  Enables -march=native
++
+ endchoice
+ 
+ config X86_GENERIC
+@@ -318,9 +654,17 @@ config X86_INTERNODE_CACHE_SHIFT
+ config X86_L1_CACHE_SHIFT
+ 	int
+ 	default "7" if MPENTIUM4 || MPSC
+-	default "6" if MK7 || MK8 || MPENTIUMM || MCORE2 || MATOM || MVIAC7 || X86_GENERIC || GENERIC_CPU
++	default "6" if MK7 || MK8 || MPENTIUMM || MCORE2 || MATOM || MVIAC7 || MK8SSE3 || MK10 \
++	|| MBARCELONA || MBOBCAT || MJAGUAR || MBULLDOZER || MPILEDRIVER || MSTEAMROLLER \
++	|| MEXCAVATOR || MZEN || MZEN2 || MZEN3 || MZEN4 || MNEHALEM || MWESTMERE || MSILVERMONT \
++	|| MGOLDMONT || MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE || MHASWELL || MBROADWELL \
++	|| MSKYLAKE || MSKYLAKEX || MCANNONLAKE || MICELAKE || MCASCADELAKE || MCOOPERLAKE \
++	|| MTIGERLAKE || MSAPPHIRERAPIDS || MROCKETLAKE || MALDERLAKE || MRAPTORLAKE || MMETEORLAKE \
++	|| MNATIVE_INTEL || MNATIVE_AMD || X86_GENERIC || GENERIC_CPU || GENERIC_CPU2 || GENERIC_CPU3 \
++	|| GENERIC_CPU4
+ 	default "4" if MELAN || M486SX || M486 || MGEODEGX1
+-	default "5" if MWINCHIP3D || MWINCHIPC6 || MCRUSOE || MEFFICEON || MCYRIXIII || MK6 || MPENTIUMIII || MPENTIUMII || M686 || M586MMX || M586TSC || M586 || MVIAC3_2 || MGEODE_LX
++	default "5" if MWINCHIP3D || MWINCHIPC6 || MCRUSOE || MEFFICEON || MCYRIXIII || MK6 || MPENTIUMIII \
++	|| MPENTIUMII || M686 || M586MMX || M586TSC || M586 || MVIAC3_2 || MGEODE_LX
+ 
+ config X86_F00F_BUG
+ 	def_bool y
+@@ -332,15 +676,27 @@ config X86_INVD_BUG
+ 
+ config X86_ALIGNMENT_16
+ 	def_bool y
+-	depends on MWINCHIP3D || MWINCHIPC6 || MCYRIXIII || MELAN || MK6 || M586MMX || M586TSC || M586 || M486SX || M486 || MVIAC3_2 || MGEODEGX1
++	depends on MWINCHIP3D || MWINCHIPC6 || MCYRIXIII || MELAN || MK6 || M586MMX || M586TSC \
++	|| M586 || M486SX || M486 || MVIAC3_2 || MGEODEGX1
+ 
+ config X86_INTEL_USERCOPY
+ 	def_bool y
+-	depends on MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M586MMX || X86_GENERIC || MK8 || MK7 || MEFFICEON || MCORE2
++	depends on MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M586MMX || X86_GENERIC \
++	|| MK8 || MK7 || MEFFICEON || MCORE2 || MNEHALEM || MWESTMERE || MSILVERMONT || MGOLDMONT \
++	|| MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE || MHASWELL || MBROADWELL || MSKYLAKE || MSKYLAKEX \
++	|| MCANNONLAKE || MICELAKE || MCASCADELAKE || MCOOPERLAKE || MTIGERLAKE || MSAPPHIRERAPIDS \
++	|| MROCKETLAKE || MALDERLAKE || MRAPTORLAKE || MMETEORLAKE || MNATIVE_INTEL
+ 
+ config X86_USE_PPRO_CHECKSUM
+ 	def_bool y
+-	depends on MWINCHIP3D || MWINCHIPC6 || MCYRIXIII || MK7 || MK6 || MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 || MK8 || MVIAC3_2 || MVIAC7 || MEFFICEON || MGEODE_LX || MCORE2 || MATOM
++	depends on MWINCHIP3D || MWINCHIPC6 || MCYRIXIII || MK7 || MK6 || MPENTIUM4 || MPENTIUMM \
++	|| MPENTIUMIII || MPENTIUMII || M686 || MK8 || MVIAC3_2 || MVIAC7 || MEFFICEON || MGEODE_LX \
++	|| MCORE2 || MATOM || MK8SSE3 || MK10 || MBARCELONA || MBOBCAT || MJAGUAR || MBULLDOZER \
++	|| MPILEDRIVER || MSTEAMROLLER || MEXCAVATOR || MZEN || MZEN2 || MZEN3 || MZEN4 || MNEHALEM \
++	|| MWESTMERE || MSILVERMONT || MGOLDMONT || MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE \
++	|| MHASWELL || MBROADWELL || MSKYLAKE || MSKYLAKEX || MCANNONLAKE || MICELAKE \
++	|| MCASCADELAKE || MCOOPERLAKE || MTIGERLAKE || MSAPPHIRERAPIDS || MROCKETLAKE \
++	|| MALDERLAKE || MRAPTORLAKE || MMETEORLAKE || MNATIVE_INTEL || MNATIVE_AMD
+ 
+ #
+ # P6_NOPs are a relatively minor optimization that require a family >=
+@@ -356,32 +712,62 @@ config X86_USE_PPRO_CHECKSUM
+ config X86_P6_NOP
+ 	def_bool y
+ 	depends on X86_64
+-	depends on (MCORE2 || MPENTIUM4 || MPSC)
++	depends on (MCORE2 || MPENTIUM4 || MPSC || MNEHALEM || MWESTMERE || MSILVERMONT || MGOLDMONT \
++	|| MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE || MHASWELL || MBROADWELL || MSKYLAKE \
++	|| MSKYLAKEX || MCANNONLAKE || MICELAKE || MCASCADELAKE || MCOOPERLAKE || MTIGERLAKE \
++	|| MSAPPHIRERAPIDS || MROCKETLAKE || MALDERLAKE || MRAPTORLAKE || MMETEORLAKE || MNATIVE_INTEL)
+ 
+ config X86_TSC
+ 	def_bool y
+-	depends on (MWINCHIP3D || MCRUSOE || MEFFICEON || MCYRIXIII || MK7 || MK6 || MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 || M586MMX || M586TSC || MK8 || MVIAC3_2 || MVIAC7 || MGEODEGX1 || MGEODE_LX || MCORE2 || MATOM) || X86_64
++	depends on (MWINCHIP3D || MCRUSOE || MEFFICEON || MCYRIXIII || MK7 || MK6 || MPENTIUM4 || MPENTIUMM \
++	|| MPENTIUMIII || MPENTIUMII || M686 || M586MMX || M586TSC || MK8 || MVIAC3_2 || MVIAC7 || MGEODEGX1 \
++	|| MGEODE_LX || MCORE2 || MATOM || MK8SSE3 || MK10 || MBARCELONA || MBOBCAT || MJAGUAR || MBULLDOZER \
++	|| MPILEDRIVER || MSTEAMROLLER || MEXCAVATOR || MZEN || MZEN2 || MZEN3 || MZEN4 || MNEHALEM \
++	|| MWESTMERE || MSILVERMONT || MGOLDMONT || MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE || MHASWELL \
++	|| MBROADWELL || MSKYLAKE || MSKYLAKEX || MCANNONLAKE || MICELAKE || MCASCADELAKE || MCOOPERLAKE \
++	|| MTIGERLAKE || MSAPPHIRERAPIDS || MROCKETLAKE || MALDERLAKE || MRAPTORLAKE || MMETEORLAKE || MNATIVE_INTEL \
++	|| MNATIVE_AMD) || X86_64
+ 
+ config X86_CMPXCHG64
+ 	def_bool y
+-	depends on X86_PAE || X86_64 || MCORE2 || MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 || M586TSC || M586MMX || MATOM || MGEODE_LX || MGEODEGX1 || MK6 || MK7 || MK8
++	depends on X86_PAE || X86_64 || MCORE2 || MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 \
++	|| M586TSC || M586MMX || MATOM || MGEODE_LX || MGEODEGX1 || MK6 || MK7 || MK8 || MK8SSE3 || MK10 \
++	|| MBARCELONA || MBOBCAT || MJAGUAR || MBULLDOZER || MPILEDRIVER || MSTEAMROLLER || MEXCAVATOR || MZEN \
++	|| MZEN2 || MZEN3 || MZEN4 || MNEHALEM || MWESTMERE || MSILVERMONT || MGOLDMONT || MGOLDMONTPLUS \
++	|| MSANDYBRIDGE || MIVYBRIDGE || MHASWELL || MBROADWELL || MSKYLAKE || MSKYLAKEX || MCANNONLAKE \
++	|| MICELAKE || MCASCADELAKE || MCOOPERLAKE || MTIGERLAKE || MSAPPHIRERAPIDS || MROCKETLAKE \
++	|| MALDERLAKE || MRAPTORLAKE || MMETEORLAKE || MNATIVE_INTEL || MNATIVE_AMD
+ 
+ # this should be set for all -march=.. options where the compiler
+ # generates cmov.
+ config X86_CMOV
+ 	def_bool y
+-	depends on (MK8 || MK7 || MCORE2 || MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 || MVIAC3_2 || MVIAC7 || MCRUSOE || MEFFICEON || X86_64 || MATOM || MGEODE_LX)
++	depends on (MK8 || MK7 || MCORE2 || MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 \
++	|| MVIAC3_2 || MVIAC7 || MCRUSOE || MEFFICEON || X86_64 || MATOM || MGEODE_LX || MK8SSE3 || MK10 \
++	|| MBARCELONA || MBOBCAT || MJAGUAR || MBULLDOZER || MPILEDRIVER || MSTEAMROLLER || MEXCAVATOR \
++	|| MZEN || MZEN2 || MZEN3 || MZEN4 || MNEHALEM || MWESTMERE || MSILVERMONT || MGOLDMONT \
++	|| MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE || MHASWELL || MBROADWELL || MSKYLAKE || MSKYLAKEX \
++	|| MCANNONLAKE || MICELAKE || MCASCADELAKE || MCOOPERLAKE || MTIGERLAKE || MSAPPHIRERAPIDS \
++	|| MROCKETLAKE || MALDERLAKE || MRAPTORLAKE || MMETEORLAKE || MNATIVE_INTEL || MNATIVE_AMD)
+ 
+ config X86_MINIMUM_CPU_FAMILY
+ 	int
+ 	default "64" if X86_64
+-	default "6" if X86_32 && (MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 || MVIAC3_2 || MVIAC7 || MEFFICEON || MATOM || MCRUSOE || MCORE2 || MK7 || MK8)
++	default "6" if X86_32 && (MPENTIUM4 || MPENTIUMM || MPENTIUMIII || MPENTIUMII || M686 \
++	|| MVIAC3_2 || MVIAC7 || MEFFICEON || MATOM || MCRUSOE || MCORE2 || MK7 || MK8 ||  MK8SSE3 \
++	|| MK10 || MBARCELONA || MBOBCAT || MJAGUAR || MBULLDOZER || MPILEDRIVER || MSTEAMROLLER \
++	|| MEXCAVATOR || MZEN || MZEN2 || MZEN3 || MZEN4 || MNEHALEM || MWESTMERE || MSILVERMONT \
++	|| MGOLDMONT || MGOLDMONTPLUS || MSANDYBRIDGE || MIVYBRIDGE || MHASWELL || MBROADWELL \
++	|| MSKYLAKE || MSKYLAKEX || MCANNONLAKE || MICELAKE || MCASCADELAKE || MCOOPERLAKE \
++	|| MTIGERLAKE || MSAPPHIRERAPIDS || MROCKETLAKE || MALDERLAKE || MRAPTORLAKE || MRAPTORLAKE \
++	|| MNATIVE_INTEL || MNATIVE_AMD)
+ 	default "5" if X86_32 && X86_CMPXCHG64
+ 	default "4"
+ 
+ config X86_DEBUGCTLMSR
+ 	def_bool y
+-	depends on !(MK6 || MWINCHIPC6 || MWINCHIP3D || MCYRIXIII || M586MMX || M586TSC || M586 || M486SX || M486) && !UML
++	depends on !(MK6 || MWINCHIPC6 || MWINCHIP3D || MCYRIXIII || M586MMX || M586TSC || M586 \
++	|| M486SX || M486) && !UML
+ 
+ config IA32_FEAT_CTL
+ 	def_bool y
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index 415a5d138de47c..3f5fe79f03abff 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -151,8 +151,47 @@ else
+         # FIXME - should be integrated in Makefile.cpu (Makefile_32.cpu)
+         cflags-$(CONFIG_MK8)		+= -march=k8
+         cflags-$(CONFIG_MPSC)		+= -march=nocona
+-        cflags-$(CONFIG_MCORE2)		+= -march=core2
+-        cflags-$(CONFIG_MATOM)		+= -march=atom
++        cflags-$(CONFIG_MK8SSE3)	+= -march=k8-sse3
++        cflags-$(CONFIG_MK10) 		+= -march=amdfam10
++        cflags-$(CONFIG_MBARCELONA) 	+= -march=barcelona
++        cflags-$(CONFIG_MBOBCAT) 	+= -march=btver1
++        cflags-$(CONFIG_MJAGUAR) 	+= -march=btver2
++        cflags-$(CONFIG_MBULLDOZER) 	+= -march=bdver1
++        cflags-$(CONFIG_MPILEDRIVER)	+= -march=bdver2 -mno-tbm
++        cflags-$(CONFIG_MSTEAMROLLER) 	+= -march=bdver3 -mno-tbm
++        cflags-$(CONFIG_MEXCAVATOR) 	+= -march=bdver4 -mno-tbm
++        cflags-$(CONFIG_MZEN) 		+= -march=znver1
++        cflags-$(CONFIG_MZEN2) 	+= -march=znver2
++        cflags-$(CONFIG_MZEN3) 	+= -march=znver3
++        cflags-$(CONFIG_MZEN4) 	+= -march=znver4
++        cflags-$(CONFIG_MNATIVE_INTEL) += -march=native
++        cflags-$(CONFIG_MNATIVE_AMD) 	+= -march=native
++        cflags-$(CONFIG_MATOM) 	+= -march=bonnell
++        cflags-$(CONFIG_MCORE2) 	+= -march=core2
++        cflags-$(CONFIG_MNEHALEM) 	+= -march=nehalem
++        cflags-$(CONFIG_MWESTMERE) 	+= -march=westmere
++        cflags-$(CONFIG_MSILVERMONT) 	+= -march=silvermont
++        cflags-$(CONFIG_MGOLDMONT) 	+= -march=goldmont
++        cflags-$(CONFIG_MGOLDMONTPLUS) += -march=goldmont-plus
++        cflags-$(CONFIG_MSANDYBRIDGE) 	+= -march=sandybridge
++        cflags-$(CONFIG_MIVYBRIDGE) 	+= -march=ivybridge
++        cflags-$(CONFIG_MHASWELL) 	+= -march=haswell
++        cflags-$(CONFIG_MBROADWELL) 	+= -march=broadwell
++        cflags-$(CONFIG_MSKYLAKE) 	+= -march=skylake
++        cflags-$(CONFIG_MSKYLAKEX) 	+= -march=skylake-avx512
++        cflags-$(CONFIG_MCANNONLAKE) 	+= -march=cannonlake
++        cflags-$(CONFIG_MICELAKE) 	+= -march=icelake-client
++        cflags-$(CONFIG_MCASCADELAKE) 	+= -march=cascadelake
++        cflags-$(CONFIG_MCOOPERLAKE) 	+= -march=cooperlake
++        cflags-$(CONFIG_MTIGERLAKE) 	+= -march=tigerlake
++        cflags-$(CONFIG_MSAPPHIRERAPIDS) += -march=sapphirerapids
++        cflags-$(CONFIG_MROCKETLAKE) 	+= -march=rocketlake
++        cflags-$(CONFIG_MALDERLAKE) 	+= -march=alderlake
++        cflags-$(CONFIG_MRAPTORLAKE) 	+= -march=raptorlake
++        cflags-$(CONFIG_MMETEORLAKE) 	+= -march=meteorlake
++        cflags-$(CONFIG_GENERIC_CPU2) 	+= -march=x86-64-v2
++        cflags-$(CONFIG_GENERIC_CPU3) 	+= -march=x86-64-v3
++        cflags-$(CONFIG_GENERIC_CPU4) 	+= -march=x86-64-v4
+         cflags-$(CONFIG_GENERIC_CPU)	+= -mtune=generic
+         KBUILD_CFLAGS += $(cflags-y)
+ 
+diff --git a/arch/x86/include/asm/vermagic.h b/arch/x86/include/asm/vermagic.h
+index 75884d2cdec375..18021e8c0c2830 100644
+--- a/arch/x86/include/asm/vermagic.h
++++ b/arch/x86/include/asm/vermagic.h
+@@ -17,6 +17,52 @@
+ #define MODULE_PROC_FAMILY "586MMX "
+ #elif defined CONFIG_MCORE2
+ #define MODULE_PROC_FAMILY "CORE2 "
++#elif defined CONFIG_MNATIVE_INTEL
++#define MODULE_PROC_FAMILY "NATIVE_INTEL "
++#elif defined CONFIG_MNATIVE_AMD
++#define MODULE_PROC_FAMILY "NATIVE_AMD "
++#elif defined CONFIG_MNEHALEM
++#define MODULE_PROC_FAMILY "NEHALEM "
++#elif defined CONFIG_MWESTMERE
++#define MODULE_PROC_FAMILY "WESTMERE "
++#elif defined CONFIG_MSILVERMONT
++#define MODULE_PROC_FAMILY "SILVERMONT "
++#elif defined CONFIG_MGOLDMONT
++#define MODULE_PROC_FAMILY "GOLDMONT "
++#elif defined CONFIG_MGOLDMONTPLUS
++#define MODULE_PROC_FAMILY "GOLDMONTPLUS "
++#elif defined CONFIG_MSANDYBRIDGE
++#define MODULE_PROC_FAMILY "SANDYBRIDGE "
++#elif defined CONFIG_MIVYBRIDGE
++#define MODULE_PROC_FAMILY "IVYBRIDGE "
++#elif defined CONFIG_MHASWELL
++#define MODULE_PROC_FAMILY "HASWELL "
++#elif defined CONFIG_MBROADWELL
++#define MODULE_PROC_FAMILY "BROADWELL "
++#elif defined CONFIG_MSKYLAKE
++#define MODULE_PROC_FAMILY "SKYLAKE "
++#elif defined CONFIG_MSKYLAKEX
++#define MODULE_PROC_FAMILY "SKYLAKEX "
++#elif defined CONFIG_MCANNONLAKE
++#define MODULE_PROC_FAMILY "CANNONLAKE "
++#elif defined CONFIG_MICELAKE
++#define MODULE_PROC_FAMILY "ICELAKE "
++#elif defined CONFIG_MCASCADELAKE
++#define MODULE_PROC_FAMILY "CASCADELAKE "
++#elif defined CONFIG_MCOOPERLAKE
++#define MODULE_PROC_FAMILY "COOPERLAKE "
++#elif defined CONFIG_MTIGERLAKE
++#define MODULE_PROC_FAMILY "TIGERLAKE "
++#elif defined CONFIG_MSAPPHIRERAPIDS
++#define MODULE_PROC_FAMILY "SAPPHIRERAPIDS "
++#elif defined CONFIG_ROCKETLAKE
++#define MODULE_PROC_FAMILY "ROCKETLAKE "
++#elif defined CONFIG_MALDERLAKE
++#define MODULE_PROC_FAMILY "ALDERLAKE "
++#elif defined CONFIG_MRAPTORLAKE
++#define MODULE_PROC_FAMILY "RAPTORLAKE "
++#elif defined CONFIG_MMETEORLAKE
++#define MODULE_PROC_FAMILY "METEORLAKE "
+ #elif defined CONFIG_MATOM
+ #define MODULE_PROC_FAMILY "ATOM "
+ #elif defined CONFIG_M686
+@@ -35,6 +81,32 @@
+ #define MODULE_PROC_FAMILY "K7 "
+ #elif defined CONFIG_MK8
+ #define MODULE_PROC_FAMILY "K8 "
++#elif defined CONFIG_MK8SSE3
++#define MODULE_PROC_FAMILY "K8SSE3 "
++#elif defined CONFIG_MK10
++#define MODULE_PROC_FAMILY "K10 "
++#elif defined CONFIG_MBARCELONA
++#define MODULE_PROC_FAMILY "BARCELONA "
++#elif defined CONFIG_MBOBCAT
++#define MODULE_PROC_FAMILY "BOBCAT "
++#elif defined CONFIG_MBULLDOZER
++#define MODULE_PROC_FAMILY "BULLDOZER "
++#elif defined CONFIG_MPILEDRIVER
++#define MODULE_PROC_FAMILY "PILEDRIVER "
++#elif defined CONFIG_MSTEAMROLLER
++#define MODULE_PROC_FAMILY "STEAMROLLER "
++#elif defined CONFIG_MJAGUAR
++#define MODULE_PROC_FAMILY "JAGUAR "
++#elif defined CONFIG_MEXCAVATOR
++#define MODULE_PROC_FAMILY "EXCAVATOR "
++#elif defined CONFIG_MZEN
++#define MODULE_PROC_FAMILY "ZEN "
++#elif defined CONFIG_MZEN2
++#define MODULE_PROC_FAMILY "ZEN2 "
++#elif defined CONFIG_MZEN3
++#define MODULE_PROC_FAMILY "ZEN3 "
++#elif defined CONFIG_MZEN4
++#define MODULE_PROC_FAMILY "ZEN4 "
+ #elif defined CONFIG_MELAN
+ #define MODULE_PROC_FAMILY "ELAN "
+ #elif defined CONFIG_MCRUSOEdiff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
 index a08c9d092a332..4ce79eb994a6e 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
@@ -20689,86 +21470,10 @@ index d4a2db0b22998..0a0e4c283f02e 100644
  
  			masks_and_count[i].counter += counter;
  		}
-From c0981370e4e9542482dcb41d90a9ad56d7818fb0 Mon Sep 17 00:00:00 2001
-From: Piotr Gorski <lucjan.lucjanov@gmail.com>
-Date: Thu, 27 Dec 2018 17:26:15 +0000
-Subject: [PATCH 1/7] LL: kconfig: add 750Hz timer interrupt kernel config
- option
-
-Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
----
- kernel/Kconfig.hz | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
-
-diff --git a/kernel/Kconfig.hz b/kernel/Kconfig.hz
-index 38ef6d068..5f95c9e01 100644
---- a/kernel/Kconfig.hz
-+++ b/kernel/Kconfig.hz
-@@ -5,7 +5,7 @@
- 
- choice
- 	prompt "Timer frequency"
--	default HZ_250
-+	default HZ_750
- 	help
- 	 Allows the configuration of the timer frequency. It is customary
- 	 to have the timer interrupt run at 1000 Hz but 100 Hz may be more
-@@ -40,6 +40,13 @@ choice
- 	 on SMP and NUMA systems and exactly dividing by both PAL and
- 	 NTSC frame rates for video and multimedia work.
- 
-+	config HZ_750
-+		bool "750 HZ"
-+	help
-+	 750 Hz is a balanced timer frequency. Provides fast interactivity
-+	 on desktops with good smoothness without increasing CPU power
-+	 consumption and sacrificing the battery life on laptops.
-+
- 	config HZ_1000
- 		bool "1000 HZ"
- 	help
-@@ -53,6 +60,7 @@ config HZ
- 	default 100 if HZ_100
- 	default 250 if HZ_250
- 	default 300 if HZ_300
-+	default 750 if HZ_750
- 	default 1000 if HZ_1000
- 
- config SCHED_HRTICK
--- 
-2.36.1.74.g277cf0bc36
-From 7002acf2667e9a1270e082b3f4efef3631d14187 Mon Sep 17 00:00:00 2001
-From: Piotr Gorski <lucjan.lucjanov@gmail.com>
-Date: Fri, 30 Oct 2020 01:02:18 +0100
-Subject: [PATCH 5/7] mm: set 8 megabytes for address_space-level file
- read-ahead pages size
-
-Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
----
- include/linux/pagemap.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 993994cd9..4bf55082d 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -1153,7 +1153,7 @@ struct readahead_control {
- 		._index = i,						\
- 	}
- 
--#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
-+#define VM_READAHEAD_PAGES	(SZ_8M / PAGE_SIZE)
- 
- void page_cache_ra_unbounded(struct readahead_control *,
- 		unsigned long nr_to_read, unsigned long lookahead_count);
--- 
-2.36.1.74.g277cf0bc36
-
-
-From d1544eeb4eac930deb7f9faf1f667236967b5efc Mon Sep 17 00:00:00 2001
+From c1b217728d4ddef55bdcd5b91e775763ecdb29db Mon Sep 17 00:00:00 2001
 From: Piotr Gorski <lucjan.lucjanov@gmail.com>
 Date: Fri, 28 Oct 2022 09:56:21 +0200
-Subject: [PATCH 1/2] futex-6.1: Add entry point for FUTEX_WAIT_MULTIPLE
+Subject: [PATCH 1/3] futex-6.1: Add entry point for FUTEX_WAIT_MULTIPLE
  (opcode 31)
 
 Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
@@ -20925,10 +21630,10 @@ index 086a22d1a..c6f5f1e84 100644
 2.39.0.rc2.1.gbd5df96b79
 
 
-From e5dbd8b8d338df5653e5463ab7c21a4582f5008c Mon Sep 17 00:00:00 2001
+From dc66498e6b4d2323ff27940bfa9565b9d29783d1 Mon Sep 17 00:00:00 2001
 From: Alexey Izbyshev <izbyshev@ispras.ru>
 Date: Sat, 12 Nov 2022 00:54:39 +0300
-Subject: [PATCH 2/2] futex: Resend potentially swallowed owner death
+Subject: [PATCH 2/3] futex: Resend potentially swallowed owner death
  notification
 
 Commit ca16d5bee598 ("futex: Prevent robust futex exit race") addressed
@@ -21022,6 +21727,66 @@ index b22ef1efe..514e4582b 100644
  		return 0;
  
  	/*
+-- 
+2.39.0.rc2.1.gbd5df96b79
+
+
+From b1d626723c7dd1bf23fbdf409a25ae48a582aab9 Mon Sep 17 00:00:00 2001
+From: Peter Jung <admin@ptr1337.dev>
+Date: Thu, 15 Dec 2022 00:33:17 +0100
+Subject: [PATCH 3/3] futex: Fix futex_waitv() hrtimer debug object leak on
+ kcalloc error
+
+In a scenario where kcalloc() fails to allocate memory, the futex_waitv
+system call immediately returns -ENOMEM without invoking
+destroy_hrtimer_on_stack(). When CONFIG_DEBUG_OBJECTS_TIMERS=y, this
+results in leaking a timer debug object.
+
+Fixes: bf69bad38cf6 ("futex: Implement sys_futex_waitv()")
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Andre Almeida <andrealmeid@collabora.com>
+Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Darren Hart <dvhart@infradead.org>
+Cc: Davidlohr Bueso <dave@stgolabs.net>
+Cc: stable@vger.kernel.org # v5.16+
+Signed-off-by: Peter Jung <admin@ptr1337.dev>
+---
+ kernel/futex/syscalls.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/kernel/futex/syscalls.c b/kernel/futex/syscalls.c
+index c6f5f1e84..26d6da72d 100644
+--- a/kernel/futex/syscalls.c
++++ b/kernel/futex/syscalls.c
+@@ -356,19 +356,22 @@ SYSCALL_DEFINE5(futex_waitv, struct futex_waitv __user *, waiters,
+ 	}
+ 
+ 	futexv = kcalloc(nr_futexes, sizeof(*futexv), GFP_KERNEL);
+-	if (!futexv)
+-		return -ENOMEM;
++	if (!futexv) {
++		ret = -ENOMEM;
++		goto destroy_timer;
++	}
+ 
+ 	ret = futex_parse_waitv(futexv, waiters, nr_futexes);
+ 	if (!ret)
+ 		ret = futex_wait_multiple(futexv, nr_futexes, timeout ? &to : NULL);
+ 
++	kfree(futexv);
++
++destroy_timer:
+ 	if (timeout) {
+ 		hrtimer_cancel(&to.timer);
+ 		destroy_hrtimer_on_stack(&to.timer);
+ 	}
+-
+-	kfree(futexv);
+ 	return ret;
+ }
+ 
 -- 
 2.39.0.rc2.1.gbd5df96b79
 
@@ -30072,4 +30837,617 @@ index 8c6517d29..37068542a 100644
  
 -- 
 2.39.0.rc2.1.gbd5df96b79
+
+From 2657fb7f8a9e6c8acf2a3861f1e1aa4fac0e5c05 Mon Sep 17 00:00:00 2001
+From: Peter Jung <admin@ptr1337.dev>
+Date: Wed, 7 Dec 2022 18:48:13 +0100
+Subject: [PATCH] amd_pstate: Add guided autonomous mode support
+
+From ACPI spec[1] below 3 modes for CPPC can be defined:
+1. Non autonomous: OS scaling governor specifies operating frequency/
+   performance level through `Desired Performance` register and PMFW
+follows that.
+2. Guided autonomous: OS scaling governor specifies min and max
+   frequencies/ performance levels through `Minimum Performance` and
+`Maximum Performance` register, and PMFW can autonomously select an
+operating frequency in this range.
+3. Fully autonomous: OS only hints (via EPP) to PMFW for the required
+   energy performance preference for the workload and PMFW autonomously
+scales the frequency.
+
+Currently (1) is supported by amd_pstate as passive mode, and (3) is
+implemented by EPP support[2]. This change is to support (2).
+
+In guided autonomous mode the min_perf is based on the input from the
+scaling governor. For example, in case of schedutil this value depends
+on the current utilization. And max_perf is set to max capacity.
+
+To activate guided auto mode ``amd_pstate=guided`` command line
+parameter has to be passed in the kernel.
+
+Below are the results (normalized) of benchmarks with this patch:
+System: Genoa 96C 192T
+Kernel: v6.1-rc6 + patch
+Scaling governor: schedutil
+
+================ tbench  ================
+tbench result comparison: (higher the better)
+Here results are throughput (MB/s)
+Clients 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+    1	   1.00 (0.00 pct)	   1.16 (16.00 pct)	   2.20 (120.00 pct)
+    2	   1.97 (0.00 pct)	   2.29 (16.24 pct)	   4.38 (122.33 pct)
+    4	   3.95 (0.00 pct)	   4.51 (14.17 pct)	   8.50 (115.18 pct)
+    8	   7.83 (0.00 pct)	   8.89 (13.53 pct)	  16.62 (112.26 pct)
+   16	  15.28 (0.00 pct)	  16.81 (10.01 pct)	  31.02 (103.01 pct)
+   32	  41.64 (0.00 pct)	  30.67 (-26.34 pct)	  55.63 (33.59 pct)
+   64	  91.29 (0.00 pct)	  79.67 (-12.72 pct)	  91.74 (0.49 pct)
+  128	 118.06 (0.00 pct)	 122.34 (3.62 pct)	 122.04 (3.37 pct)
+  256	 260.47 (0.00 pct)	 264.31 (1.47 pct)	 264.49 (1.54 pct)
+  512	 254.16 (0.00 pct)	 245.25 (-3.50 pct)	 245.50 (-3.40 pct)
+tbench power comparison: (lower the better)
+Clients 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+    1	   1.00 (0.00 pct)	   1.00 (0.00 pct)	   1.15 (15.00 pct)
+    2	   0.99 (0.00 pct)	   1.00 (1.01 pct)	   1.17 (18.18 pct)
+    4	   1.01 (0.00 pct)	   1.02 (0.99 pct)	   1.24 (22.77 pct)
+    8	   1.05 (0.00 pct)	   1.06 (0.95 pct)	   1.36 (29.52 pct)
+   16	   1.15 (0.00 pct)	   1.13 (-1.73 pct)	   1.58 (37.39 pct)
+   32	   1.71 (0.00 pct)	   1.30 (-23.97 pct)	   1.96 (14.61 pct)
+   64	   2.35 (0.00 pct)	   2.15 (-8.51 pct)	   2.36 (0.42 pct)
+  128	   2.77 (0.00 pct)	   2.77 (0.00 pct)	   2.78 (0.36 pct)
+  256	   3.39 (0.00 pct)	   3.41 (0.58 pct)	   3.43 (1.17 pct)
+  512	   3.42 (0.00 pct)	   3.40 (-0.58 pct)	   3.41 (-0.29 pct)
+
+================ dbench  ================
+dbench result comparison: (higher the better)
+Here results are throughput (MB/s)
+Clients 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+    1	   1.00 (0.00 pct)	   0.96 (-4.00 pct)	   1.02 (2.00 pct)
+    2	   1.89 (0.00 pct)	   1.90 (0.52 pct)	   1.91 (1.05 pct)
+    4	   3.39 (0.00 pct)	   3.31 (-2.35 pct)	   3.38 (-0.29 pct)
+    8	   5.56 (0.00 pct)	   5.46 (-1.79 pct)	   5.60 (0.71 pct)
+   16	   7.25 (0.00 pct)	   7.90 (8.96 pct)	   8.29 (14.34 pct)
+   32	  10.85 (0.00 pct)	  10.00 (-7.83 pct)	  10.40 (-4.14 pct)
+   64	  12.30 (0.00 pct)	  11.94 (-2.92 pct)	  11.82 (-3.90 pct)
+  128	  12.56 (0.00 pct)	  12.30 (-2.07 pct)	  12.98 (3.34 pct)
+  256	   6.55 (0.00 pct)	   6.54 (-0.15 pct)	   7.38 (12.67 pct)
+  512	   1.61 (0.00 pct)	   1.58 (-1.86 pct)	   1.95 (21.11 pct)
+dbench power comparison: (lower the better)
+Clients 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+    1	   1.00 (0.00 pct)	   1.01 (1.00 pct)	   1.05 (5.00 pct)
+    2	   1.07 (0.00 pct)	   1.07 (0.00 pct)	   1.09 (1.86 pct)
+    4	   1.15 (0.00 pct)	   1.15 (0.00 pct)	   1.16 (0.86 pct)
+    8	   1.26 (0.00 pct)	   1.26 (0.00 pct)	   1.27 (0.79 pct)
+   16	   1.39 (0.00 pct)	   1.41 (1.43 pct)	   1.43 (2.87 pct)
+   32	   1.60 (0.00 pct)	   1.56 (-2.50 pct)	   1.59 (-0.62 pct)
+   64	   1.75 (0.00 pct)	   1.75 (0.00 pct)	   1.74 (-0.57 pct)
+  128	   1.90 (0.00 pct)	   1.91 (0.52 pct)	   1.93 (1.57 pct)
+  256	   1.76 (0.00 pct)	   1.77 (0.56 pct)	   1.85 (5.11 pct)
+  512	   1.55 (0.00 pct)	   1.49 (-3.87 pct)	   1.73 (11.61 pct)
+
+================ git-source  ================
+git-source result comparison: (higher the better)
+Here results are throughput (compilations per 1000 sec)
+Threads 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+  192	 1000.00 (0.00 pct)	 943.00 (-5.70 pct)	 1000.00 (0.00 pct)
+git-source power comparison: (lower the better)
+Threads 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+  192	   1.00 (0.00 pct)	   1.03 (3.00 pct)	   1.02 (2.00 pct)
+
+================ kernbench  ================
+kernbench result comparison: (higher the better)
+Here results are throughput (compilations per 1000 sec)
+Load 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+32	   1.00 (0.00 pct)	   0.94 (-6.00 pct)	   1.02 (2.00 pct)
+48	   1.24 (0.00 pct)	   1.16 (-6.45 pct)	   1.24 (0.00 pct)
+64	   1.35 (0.00 pct)	   1.30 (-3.70 pct)	   1.39 (2.96 pct)
+96	   1.42 (0.00 pct)	   1.28 (-9.85 pct)	   1.48 (4.22 pct)
+128	   1.39 (0.00 pct)	   1.29 (-7.19 pct)	   1.41 (1.43 pct)
+192	   1.32 (0.00 pct)	   1.18 (-10.60 pct)	   1.32 (0.00 pct)
+256	   1.28 (0.00 pct)	   1.14 (-10.93 pct)	   1.29 (0.78 pct)
+384	   1.28 (0.00 pct)	   1.13 (-11.71 pct)	   1.27 (-0.78 pct)
+git-source power comparison: (lower the better)
+Clients 	acpi-cpufreq			amd_pst+passive			amd_pst+guided
+   32	   1.00 (0.00 pct)	   1.04 (4.00 pct)	   0.95 (-5.00 pct)
+   48	   0.83 (0.00 pct)	   0.90 (8.43 pct)	   0.82 (-1.20 pct)
+   64	   0.80 (0.00 pct)	   0.82 (2.50 pct)	   0.75 (-6.25 pct)
+   96	   0.77 (0.00 pct)	   0.81 (5.19 pct)	   0.75 (-2.59 pct)
+  128	   0.78 (0.00 pct)	   0.82 (5.12 pct)	   0.75 (-3.84 pct)
+  192	   0.84 (0.00 pct)	   0.89 (5.95 pct)	   0.83 (-1.19 pct)
+  256	   0.84 (0.00 pct)	   0.89 (5.95 pct)	   0.84 (0.00 pct)
+  384	   0.84 (0.00 pct)	   0.90 (7.14 pct)	   0.84 (0.00 pct)
+
+[1]: https://uefi.org/sites/default/files/resources/ACPI_6_3_final_Jan30.pdf
+[2]: https://lore.kernel.org/lkml/20221110175847.3098728-1-Perry.Yuan@amd.com/
+
+Wyes Karny (4):
+  cpufreq: amd_pstate: Add guided autonomous mode
+  Documentation: amd_pstate: Move amd_pstate param to alphabetical order
+  cpufreq: amd_pstate: Expose sysfs interface to control state
+  Documentation: amd_pstate: Add amd_pstate state sysfs file
+
+Signed-off-by: Peter Jung <admin@ptr1337.dev>
+---
+ .../admin-guide/kernel-parameters.txt         |  26 ++-
+ Documentation/admin-guide/pm/amd-pstate.rst   |  11 +
+ drivers/cpufreq/amd-pstate.c                  | 202 +++++++++++++++++-
+ 3 files changed, 217 insertions(+), 22 deletions(-)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 42af9ca..143a38c 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -339,6 +339,21 @@
+ 			             This mode requires kvm-amd.avic=1.
+ 			             (Default when IOMMU HW support is present.)
+ 
++	amd_pstate=	[X86]
++			disable
++			  Do not enable amd_pstate as the default
++			  scaling driver for the supported processors
++			passive
++			  Use amd_pstate as a scaling driver, driver requests a
++			  desired performance on this abstract scale and the power
++			  management firmware translates the requests into actual
++			  hardware states (core frequency, data fabric and memory
++			  clocks etc.)
++			guided
++			  Activate guided autonomous mode. Driver requests minimum
++			  performance and maximum performance and the PMFW autonomously
++			  selects frequencies in this range.
++
+ 	amijoy.map=	[HW,JOY] Amiga joystick support
+ 			Map of devices attached to JOY0DAT and JOY1DAT
+ 			Format: <a>,<b>
+@@ -6959,14 +6974,3 @@
+ 				memory, and other data can't be written using
+ 				xmon commands.
+ 			off	xmon is disabled.
+-
+-	amd_pstate=	[X86]
+-			disable
+-			  Do not enable amd_pstate as the default
+-			  scaling driver for the supported processors
+-			passive
+-			  Use amd_pstate as a scaling driver, driver requests a
+-			  desired performance on this abstract scale and the power
+-			  management firmware translates the requests into actual
+-			  hardware states (core frequency, data fabric and memory
+-			  clocks etc.)
+diff --git a/Documentation/admin-guide/pm/amd-pstate.rst b/Documentation/admin-guide/pm/amd-pstate.rst
+index 06e2353..4d37835 100644
+--- a/Documentation/admin-guide/pm/amd-pstate.rst
++++ b/Documentation/admin-guide/pm/amd-pstate.rst
+@@ -265,6 +265,17 @@ This attribute is read-only.
+ Other performance and frequency values can be read back from
+ ``/sys/devices/system/cpu/cpuX/acpi_cppc/``, see :ref:`cppc_sysfs`.
+ 
++``state``
++
++``amd_pstate`` also exposes a sysfs interface to view and control the driver state.
++The driver state can be one of the following:
++``disable``     : indicates driver is in unloaded state.
++``passive``     : indicates driver is loaded and currently in passive mode.
++``guided`` : indicates driver is loaded and currenlty in guided autonomous mode.
++This file can be found here: ``/sys/devices/system/cpu/amd_pstate/state``.
++
++To switch to passive mode: ``echo passive > /sys/devices/system/cpu/amd_pstate/state``
++To switch to guided mode: ``echo guided > /sys/devices/system/cpu/amd_pstate/state``
+ 
+ ``amd-pstate`` vs ``acpi-cpufreq``
+ ======================================
+diff --git a/drivers/cpufreq/amd-pstate.c b/drivers/cpufreq/amd-pstate.c
+index 204e390..50f5fa8 100644
+--- a/drivers/cpufreq/amd-pstate.c
++++ b/drivers/cpufreq/amd-pstate.c
+@@ -50,6 +50,22 @@
+ #define AMD_PSTATE_TRANSITION_LATENCY	20000
+ #define AMD_PSTATE_TRANSITION_DELAY	1000
+ 
++typedef int (*cppc_mode_transition_fn)(int);
++
++enum amd_pstate_mode {
++	CPPC_DISABLE = 0,
++	CPPC_PASSIVE,
++	CPPC_GUIDED,
++	CPPC_MODE_MAX,
++};
++
++static const char * const amd_pstate_mode_string[] = {
++	[CPPC_DISABLE]     = "disable",
++	[CPPC_PASSIVE]     = "passive",
++	[CPPC_GUIDED]      = "guided",
++	NULL,
++};
++
+ /*
+  * TODO: We need more time to fine tune processors with shared memory solution
+  * with community together.
+@@ -60,7 +76,20 @@
+  * module parameter to be able to enable it manually for debugging.
+  */
+ static struct cpufreq_driver amd_pstate_driver;
+-static int cppc_load __initdata;
++static int cppc_state = CPPC_DISABLE;
++
++static inline int get_mode_idx_from_str(const char *str, size_t size)
++{
++	int i = 0;
++
++	for (; i < CPPC_MODE_MAX; ++i) {
++		if (!strncmp(str, amd_pstate_mode_string[i], size))
++			return i;
++	}
++	return -EINVAL;
++}
++
++static DEFINE_MUTEX(amd_pstate_driver_lock);
+ 
+ static inline int pstate_enable(bool enable)
+ {
+@@ -212,12 +241,18 @@ static inline bool amd_pstate_sample(struct amd_cpudata *cpudata)
+ }
+ 
+ static void amd_pstate_update(struct amd_cpudata *cpudata, u32 min_perf,
+-			      u32 des_perf, u32 max_perf, bool fast_switch)
++			      u32 des_perf, u32 max_perf, bool fast_switch, int flags)
+ {
+ 	u64 prev = READ_ONCE(cpudata->cppc_req_cached);
+ 	u64 value = prev;
+ 
+ 	des_perf = clamp_t(unsigned long, des_perf, min_perf, max_perf);
++
++	if (cppc_state == CPPC_GUIDED && flags & CPUFREQ_GOV_DYNAMIC_SWITCHING) {
++		min_perf = des_perf;
++		des_perf = 0;
++	}
++
+ 	value &= ~AMD_CPPC_MIN_PERF(~0L);
+ 	value |= AMD_CPPC_MIN_PERF(min_perf);
+ 
+@@ -272,7 +307,7 @@ static int amd_pstate_target(struct cpufreq_policy *policy,
+ 
+ 	cpufreq_freq_transition_begin(policy, &freqs);
+ 	amd_pstate_update(cpudata, min_perf, des_perf,
+-			  max_perf, false);
++			  max_perf, false, policy->governor->flags);
+ 	cpufreq_freq_transition_end(policy, &freqs, false);
+ 
+ 	return 0;
+@@ -306,7 +341,8 @@ static void amd_pstate_adjust_perf(unsigned int cpu,
+ 	if (max_perf < min_perf)
+ 		max_perf = min_perf;
+ 
+-	amd_pstate_update(cpudata, min_perf, des_perf, max_perf, true);
++	amd_pstate_update(cpudata, min_perf, des_perf, max_perf, true,
++			policy->governor->flags);
+ }
+ 
+ static int amd_get_min_freq(struct amd_cpudata *cpudata)
+@@ -591,6 +627,124 @@ static ssize_t show_amd_pstate_highest_perf(struct cpufreq_policy *policy,
+ 	return sprintf(&buf[0], "%u\n", perf);
+ }
+ 
++static int amd_pstate_driver_cleanup(void)
++{
++	amd_pstate_enable(false);
++	cppc_state = CPPC_DISABLE;
++	return 0;
++}
++
++static int amd_pstate_register_driver(int mode)
++{
++	int ret;
++
++	ret = cpufreq_register_driver(&amd_pstate_driver);
++	if (ret) {
++		amd_pstate_driver_cleanup();
++		return ret;
++	}
++
++	cppc_state = mode;
++	return 0;
++}
++
++static int amd_pstate_unregister_driver(int dummy)
++{
++	int ret;
++
++	ret = cpufreq_unregister_driver(&amd_pstate_driver);
++
++	if (ret)
++		return ret;
++
++	amd_pstate_driver_cleanup();
++	return 0;
++}
++
++static int amd_pstate_change_driver_mode(int mode)
++{
++	cppc_state = mode;
++	return 0;
++}
++
++/* Mode transition table */
++cppc_mode_transition_fn mode_state_machine[CPPC_MODE_MAX][CPPC_MODE_MAX] = {
++	[CPPC_DISABLE]         = {
++		[CPPC_DISABLE]     = NULL,
++		[CPPC_PASSIVE]     = amd_pstate_register_driver,
++		[CPPC_GUIDED]      = amd_pstate_register_driver,
++	},
++	[CPPC_PASSIVE]         = {
++		[CPPC_DISABLE]     = amd_pstate_unregister_driver,
++		[CPPC_PASSIVE]     = NULL,
++		[CPPC_GUIDED]      = amd_pstate_change_driver_mode,
++	},
++	[CPPC_GUIDED]          = {
++		[CPPC_DISABLE]     = amd_pstate_unregister_driver,
++		[CPPC_PASSIVE]     = amd_pstate_change_driver_mode,
++		[CPPC_GUIDED]      = NULL,
++	},
++};
++
++static int amd_pstate_update_status(const char *buf, size_t size)
++{
++	int mode_req = 0;
++
++	mode_req = get_mode_idx_from_str(buf, size);
++
++	if (mode_req < 0 || mode_req >= CPPC_MODE_MAX)
++		return -EINVAL;
++
++	if (mode_state_machine[cppc_state][mode_req])
++		return mode_state_machine[cppc_state][mode_req](mode_req);
++	return -EBUSY;
++}
++
++static ssize_t amd_pstate_show_status(char *buf)
++{
++	int i, j = 0;
++
++	for (i = 0; i < CPPC_MODE_MAX; ++i) {
++		if (i == cppc_state)
++			j += sprintf(buf + j, "[%s] ", amd_pstate_mode_string[i]);
++		else
++			j += sprintf(buf + j, "%s ", amd_pstate_mode_string[i]);
++	}
++	j += sprintf(buf + j, "\n");
++	return j;
++}
++
++static ssize_t state_store(struct kobject *kobj,
++		struct kobj_attribute *attr, const char *buf, size_t count)
++{
++	ssize_t ret = 0;
++	char *p = memchr(buf, '\n', count);
++
++	mutex_lock(&amd_pstate_driver_lock);
++	ret = amd_pstate_update_status(buf, p ? p - buf : count);
++	mutex_unlock(&amd_pstate_driver_lock);
++
++	return ret < 0 ? ret : count;
++}
++static ssize_t state_show(struct kobject *kobj,
++		struct kobj_attribute *attr, char *buf)
++{
++	int ret;
++
++	mutex_lock(&amd_pstate_driver_lock);
++	ret = amd_pstate_show_status(buf);
++	mutex_unlock(&amd_pstate_driver_lock);
++	return ret;
++}
++
++static struct kobj_attribute state_attr = __ATTR_RW(state);
++static struct attribute *amd_pstate_attrs[] = {
++	&state_attr.attr,
++	NULL,
++};
++
++ATTRIBUTE_GROUPS(amd_pstate);
++
+ cpufreq_freq_attr_ro(amd_pstate_max_freq);
+ cpufreq_freq_attr_ro(amd_pstate_lowest_nonlinear_freq);
+ 
+@@ -616,6 +770,25 @@ static struct cpufreq_driver amd_pstate_driver = {
+ 	.attr		= amd_pstate_attr,
+ };
+ 
++static struct kobject *amd_pstate_kobject;
++
++static void __init amd_pstate_sysfs_expose_param(void)
++{
++	int ret = 0;
++
++	amd_pstate_kobject = kobject_create_and_add("amd_pstate",
++		&cpu_subsys.dev_root->kobj);
++
++	if (WARN_ON(!amd_pstate_kobject))
++		return;
++
++	ret = sysfs_create_groups(amd_pstate_kobject, amd_pstate_groups);
++	if (ret) {
++		pr_err("sysfs group creation failed (%d)", ret);
++		return;
++	}
++}
++
+ static int __init amd_pstate_init(void)
+ {
+ 	int ret;
+@@ -627,7 +800,7 @@ static int __init amd_pstate_init(void)
+ 	 * enable the amd_pstate passive mode driver explicitly
+ 	 * with amd_pstate=passive in kernel command line
+ 	 */
+-	if (!cppc_load) {
++	if (cppc_state == CPPC_DISABLE) {
+ 		pr_debug("driver load is disabled, boot with amd_pstate=passive to enable this\n");
+ 		return -ENODEV;
+ 	}
+@@ -663,6 +836,7 @@ static int __init amd_pstate_init(void)
+ 	if (ret)
+ 		pr_err("failed to register amd_pstate_driver with return %d\n",
+ 		       ret);
++	amd_pstate_sysfs_expose_param();
+ 
+ 	return ret;
+ }
+@@ -670,16 +844,22 @@ device_initcall(amd_pstate_init);
+ 
+ static int __init amd_pstate_param(char *str)
+ {
++	int size, mode_idx;
++
+ 	if (!str)
+ 		return -EINVAL;
+ 
+-	if (!strcmp(str, "disable")) {
+-		cppc_load = 0;
+-		pr_info("driver is explicitly disabled\n");
+-	} else if (!strcmp(str, "passive"))
+-		cppc_load = 1;
++	size = strlen(str);
++	mode_idx = get_mode_idx_from_str(str, size);
+ 
+-	return 0;
++	if (mode_idx >= CPPC_DISABLE && mode_idx < CPPC_MODE_MAX) {
++		cppc_state = mode_idx;
++		if (cppc_state == CPPC_DISABLE)
++			pr_info("driver is explicitly disabled\n");
++		return 0;
++	}
++
++	return -EINVAL;
+ }
+ early_param("amd_pstate", amd_pstate_param);
+ 
+-- 
+2.39.0.rc2.1.gbd5df96b79
+
+From 0e7835307d6e3a560541b5ba35ecbe141965575f Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <admfrade@gmail.com>
+Date: Mon, 29 Jan 2018 17:26:15 +0000
+Subject: [PATCH 08/16] XANMOD: kconfig: add 500Hz timer interrupt kernel
+ config option
+
+Signed-off-by: Alexandre Frade <admfrade@gmail.com>
+---
+ kernel/Kconfig.hz | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/Kconfig.hz b/kernel/Kconfig.hz
+index 38ef6d06888e..b4a1995149d0 100644
+--- a/kernel/Kconfig.hz
++++ b/kernel/Kconfig.hz
+@@ -5,7 +5,7 @@
+
+ choice
+	prompt "Timer frequency"
+-	default HZ_250
++	default HZ_500
+	help
+	 Allows the configuration of the timer frequency. It is customary
+	 to have the timer interrupt run at 1000 Hz but 100 Hz may be more
+@@ -40,6 +40,13 @@ choice
+	 on SMP and NUMA systems and exactly dividing by both PAL and
+	 NTSC frame rates for video and multimedia work.
+
++	config HZ_500
++		bool "500 HZ"
++	help
++	 500 Hz is a balanced timer frequency. Provides fast interactivity
++	 on desktops with great smoothness without increasing CPU power
++	 consumption and sacrificing the battery life on laptops.
++
+	config HZ_1000
+		bool "1000 HZ"
+	help
+@@ -53,6 +60,7 @@ config HZ
+	default 100 if HZ_100
+	default 250 if HZ_250
+	default 300 if HZ_300
++	default 500 if HZ_500
+	default 1000 if HZ_1000
+
+ config SCHED_HRTICK
+--
+2.35.1
+From f1ba38d0ce21cc5ed9b44b19f5040cecfb18c429 Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <admfrade@gmail.com>
+Date: Mon, 29 Jan 2018 16:59:22 +0000
+Subject: [PATCH 09/16] XANMOD: dcache: cache_pressure = 50 decreases the rate
+ at which VFS caches are reclaimed
+
+Signed-off-by: Alexandre Frade <admfrade@gmail.com>
+---
+ fs/dcache.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/dcache.c b/fs/dcache.c
+index bb0c4d0038db..4698310fee81 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -71,7 +71,7 @@
+  * If no ancestor relationship:
+  * arbitrary, since it's serialized on rename_lock
+  */
+-int sysctl_vfs_cache_pressure __read_mostly = 100;
++int sysctl_vfs_cache_pressure __read_mostly = 50;
+ EXPORT_SYMBOL_GPL(sysctl_vfs_cache_pressure);
+
+ __cacheline_aligned_in_smp DEFINE_SEQLOCK(rename_lock);
+--
+2.35.1
+From 25d35ddf9de48158f49d84748ce5f7071c2c30f5 Mon Sep 17 00:00:00 2001
+From: Alexandre Frade <admfrade@gmail.com>
+Date: Mon, 29 Jan 2018 17:31:25 +0000
+Subject: [PATCH 10/16] XANMOD: mm/vmscan: vm_swappiness = 30 decreases the
+ amount of swapping
+
+Signed-off-by: Alexandre Frade <admfrade@gmail.com>
+---
+ mm/vmscan.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index b2b1431352dc..559540cc5be9 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -178,7 +178,7 @@ struct scan_control {
+ /*
+  * From 0 .. 200.  Higher means more swappy.
+  */
+-int vm_swappiness = 60;
++int vm_swappiness = 30;
+
+ static void set_task_reclaim_state(struct task_struct *task,
+				   struct reclaim_state *rs)
+--
+2.35.1
+From 7002acf2667e9a1270e082b3f4efef3631d14187 Mon Sep 17 00:00:00 2001
+From: Piotr Gorski <lucjan.lucjanov@gmail.com>
+Date: Fri, 30 Oct 2020 01:02:18 +0100
+Subject: [PATCH 5/7] mm: set 8 megabytes for address_space-level file
+ read-ahead pages size
+
+Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
+---
+ include/linux/pagemap.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
+index 993994cd9..4bf55082d 100644
+--- a/include/linux/pagemap.h
++++ b/include/linux/pagemap.h
+@@ -1153,7 +1153,7 @@ struct readahead_control {
+ 		._index = i,						\
+ 	}
+ 
+-#define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
++#define VM_READAHEAD_PAGES	(SZ_8M / PAGE_SIZE)
+ 
+ void page_cache_ra_unbounded(struct readahead_control *,
+ 		unsigned long nr_to_read, unsigned long lookahead_count);
+-- 
+2.36.1.74.g277cf0bc36
+
 
