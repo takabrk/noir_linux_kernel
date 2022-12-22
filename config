@@ -1,7 +1,7 @@
 #/usr/bin/bash
 
-NOIR_VERSION="noir-v1"
+NOIR_VERSION="noir"
 VERSIONBASE="6.1"
-VERSIONPOINT="6.1"
+VERSIONPOINT="6.1.1"
 
 

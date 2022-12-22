@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#December 20,2022
+#December 22,2022
 
 . ./config
 
@@ -12,6 +12,12 @@ do
          ;;
   esac
 done
+if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
+    rm -r patches/linux/patch-$VERSIONPOINT
+fi
+if  [ -e patches/linux/patch-$VERSIONPOINT.xz ]; then
+    xz -k -d patches/linux/patch-$VERSIONPOINT.xz
+fi
 
 case $e_num in
 #build noir.patch
@@ -21,8 +27,8 @@ case $e_num in
 
 #build custom_config.patch
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-#patches/linux/patch-$VERSIONPOINT \
-        cat patches/noir_base/noir_base.patch \
+        cat patches/linux/patch-$VERSIONPOINT \
+            patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
             patches/other6/zen_interactive_tune.patch \
             patches/other6/zen_other.patch \
