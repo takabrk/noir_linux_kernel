@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#December 22,2022
+#January 9,2023
 
 . ./config
 
@@ -32,8 +32,6 @@ case $e_num in
             patches/noir_base/custom_config.patch \
             patches/other6/zen_interactive_tune.patch \
             patches/other6/zen_other.patch \
-            patches/other6/patch-6.1-rc7-rt5.patch \
-            patches/other6/0001-futex-patches.patch \
             patches/other6/0001-clearlinux-6.1-introduce-clearlinux-patchset.patch \
             patches/other6/0001-winesync-Introduce-the-winesync-driver-and-character.patch \
             patches/other6/0001-tcp_bbr2-introduce-BBRv2.patch \

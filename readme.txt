@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-December 22,2022
+January 9,2023
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -34,7 +34,7 @@ $ ./build.sh -e build
 - Default I/O scheduler -> Kyber
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
-- Preemption Model -> Full Preemptible Kernel(low latency desktop)
+- Preemption Model -> Preemptible Kernel(low latency desktop)
 - CPU Timer frequency -> 500Hz
 - RCU boost delay -> 339
 - Timer tick handling -> Full dynticks system
@@ -57,7 +57,6 @@ $ ./build.sh -e build
 [patches]
 - linux update patch( https://www.kernel.org/ )
 - Zen patch( https://github.com/zen-kernel/zen-kernel/tree/6.1/master )
-- PREEMPT RT patch( https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/ )
 - https://github.com/sirlucjan/kernel-patches 
 - https://github.com/xanmod/linux-patches/tree/master/linux-6.1.y-xanmod/xanmod
 
