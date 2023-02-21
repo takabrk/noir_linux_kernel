@@ -1,7 +1,7 @@
-From 01c3bf8986cd20ab197affa3f20b6cb5e132437d Mon Sep 17 00:00:00 2001
+From aeb4752406e891ff67af9647aec347ad68c69ad8 Mon Sep 17 00:00:00 2001
 From: Piotr Gorski <lucjan.lucjanov@gmail.com>
-Date: Tue, 22 Nov 2022 22:05:07 +0100
-Subject: [PATCH] clearlinux-6.1: introduce clearlinux patchset
+Date: Tue, 27 Dec 2022 09:37:29 +0100
+Subject: [PATCH] clearlinux-6.2: introduce clearlinux patchset
 
 Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
 ---
@@ -29,7 +29,7 @@ Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
  21 files changed, 123 insertions(+), 55 deletions(-)
 
 diff --git a/arch/x86/kernel/tsc.c b/arch/x86/kernel/tsc.c
-index cafacb2e5..c2f80184f 100644
+index a78e73da4..bab8a9808 100644
 --- a/arch/x86/kernel/tsc.c
 +++ b/arch/x86/kernel/tsc.c
 @@ -1569,6 +1569,9 @@ unsigned long calibrate_delay_is_known(void)
@@ -59,10 +59,10 @@ index 7b0d4ab89..1a14f52ad 100644
  	print_vma_addr(KERN_CONT " in ", regs->ip);
  
 diff --git a/drivers/cpufreq/intel_pstate.c b/drivers/cpufreq/intel_pstate.c
-index 6ff73c307..46516074b 100644
+index fd73d6d2b..0c0071ab3 100644
 --- a/drivers/cpufreq/intel_pstate.c
 +++ b/drivers/cpufreq/intel_pstate.c
-@@ -365,6 +365,13 @@ static void intel_pstate_set_itmt_prio(int cpu)
+@@ -366,6 +366,13 @@ static void intel_pstate_set_itmt_prio(int cpu)
  	 * update them at any time after it has been called.
  	 */
  	sched_set_itmt_core_prio(cppc_perf.highest_perf, cpu);
@@ -355,7 +355,7 @@ index 6dac7c185..fab04cd8a 100644
  #endif
  }
 diff --git a/drivers/net/dummy.c b/drivers/net/dummy.c
-index aa0fc00fa..b93a4d71b 100644
+index c4b1b0aa4..06b00f7a8 100644
 --- a/drivers/net/dummy.c
 +++ b/drivers/net/dummy.c
 @@ -43,7 +43,7 @@
@@ -368,7 +368,7 @@ index aa0fc00fa..b93a4d71b 100644
  /* fake multicast ability */
  static void set_multicast_list(struct net_device *dev)
 diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 2127aba35..cf5c72a88 100644
+index 5641786bd..0ef504e90 100644
 --- a/drivers/pci/pci.c
 +++ b/drivers/pci/pci.c
 @@ -62,7 +62,7 @@ struct pci_pme_device {
@@ -422,10 +422,10 @@ index b80e25ec1..187b4ee6e 100644
  		pr_err("CPU does not support MWAIT\n");
  		return -ENODEV;
 diff --git a/fs/xattr.c b/fs/xattr.c
-index 61107b6bb..b2edabc96 100644
+index adab9a70b..4ada829a3 100644
 --- a/fs/xattr.c
 +++ b/fs/xattr.c
-@@ -122,16 +122,17 @@ xattr_permission(struct user_namespace *mnt_userns, struct inode *inode,
+@@ -139,16 +139,17 @@ xattr_permission(struct user_namespace *mnt_userns, struct inode *inode,
  	}
  
  	/*
@@ -451,7 +451,7 @@ index 61107b6bb..b2edabc96 100644
  	}
  
 diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
-index 0b7242370..16b8fc483 100644
+index 2170e0cc2..e8fa79f5b 100644
 --- a/include/linux/jbd2.h
 +++ b/include/linux/jbd2.h
 @@ -45,7 +45,7 @@
@@ -464,7 +464,7 @@ index 0b7242370..16b8fc483 100644
  #ifdef CONFIG_JBD2_DEBUG
  /*
 diff --git a/include/linux/wait.h b/include/linux/wait.h
-index 7f5a51aae..8e57dcc04 100644
+index a0307b516..edc21128f 100644
 --- a/include/linux/wait.h
 +++ b/include/linux/wait.h
 @@ -165,6 +165,7 @@ static inline bool wq_has_sleeper(struct wait_queue_head *wq_head)
@@ -554,7 +554,7 @@ index 44873594d..fe62d59f2 100644
  
  	return state;
 diff --git a/kernel/sched/wait.c b/kernel/sched/wait.c
-index 9860bb9a8..c7f045873 100644
+index 133b74730..1647fb866 100644
 --- a/kernel/sched/wait.c
 +++ b/kernel/sched/wait.c
 @@ -47,6 +47,17 @@ void add_wait_queue_priority(struct wait_queue_head *wq_head, struct wait_queue_
@@ -575,7 +575,7 @@ index 9860bb9a8..c7f045873 100644
  void remove_wait_queue(struct wait_queue_head *wq_head, struct wait_queue_entry *wq_entry)
  {
  	unsigned long flags;
-@@ -289,6 +300,19 @@ prepare_to_wait_exclusive(struct wait_queue_head *wq_head, struct wait_queue_ent
+@@ -293,6 +304,19 @@ prepare_to_wait_exclusive(struct wait_queue_head *wq_head, struct wait_queue_ent
  }
  EXPORT_SYMBOL(prepare_to_wait_exclusive);
  
@@ -609,10 +609,10 @@ index 8e61f21e7..be1439d38 100644
  
  struct cpumask watchdog_cpumask __read_mostly;
 diff --git a/lib/raid6/algos.c b/lib/raid6/algos.c
-index 39b74221f..ec3eab8cd 100644
+index a22a05c9a..a70bcbbd1 100644
 --- a/lib/raid6/algos.c
 +++ b/lib/raid6/algos.c
-@@ -128,8 +128,10 @@ static inline const struct raid6_recov_calls *raid6_choose_recov(void)
+@@ -126,8 +126,10 @@ static inline const struct raid6_recov_calls *raid6_choose_recov(void)
  
  	for (best = NULL, algo = raid6_recov_algos; *algo; algo++)
  		if (!best || (*algo)->priority > best->priority)
@@ -625,10 +625,10 @@ index 39b74221f..ec3eab8cd 100644
  	if (best) {
  		raid6_2data_recov = best->data2;
 diff --git a/mm/ksm.c b/mm/ksm.c
-index c19fcca9b..7009cf42b 100644
+index addf490da..a92c9594a 100644
 --- a/mm/ksm.c
 +++ b/mm/ksm.c
-@@ -2427,9 +2427,14 @@ static int ksm_scan_thread(void *nothing)
+@@ -2454,9 +2454,14 @@ static int ksm_scan_thread(void *nothing)
  
  		if (ksmd_should_run()) {
  			sleep_ms = READ_ONCE(ksm_thread_sleep_millisecs);
@@ -647,10 +647,10 @@ index c19fcca9b..7009cf42b 100644
  			wait_event_freezable(ksm_thread_wait,
  				ksmd_should_run() || kthread_should_stop());
 diff --git a/net/ipv4/inet_connection_sock.c b/net/ipv4/inet_connection_sock.c
-index 4e84ed21d..c6e54eca4 100644
+index f2c43f671..9885bfb42 100644
 --- a/net/ipv4/inet_connection_sock.c
 +++ b/net/ipv4/inet_connection_sock.c
-@@ -588,7 +588,7 @@ static int inet_csk_wait_for_connect(struct sock *sk, long timeo)
+@@ -606,7 +606,7 @@ static int inet_csk_wait_for_connect(struct sock *sk, long timeo)
  	 * having to remove and re-insert us on the wait queue.
  	 */
  	for (;;) {
@@ -660,10 +660,10 @@ index 4e84ed21d..c6e54eca4 100644
  		release_sock(sk);
  		if (reqsk_queue_empty(&icsk->icsk_accept_queue))
 diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 4f2205756..2d20275dd 100644
+index 33f559f49..718a1af6f 100644
 --- a/net/ipv4/tcp.c
 +++ b/net/ipv4/tcp.c
-@@ -4810,8 +4810,8 @@ void __init tcp_init(void)
+@@ -4814,8 +4814,8 @@ void __init tcp_init(void)
  	tcp_init_mem();
  	/* Set per-socket limits to no more than 1/128 the pressure threshold */
  	limit = nr_free_buffer_pages() << (PAGE_SHIFT - 7);
@@ -675,5 +675,5 @@ index 4f2205756..2d20275dd 100644
  	init_net.ipv4.sysctl_tcp_wmem[0] = PAGE_SIZE;
  	init_net.ipv4.sysctl_tcp_wmem[1] = 16*1024;
 -- 
-2.39.0.rc2.1.gbd5df96b79
+2.39.1.418.g7876265d61
 

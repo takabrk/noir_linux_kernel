@@ -1,7 +1,7 @@
-From c32df504aeddce1c353d8bc44784817377dcc090 Mon Sep 17 00:00:00 2001
+From 9aa8296bc9df29e912ac794b21121a770f0d5661 Mon Sep 17 00:00:00 2001
 From: Piotr Gorski <lucjan.lucjanov@gmail.com>
 Date: Fri, 28 Oct 2022 09:56:21 +0200
-Subject: [PATCH] futex-6.1: Add entry point for FUTEX_WAIT_MULTIPLE (opcode
+Subject: [PATCH] futex-6.2: Add entry point for FUTEX_WAIT_MULTIPLE (opcode
  31)
 
 Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
@@ -155,5 +155,5 @@ index a8074079b..26d6da72d 100644
  }
  #endif /* CONFIG_COMPAT_32BIT_TIME */
 -- 
-2.39.0.rc2.1.gbd5df96b79
+2.39.1.418.g7876265d61
 

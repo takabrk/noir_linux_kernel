@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-February 15,2023
+February 22,2023
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -31,7 +31,7 @@ $ ./build.sh -e build
 
 - Built on the GCC 12.1.0
 - CPU scheduler -> CFS
-- Default I/O scheduler -> Kyber
+- Default I/O scheduler -> BFQ
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - Preemption Model -> Preemptible Kernel(low latency desktop)
@@ -49,16 +49,13 @@ $ ./build.sh -e build
 - Zen Interactive Tune support
 - Core scheduling for SMT ON
 - Clear Linux support
-- WineSync support
 - BBR2 support
-- zswap support
 - AMD p-state support
 
 [patches]
 - linux update patch( https://www.kernel.org/ )
-- Zen patch( https://github.com/zen-kernel/zen-kernel/tree/6.1/master )
+- Zen patch( https://github.com/zen-kernel/zen-kernel/tree/6.2/master )
 - https://github.com/sirlucjan/kernel-patches 
-- https://github.com/xanmod/linux-patches/tree/master/linux-6.1.y-xanmod/xanmod
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。

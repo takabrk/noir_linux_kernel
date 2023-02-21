@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#January 13,2023
+#February 22,2023
 
 . ./config
 
@@ -21,27 +21,22 @@ fi
 
 case $e_num in
 #build noir.patch
+#patches/linux/patch-$VERSIONPOINT \
     patch)
         truncate noir.patch --size 0
         truncate patches/noir_base/custom_config.patch --size 0
 
 #build custom_config.patch
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-        cat patches/linux/patch-$VERSIONPOINT \
-            patches/noir_base/noir_base.patch \
+        cat patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
-            patches/other6/zen_interactive_tune.patch \
-            patches/other6/zen_other.patch \
-            patches/other6/0001-clearlinux-6.1-introduce-clearlinux-patchset.patch \
-            patches/other6/0001-winesync-Introduce-the-winesync-driver-and-character.patch \
-            patches/other6/0001-tcp_bbr2-introduce-BBRv2.patch \
-            patches/other6/0001-zswap-patches.patch \
-            patches/other6/0001-arch-patches.patch \
-            patches/other6/0001-amd_pstate-Add-guided-autonomous-mode-support.patch \
-            patches/other6/0008-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
-            patches/other6/0009-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
-            patches/other6/0010-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
-            patches/other6/set_8megabytes_for_address_space-level_file.patch \
+            patches/other/v6.2-zen1.patch \
+            patches/other/0001-clearlinux-6.2-introduce-clearlinux-patchset.patch \
+            patches/other/0001-amd-pstate-patches.patch \
+            patches/other/0008-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
+            patches/other/0004-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
+            patches/other/0006-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
+            patches/other/set_8megabytes_for_address_space-level_file.patch \
             > noir.patch
             ;;
 
