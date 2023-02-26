@@ -34,7 +34,7 @@ $ ./build.sh -e build
 - Default I/O scheduler -> BFQ
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
-- Preemption Model -> Full Preemptible Kernel(low latency desktop)
+- Preemption Model -> Full Preemptible Kernel(Real Time)
 - CPU Timer frequency -> 500Hz
 - RCU boost delay -> 339
 - Timer tick handling -> Full dynticks system
