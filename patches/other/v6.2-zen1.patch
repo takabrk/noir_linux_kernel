@@ -118,42 +118,6 @@ index 6cfa6e3996cf..faf950a13961 100644
  		noioapicquirk	[APIC] Disable all boot interrupt quirks.
  				Safety option to keep boot IRQs enabled. This
  				should never be necessary.
-diff --git a/Makefile b/Makefile
-index 3f6628780eb2..6cffc6a7e425 100644
---- a/Makefile
-+++ b/Makefile
-@@ -2,8 +2,8 @@
- VERSION = 6
- PATCHLEVEL = 2
- SUBLEVEL = 0
--EXTRAVERSION =
--NAME = Hurr durr I'ma ninja sloth
-+EXTRAVERSION = -zen1
-+NAME = Finding Humor In Nothing
- 
- # *DOCUMENTATION*
- # To see a list of typical targets execute "make help"
-@@ -834,6 +834,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
- ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
- KBUILD_CFLAGS += -O2
- KBUILD_RUSTFLAGS += -Copt-level=2
-+else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
-+KBUILD_CFLAGS += -O3
-+KBUILD_RUSTFLAGS += -Copt-level=3
- else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
- KBUILD_CFLAGS += -Os
- KBUILD_RUSTFLAGS += -Copt-level=s
-@@ -1075,11 +1078,6 @@ KBUILD_CFLAGS	+= -fno-strict-overflow
- # Make sure -fstack-check isn't enabled (like gentoo apparently did)
- KBUILD_CFLAGS  += -fno-stack-check
- 
--# conserve stack if available
--ifdef CONFIG_CC_IS_GCC
--KBUILD_CFLAGS   += -fconserve-stack
--endif
--
- # Prohibit date/time macros, which would make the build non-deterministic
- KBUILD_CFLAGS   += -Werror=date-time
  
 diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
 index 8ebacf37a8cf..c9d25f85d86d 100644
