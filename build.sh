@@ -37,6 +37,7 @@ case $e_num in
             patches/other/0004-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0006-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
             patches/other/set_8megabytes_for_address_space-level_file.patch \
+            patches/other/0007-v6.2-winesync.patch \
             patches/other/patch-6.2-rt3.patch \
             > noir.patch
             ;;
