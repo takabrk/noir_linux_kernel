@@ -1,5 +1,6 @@
  Documentation/admin-guide/kernel-parameters.txt |   12 +
- Makefile                                        |   12 +-
+ MAINTAINERS                                     |    2 +-
+ Makefile                                        |   14 +-
  arch/alpha/kernel/syscalls/syscall.tbl          |    1 +
  arch/arm/tools/syscall.tbl                      |    1 +
  arch/arm64/include/asm/unistd.h                 |    2 +-
@@ -20,7 +21,12 @@
  arch/x86/entry/syscalls/syscall_32.tbl          |    1 +
  arch/x86/entry/syscalls/syscall_64.tbl          |    1 +
  arch/x86/include/asm/pci.h                      |    6 +
+ arch/x86/include/asm/text-patching.h            |   31 +
  arch/x86/include/asm/vermagic.h                 |   74 +
+ arch/x86/kernel/alternative.c                   |   62 +-
+ arch/x86/kernel/kprobes/core.c                  |   38 +-
+ arch/x86/kernel/static_call.c                   |   50 +-
+ arch/x86/net/bpf_jit_comp.c                     |    5 +-
  arch/x86/pci/common.c                           |    7 +-
  arch/xtensa/kernel/syscalls/syscall.tbl         |    1 +
  block/elevator.c                                |   10 +
@@ -31,23 +37,31 @@
  drivers/cpufreq/Kconfig.x86                     |    2 -
  drivers/cpufreq/cpufreq_ondemand.c              |   10 +-
  drivers/cpufreq/intel_pstate.c                  |    2 +
+ drivers/hid/hid-mcp2221.c                       |    3 +
  drivers/i2c/busses/Kconfig                      |    9 +
  drivers/i2c/busses/Makefile                     |    1 +
  drivers/i2c/busses/i2c-nct6775.c                |  647 ++++++
  drivers/i2c/busses/i2c-piix4.c                  |    4 +-
  drivers/input/evdev.c                           |   19 +-
+ drivers/iommu/amd/iommu.c                       |   29 +-
+ drivers/iommu/iommu.c                           |   16 +-
  drivers/md/dm-crypt.c                           |    5 +
+ drivers/net/wireless/marvell/mwifiex/sdio.c     |    1 +
  drivers/pci/controller/Makefile                 |    6 +
  drivers/pci/controller/intel-nvme-remap.c       |  462 ++++
  drivers/pci/quirks.c                            |  101 +
+ drivers/platform/x86/amd/pmf/Kconfig            |    1 +
+ drivers/platform/x86/nvidia-wmi-ec-backlight.c  |    6 +-
  drivers/scsi/Kconfig                            |    2 +
  drivers/scsi/Makefile                           |    1 +
  drivers/scsi/vhba/Kconfig                       |    9 +
  drivers/scsi/vhba/Makefile                      |    4 +
  drivers/scsi/vhba/vhba.c                        | 1124 ++++++++++
+ fs/ext4/sysfs.c                                 |    7 +-
  include/linux/fs.h                              |    2 +
  include/linux/ksm.h                             |    4 +
  include/linux/mm_inline.h                       |   11 +
+ include/linux/nospec.h                          |    4 +
  include/linux/pageblock-flags.h                 |    4 +
  include/linux/syscalls.h                        |    1 +
  include/linux/tcp.h                             |    3 +-
@@ -58,12 +72,14 @@
  include/uapi/linux/inet_diag.h                  |   33 +
  init/Kconfig                                    |   63 +
  init/Makefile                                   |    2 +-
+ kernel/bpf/core.c                               |    3 +-
  kernel/fork.c                                   |   14 +
  kernel/sched/fair.c                             |   23 +
  kernel/sched/sched.h                            |    2 +
  kernel/sys_ni.c                                 |    1 +
  kernel/sysctl.c                                 |   12 +
  kernel/user_namespace.c                         |    7 +
+ lib/usercopy.c                                  |    7 +
  mm/Kconfig                                      |    2 +-
  mm/compaction.c                                 |    4 +
  mm/fadvise.c                                    |    5 +-
@@ -86,7 +102,8 @@
  net/ipv4/tcp_output.c                           |   26 +-
  net/ipv4/tcp_rate.c                             |   30 +-
  net/ipv4/tcp_timer.c                            |    1 +
- 88 files changed, 6404 insertions(+), 176 deletions(-)
+ security/Kconfig.hardening                      |    3 +
+ 105 files changed, 6613 insertions(+), 237 deletions(-)
 
 diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
 index 6cfa6e3996cf..faf950a13961 100644
@@ -118,7 +135,19 @@ index 6cfa6e3996cf..faf950a13961 100644
  		noioapicquirk	[APIC] Disable all boot interrupt quirks.
  				Safety option to keep boot IRQs enabled. This
  				should never be necessary.
- 
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 135d93368d36..f77188f30210 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3515,7 +3515,7 @@ F:	drivers/net/ieee802154/atusb.h
+ AUDIT SUBSYSTEM
+ M:	Paul Moore <paul@paul-moore.com>
+ M:	Eric Paris <eparis@redhat.com>
+-L:	linux-audit@redhat.com (moderated for non-subscribers)
++L:	audit@vger.kernel.org
+ S:	Supported
+ W:	https://github.com/linux-audit
+ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pcmoore/audit.git
 diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
 index 8ebacf37a8cf..c9d25f85d86d 100644
 --- a/arch/alpha/kernel/syscalls/syscall.tbl
@@ -926,6 +955,48 @@ index b40c462b4af3..c4e66e60d559 100644
  /* Can be used to override the logic in pci_scan_bus for skipping
     already-configured bus numbers - to be used for buggy BIOSes
     or architectures with incomplete PCI setup by the loader */
+diff --git a/arch/x86/include/asm/text-patching.h b/arch/x86/include/asm/text-patching.h
+index f4b87f08f5c5..29832c338cdc 100644
+--- a/arch/x86/include/asm/text-patching.h
++++ b/arch/x86/include/asm/text-patching.h
+@@ -184,6 +184,37 @@ void int3_emulate_ret(struct pt_regs *regs)
+ 	unsigned long ip = int3_emulate_pop(regs);
+ 	int3_emulate_jmp(regs, ip);
+ }
++
++static __always_inline
++void int3_emulate_jcc(struct pt_regs *regs, u8 cc, unsigned long ip, unsigned long disp)
++{
++	static const unsigned long jcc_mask[6] = {
++		[0] = X86_EFLAGS_OF,
++		[1] = X86_EFLAGS_CF,
++		[2] = X86_EFLAGS_ZF,
++		[3] = X86_EFLAGS_CF | X86_EFLAGS_ZF,
++		[4] = X86_EFLAGS_SF,
++		[5] = X86_EFLAGS_PF,
++	};
++
++	bool invert = cc & 1;
++	bool match;
++
++	if (cc < 0xc) {
++		match = regs->flags & jcc_mask[cc >> 1];
++	} else {
++		match = ((regs->flags & X86_EFLAGS_SF) >> X86_EFLAGS_SF_BIT) ^
++			((regs->flags & X86_EFLAGS_OF) >> X86_EFLAGS_OF_BIT);
++		if (cc >= 0xe)
++			match = match || (regs->flags & X86_EFLAGS_ZF);
++	}
++
++	if ((match && !invert) || (!match && invert))
++		ip += disp;
++
++	int3_emulate_jmp(regs, ip);
++}
++
+ #endif /* !CONFIG_UML_X86 */
+ 
+ #endif /* _ASM_X86_TEXT_PATCHING_H */
 diff --git a/arch/x86/include/asm/vermagic.h b/arch/x86/include/asm/vermagic.h
 index 75884d2cdec3..02c1386eb653 100644
 --- a/arch/x86/include/asm/vermagic.h
@@ -1029,6 +1100,409 @@ index 75884d2cdec3..02c1386eb653 100644
  #elif defined CONFIG_MELAN
  #define MODULE_PROC_FAMILY "ELAN "
  #elif defined CONFIG_MCRUSOE
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index 7d8c3cbde368..81381a0194f3 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -340,6 +340,12 @@ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+ 	}
+ }
+ 
++static inline bool is_jcc32(struct insn *insn)
++{
++	/* Jcc.d32 second opcode byte is in the range: 0x80-0x8f */
++	return insn->opcode.bytes[0] == 0x0f && (insn->opcode.bytes[1] & 0xf0) == 0x80;
++}
++
+ #if defined(CONFIG_RETPOLINE) && defined(CONFIG_OBJTOOL)
+ 
+ /*
+@@ -378,12 +384,6 @@ static int emit_indirect(int op, int reg, u8 *bytes)
+ 	return i;
+ }
+ 
+-static inline bool is_jcc32(struct insn *insn)
+-{
+-	/* Jcc.d32 second opcode byte is in the range: 0x80-0x8f */
+-	return insn->opcode.bytes[0] == 0x0f && (insn->opcode.bytes[1] & 0xf0) == 0x80;
+-}
+-
+ static int emit_call_track_retpoline(void *addr, struct insn *insn, int reg, u8 *bytes)
+ {
+ 	u8 op = insn->opcode.bytes[0];
+@@ -1772,6 +1772,11 @@ void text_poke_sync(void)
+ 	on_each_cpu(do_sync_core, NULL, 1);
+ }
+ 
++/*
++ * NOTE: crazy scheme to allow patching Jcc.d32 but not increase the size of
++ * this thing. When len == 6 everything is prefixed with 0x0f and we map
++ * opcode to Jcc.d8, using len to distinguish.
++ */
+ struct text_poke_loc {
+ 	/* addr := _stext + rel_addr */
+ 	s32 rel_addr;
+@@ -1893,6 +1898,10 @@ noinstr int poke_int3_handler(struct pt_regs *regs)
+ 		int3_emulate_jmp(regs, (long)ip + tp->disp);
+ 		break;
+ 
++	case 0x70 ... 0x7f: /* Jcc */
++		int3_emulate_jcc(regs, tp->opcode & 0xf, (long)ip, tp->disp);
++		break;
++
+ 	default:
+ 		BUG();
+ 	}
+@@ -1966,16 +1975,26 @@ static void text_poke_bp_batch(struct text_poke_loc *tp, unsigned int nr_entries
+ 	 * Second step: update all but the first byte of the patched range.
+ 	 */
+ 	for (do_sync = 0, i = 0; i < nr_entries; i++) {
+-		u8 old[POKE_MAX_OPCODE_SIZE] = { tp[i].old, };
++		u8 old[POKE_MAX_OPCODE_SIZE+1] = { tp[i].old, };
++		u8 _new[POKE_MAX_OPCODE_SIZE+1];
++		const u8 *new = tp[i].text;
+ 		int len = tp[i].len;
+ 
+ 		if (len - INT3_INSN_SIZE > 0) {
+ 			memcpy(old + INT3_INSN_SIZE,
+ 			       text_poke_addr(&tp[i]) + INT3_INSN_SIZE,
+ 			       len - INT3_INSN_SIZE);
++
++			if (len == 6) {
++				_new[0] = 0x0f;
++				memcpy(_new + 1, new, 5);
++				new = _new;
++			}
++
+ 			text_poke(text_poke_addr(&tp[i]) + INT3_INSN_SIZE,
+-				  (const char *)tp[i].text + INT3_INSN_SIZE,
++				  new + INT3_INSN_SIZE,
+ 				  len - INT3_INSN_SIZE);
++
+ 			do_sync++;
+ 		}
+ 
+@@ -2003,83 +2022,96 @@ static void text_poke_bp_batch(struct text_poke_loc *tp, unsigned int nr_entries
+ 		 * The old instruction is recorded so that the event can be
+ 		 * processed forwards or backwards.
+ 		 */
+-		perf_event_text_poke(text_poke_addr(&tp[i]), old, len,
+-				     tp[i].text, len);
++		perf_event_text_poke(text_poke_addr(&tp[i]), old, len, new, len);
+ 	}
+ 
+ 	if (do_sync) {
+ 		/*
+ 		 * According to Intel, this core syncing is very likely
+ 		 * not necessary and we'd be safe even without it. But
+ 		 * better safe than sorry (plus there's not only Intel).
+ 		 */
+ 		text_poke_sync();
+ 	}
+ 
+ 	/*
+ 	 * Third step: replace the first byte (int3) by the first byte of
+ 	 * replacing opcode.
+ 	 */
+ 	for (do_sync = 0, i = 0; i < nr_entries; i++) {
+-		if (tp[i].text[0] == INT3_INSN_OPCODE)
++		u8 byte = tp[i].text[0];
++
++		if (tp[i].len == 6)
++			byte = 0x0f;
++
++		if (byte == INT3_INSN_OPCODE)
+ 			continue;
+ 
+-		text_poke(text_poke_addr(&tp[i]), tp[i].text, INT3_INSN_SIZE);
++		text_poke(text_poke_addr(&tp[i]), &byte, INT3_INSN_SIZE);
+ 		do_sync++;
+ 	}
+ 
+ 	if (do_sync)
+ 		text_poke_sync();
+ 
+ 	/*
+ 	 * Remove and wait for refs to be zero.
+ 	 */
+ 	if (!atomic_dec_and_test(&bp_desc.refs))
+ 		atomic_cond_read_acquire(&bp_desc.refs, !VAL);
+ }
+ 
+ static void text_poke_loc_init(struct text_poke_loc *tp, void *addr,
+ 			       const void *opcode, size_t len, const void *emulate)
+ {
+ 	struct insn insn;
+-	int ret, i;
++	int ret, i = 0;
+ 
+-	memcpy((void *)tp->text, opcode, len);
++	if (len == 6)
++		i = 1;
++	memcpy((void *)tp->text, opcode+i, len-i);
+ 	if (!emulate)
+ 		emulate = opcode;
+ 
+ 	ret = insn_decode_kernel(&insn, emulate);
+ 	BUG_ON(ret < 0);
+ 
+ 	tp->rel_addr = addr - (void *)_stext;
+ 	tp->len = len;
+ 	tp->opcode = insn.opcode.bytes[0];
+ 
++	if (is_jcc32(&insn)) {
++		/*
++		 * Map Jcc.d32 onto Jcc.d8 and use len to distinguish.
++		 */
++		tp->opcode = insn.opcode.bytes[1] - 0x10;
++	}
++
+ 	switch (tp->opcode) {
+ 	case RET_INSN_OPCODE:
+ 	case JMP32_INSN_OPCODE:
+ 	case JMP8_INSN_OPCODE:
+ 		/*
+ 		 * Control flow instructions without implied execution of the
+ 		 * next instruction can be padded with INT3.
+ 		 */
+ 		for (i = insn.length; i < len; i++)
+ 			BUG_ON(tp->text[i] != INT3_INSN_OPCODE);
+ 		break;
+ 
+ 	default:
+ 		BUG_ON(len != insn.length);
+ 	}
+ 
+-
+ 	switch (tp->opcode) {
+ 	case INT3_INSN_OPCODE:
+ 	case RET_INSN_OPCODE:
+ 		break;
+ 
+ 	case CALL_INSN_OPCODE:
+ 	case JMP32_INSN_OPCODE:
+ 	case JMP8_INSN_OPCODE:
++	case 0x70 ... 0x7f: /* Jcc */
+ 		tp->disp = insn.immediate.value;
+ 		break;
+ 
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 695873c0f50b..0ce969ae250f 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -464,50 +464,26 @@ static void kprobe_emulate_call(struct kprobe *p, struct pt_regs *regs)
+ }
+ NOKPROBE_SYMBOL(kprobe_emulate_call);
+ 
+-static nokprobe_inline
+-void __kprobe_emulate_jmp(struct kprobe *p, struct pt_regs *regs, bool cond)
++static void kprobe_emulate_jmp(struct kprobe *p, struct pt_regs *regs)
+ {
+ 	unsigned long ip = regs->ip - INT3_INSN_SIZE + p->ainsn.size;
+ 
+-	if (cond)
+-		ip += p->ainsn.rel32;
++	ip += p->ainsn.rel32;
+ 	int3_emulate_jmp(regs, ip);
+ }
+-
+-static void kprobe_emulate_jmp(struct kprobe *p, struct pt_regs *regs)
+-{
+-	__kprobe_emulate_jmp(p, regs, true);
+-}
+ NOKPROBE_SYMBOL(kprobe_emulate_jmp);
+ 
+-static const unsigned long jcc_mask[6] = {
+-	[0] = X86_EFLAGS_OF,
+-	[1] = X86_EFLAGS_CF,
+-	[2] = X86_EFLAGS_ZF,
+-	[3] = X86_EFLAGS_CF | X86_EFLAGS_ZF,
+-	[4] = X86_EFLAGS_SF,
+-	[5] = X86_EFLAGS_PF,
+-};
+-
+ static void kprobe_emulate_jcc(struct kprobe *p, struct pt_regs *regs)
+ {
+-	bool invert = p->ainsn.jcc.type & 1;
+-	bool match;
++	unsigned long ip = regs->ip - INT3_INSN_SIZE + p->ainsn.size;
+ 
+-	if (p->ainsn.jcc.type < 0xc) {
+-		match = regs->flags & jcc_mask[p->ainsn.jcc.type >> 1];
+-	} else {
+-		match = ((regs->flags & X86_EFLAGS_SF) >> X86_EFLAGS_SF_BIT) ^
+-			((regs->flags & X86_EFLAGS_OF) >> X86_EFLAGS_OF_BIT);
+-		if (p->ainsn.jcc.type >= 0xe)
+-			match = match || (regs->flags & X86_EFLAGS_ZF);
+-	}
+-	__kprobe_emulate_jmp(p, regs, (match && !invert) || (!match && invert));
++	int3_emulate_jcc(regs, p->ainsn.jcc.type, ip, p->ainsn.rel32);
+ }
+ NOKPROBE_SYMBOL(kprobe_emulate_jcc);
+ 
+ static void kprobe_emulate_loop(struct kprobe *p, struct pt_regs *regs)
+ {
++	unsigned long ip = regs->ip - INT3_INSN_SIZE + p->ainsn.size;
+ 	bool match;
+ 
+ 	if (p->ainsn.loop.type != 3) {	/* LOOP* */
+@@ -535,7 +511,9 @@ static void kprobe_emulate_loop(struct kprobe *p, struct pt_regs *regs)
+ 	else if (p->ainsn.loop.type == 1)	/* LOOPE */
+ 		match = match && (regs->flags & X86_EFLAGS_ZF);
+ 
+-	__kprobe_emulate_jmp(p, regs, match);
++	if (match)
++		ip += p->ainsn.rel32;
++	int3_emulate_jmp(regs, ip);
+ }
+ NOKPROBE_SYMBOL(kprobe_emulate_loop);
+ 
+diff --git a/arch/x86/kernel/static_call.c b/arch/x86/kernel/static_call.c
+index 2ebc338980bc..b70670a98597 100644
+--- a/arch/x86/kernel/static_call.c
++++ b/arch/x86/kernel/static_call.c
+@@ -9,77 +9,121 @@ enum insn_type {
+ 	NOP = 1,  /* site cond-call */
+ 	JMP = 2,  /* tramp / site tail-call */
+ 	RET = 3,  /* tramp / site cond-tail-call */
++	JCC = 4,
+ };
+ 
+ /*
+  * ud1 %esp, %ecx - a 3 byte #UD that is unique to trampolines, chosen such
+  * that there is no false-positive trampoline identification while also being a
+  * speculation stop.
+  */
+ static const u8 tramp_ud[] = { 0x0f, 0xb9, 0xcc };
+ 
+ /*
+  * cs cs cs xorl %eax, %eax - a single 5 byte instruction that clears %[er]ax
+  */
+ static const u8 xor5rax[] = { 0x2e, 0x2e, 0x2e, 0x31, 0xc0 };
+ 
+ static const u8 retinsn[] = { RET_INSN_OPCODE, 0xcc, 0xcc, 0xcc, 0xcc };
+ 
++static u8 __is_Jcc(u8 *insn) /* Jcc.d32 */
++{
++	u8 ret = 0;
++
++	if (insn[0] == 0x0f) {
++		u8 tmp = insn[1];
++		if ((tmp & 0xf0) == 0x80)
++			ret = tmp;
++	}
++
++	return ret;
++}
++
++extern void __static_call_return(void);
++
++asm (".global __static_call_return\n\t"
++     ".type __static_call_return, @function\n\t"
++     ASM_FUNC_ALIGN "\n\t"
++     "__static_call_return:\n\t"
++     ANNOTATE_NOENDBR
++     ANNOTATE_RETPOLINE_SAFE
++     "ret; int3\n\t"
++     ".size __static_call_return, . - __static_call_return \n\t");
++
+ static void __ref __static_call_transform(void *insn, enum insn_type type,
+ 					  void *func, bool modinit)
+ {
+ 	const void *emulate = NULL;
+ 	int size = CALL_INSN_SIZE;
+ 	const void *code;
++	u8 op, buf[6];
++
++	if ((type == JMP || type == RET) && (op = __is_Jcc(insn)))
++		type = JCC;
+ 
+ 	switch (type) {
+ 	case CALL:
+ 		func = callthunks_translate_call_dest(func);
+ 		code = text_gen_insn(CALL_INSN_OPCODE, insn, func);
+ 		if (func == &__static_call_return0) {
+ 			emulate = code;
+ 			code = &xor5rax;
+ 		}
+ 
+ 		break;
+ 
+ 	case NOP:
+ 		code = x86_nops[5];
+ 		break;
+ 
+ 	case JMP:
+ 		code = text_gen_insn(JMP32_INSN_OPCODE, insn, func);
+ 		break;
+ 
+ 	case RET:
+ 		if (cpu_feature_enabled(X86_FEATURE_RETHUNK))
+ 			code = text_gen_insn(JMP32_INSN_OPCODE, insn, x86_return_thunk);
+ 		else
+ 			code = &retinsn;
+ 		break;
++
++	case JCC:
++		if (!func) {
++			func = __static_call_return;
++			if (cpu_feature_enabled(X86_FEATURE_RETHUNK))
++				func = x86_return_thunk;
++		}
++
++		buf[0] = 0x0f;
++		__text_gen_insn(buf+1, op, insn+1, func, 5);
++		code = buf;
++		size = 6;
++
++		break;
+ 	}
+ 
+ 	if (memcmp(insn, code, size) == 0)
+ 		return;
+ 
+ 	if (system_state == SYSTEM_BOOTING || modinit)
+ 		return text_poke_early(insn, code, size);
+ 
+ 	text_poke_bp(insn, code, size, emulate);
+ }
+ 
+-static void __static_call_validate(void *insn, bool tail, bool tramp)
++static void __static_call_validate(u8 *insn, bool tail, bool tramp)
+ {
+-	u8 opcode = *(u8 *)insn;
++	u8 opcode = insn[0];
+ 
+ 	if (tramp && memcmp(insn+5, tramp_ud, 3)) {
+ 		pr_err("trampoline signature fail");
+ 		BUG();
+ 	}
+ 
+ 	if (tail) {
+ 		if (opcode == JMP32_INSN_OPCODE ||
+-		    opcode == RET_INSN_OPCODE)
++		    opcode == RET_INSN_OPCODE ||
++		    __is_Jcc(insn))
+ 			return;
+ 	} else {
+ 		if (opcode == CALL_INSN_OPCODE ||
+diff --git a/arch/x86/net/bpf_jit_comp.c b/arch/x86/net/bpf_jit_comp.c
+index b808be77635e..6e696c6b7018 100644
+--- a/arch/x86/net/bpf_jit_comp.c
++++ b/arch/x86/net/bpf_jit_comp.c
+@@ -343,9 +343,10 @@ static int emit_call(u8 **pprog, void *func, void *ip)
+ 
+ static int emit_rsb_call(u8 **pprog, void *func, void *ip)
+ {
++	void *adjusted_ip;
+ 	OPTIMIZER_HIDE_VAR(func);
+-	x86_call_depth_emit_accounting(pprog, func);
+-	return emit_patch(pprog, func, ip, 0xE8);
++	adjusted_ip = (u8 *)ip + x86_call_depth_emit_accounting(pprog, func);
++	return emit_patch(pprog, func, adjusted_ip, 0xE8);
+ }
+ 
+ static int emit_jump(u8 **pprog, void *func, void *ip)
 diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
 index ddb798603201..7c20387d8202 100644
 --- a/arch/x86/pci/common.c
@@ -1413,6 +1887,20 @@ index fd73d6d2b808..524e47b60326 100644
  	else if (!strcmp(str, "active"))
  		default_driver = &intel_pstate;
  	else if (!strcmp(str, "passive"))
+diff --git a/drivers/hid/hid-mcp2221.c b/drivers/hid/hid-mcp2221.c
+index e61dd039354b..f74a977cf8f8 100644
+--- a/drivers/hid/hid-mcp2221.c
++++ b/drivers/hid/hid-mcp2221.c
+@@ -922,6 +922,9 @@ static void mcp2221_hid_unregister(void *ptr)
+ /* This is needed to be sure hid_hw_stop() isn't called twice by the subsystem */
+ static void mcp2221_remove(struct hid_device *hdev)
+ {
++	struct mcp2221 *mcp = hid_get_drvdata(hdev);
++
++	cancel_delayed_work_sync(&mcp->init_work);
+ }
+ 
+ #if IS_REACHABLE(CONFIG_IIO)
 diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
 index a7bfddf08fa7..c9a5fa597950 100644
 --- a/drivers/i2c/busses/Kconfig
@@ -2184,6 +2672,90 @@ index 95f90699d2b1..2b10fe29d2c8 100644
  	return error;
  }
  
+diff --git a/drivers/iommu/amd/iommu.c b/drivers/iommu/amd/iommu.c
+index cbeaab55c0db..40e1716099a7 100644
+--- a/drivers/iommu/amd/iommu.c
++++ b/drivers/iommu/amd/iommu.c
+@@ -558,6 +558,15 @@ static void amd_iommu_report_page_fault(struct amd_iommu *iommu,
+ 		 * prevent logging it.
+ 		 */
+ 		if (IS_IOMMU_MEM_TRANSACTION(flags)) {
++			/* Device not attached to domain properly */
++			if (dev_data->domain == NULL) {
++				pr_err_ratelimited("Event logged [Device not attached to domain properly]\n");
++				pr_err_ratelimited("  device=%04x:%02x:%02x.%x domain=0x%04x\n",
++						   iommu->pci_seg->id, PCI_BUS_NUM(devid), PCI_SLOT(devid),
++						   PCI_FUNC(devid), domain_id);
++				goto out;
++			}
++
+ 			if (!report_iommu_fault(&dev_data->domain->domain,
+ 						&pdev->dev, address,
+ 						IS_WRITE_REQUEST(flags) ?
+@@ -2159,6 +2168,13 @@ static int amd_iommu_attach_device(struct iommu_domain *dom,
+ 	struct amd_iommu *iommu = rlookup_amd_iommu(dev);
+ 	int ret;
+ 
++	/*
++	 * Skip attach device to domain if new domain is same as
++	 * devices current domain
++	 */
++	if (dev_data->domain == domain)
++		return 0;
++
+ 	dev_data->defer_attach = false;
+ 
+ 	if (dev_data->domain)
+@@ -2387,12 +2403,17 @@ static int amd_iommu_def_domain_type(struct device *dev)
+ 		return 0;
+ 
+ 	/*
+-	 * Do not identity map IOMMUv2 capable devices when memory encryption is
+-	 * active, because some of those devices (AMD GPUs) don't have the
+-	 * encryption bit in their DMA-mask and require remapping.
++	 * Do not identity map IOMMUv2 capable devices when:
++	 *  - memory encryption is active, because some of those devices
++	 *    (AMD GPUs) don't have the encryption bit in their DMA-mask
++	 *    and require remapping.
++	 *  - SNP is enabled, because it prohibits DTE[Mode]=0.
+ 	 */
+-	if (!cc_platform_has(CC_ATTR_MEM_ENCRYPT) && dev_data->iommu_v2)
++	if (dev_data->iommu_v2 &&
++	    !cc_platform_has(CC_ATTR_MEM_ENCRYPT) &&
++	    !amd_iommu_snp_en) {
+ 		return IOMMU_DOMAIN_IDENTITY;
++	}
+ 
+ 	return 0;
+ }
+diff --git a/drivers/iommu/iommu.c b/drivers/iommu/iommu.c
+index 5f6a85aea501..9ff8cda2de7c 100644
+--- a/drivers/iommu/iommu.c
++++ b/drivers/iommu/iommu.c
+@@ -2124,8 +2124,22 @@ static int __iommu_attach_group(struct iommu_domain *domain,
+ 
+ 	ret = __iommu_group_for_each_dev(group, domain,
+ 					 iommu_group_do_attach_device);
+-	if (ret == 0)
++	if (ret == 0) {
+ 		group->domain = domain;
++	} else {
++		/*
++		 * To recover from the case when certain device within the
++		 * group fails to attach to the new domain, we need force
++		 * attaching all devices back to the old domain. The old
++		 * domain is compatible for all devices in the group,
++		 * hence the iommu driver should always return success.
++		 */
++		struct iommu_domain *old_domain = group->domain;
++
++		group->domain = NULL;
++		WARN(__iommu_group_set_domain(group, old_domain),
++		     "iommu driver failed to attach a compatible domain");
++	}
+ 
+ 	return ret;
+ }
 diff --git a/drivers/md/dm-crypt.c b/drivers/md/dm-crypt.c
 index 2653516bcdef..301d2c6738d9 100644
 --- a/drivers/md/dm-crypt.c
@@ -2200,6 +2772,18 @@ index 2653516bcdef..301d2c6738d9 100644
  	ret = crypt_ctr_cipher(ti, argv[0], argv[1]);
  	if (ret < 0)
  		goto bad;
+diff --git a/drivers/net/wireless/marvell/mwifiex/sdio.c b/drivers/net/wireless/marvell/mwifiex/sdio.c
+index b8dc3b5c9ad9..9f506efa5370 100644
+--- a/drivers/net/wireless/marvell/mwifiex/sdio.c
++++ b/drivers/net/wireless/marvell/mwifiex/sdio.c
+@@ -480,6 +480,7 @@ static struct memory_type_mapping mem_type_mapping_tbl[] = {
+ };
+ 
+ static const struct of_device_id mwifiex_sdio_of_match_table[] = {
++	{ .compatible = "marvell,sd8787" },
+ 	{ .compatible = "marvell,sd8897" },
+ 	{ .compatible = "marvell,sd8997" },
+ 	{ }
 diff --git a/drivers/pci/controller/Makefile b/drivers/pci/controller/Makefile
 index 37c8663de7fe..897d19f92ede 100644
 --- a/drivers/pci/controller/Makefile
@@ -2802,6 +3386,42 @@ index 285acc4aaccc..492e88a99c07 100644
  	{ 0 }
  };
  
+diff --git a/drivers/platform/x86/amd/pmf/Kconfig b/drivers/platform/x86/amd/pmf/Kconfig
+index c375498c4071..6d89528c3177 100644
+--- a/drivers/platform/x86/amd/pmf/Kconfig
++++ b/drivers/platform/x86/amd/pmf/Kconfig
+@@ -6,6 +6,7 @@
+ config AMD_PMF
+ 	tristate "AMD Platform Management Framework"
+ 	depends on ACPI && PCI
++	depends on POWER_SUPPLY
+ 	select ACPI_PLATFORM_PROFILE
+ 	help
+ 	  This driver provides support for the AMD Platform Management Framework.
+diff --git a/drivers/platform/x86/nvidia-wmi-ec-backlight.c b/drivers/platform/x86/nvidia-wmi-ec-backlight.c
+index baccdf658538..1b572c90c76e 100644
+--- a/drivers/platform/x86/nvidia-wmi-ec-backlight.c
++++ b/drivers/platform/x86/nvidia-wmi-ec-backlight.c
+@@ -12,6 +12,10 @@
+ #include <linux/wmi.h>
+ #include <acpi/video.h>
+ 
++static bool force;
++module_param(force, bool, 0444);
++MODULE_PARM_DESC(force, "Force loading (disable acpi_backlight=xxx checks");
++
+ /**
+  * wmi_brightness_notify() - helper function for calling WMI-wrapped ACPI method
+  * @w:    Pointer to the struct wmi_device identified by %WMI_BRIGHTNESS_GUID
+@@ -91,7 +95,7 @@ static int nvidia_wmi_ec_backlight_probe(struct wmi_device *wdev, const void *ct
+ 	int ret;
+ 
+ 	/* drivers/acpi/video_detect.c also checks that SOURCE == EC */
+-	if (acpi_video_get_backlight_type() != acpi_backlight_nvidia_wmi_ec)
++	if (!force && acpi_video_get_backlight_type() != acpi_backlight_nvidia_wmi_ec)
+ 		return -ENODEV;
+ 
+ 	/*
 diff --git a/drivers/scsi/Kconfig b/drivers/scsi/Kconfig
 index 03e71e3d5e5b..d4c6603e238b 100644
 --- a/drivers/scsi/Kconfig
@@ -3980,6 +4600,38 @@ index 000000000000..676af31c33ad
 +module_init(vhba_init);
 +module_exit(vhba_exit);
 +
+diff --git a/fs/ext4/sysfs.c b/fs/ext4/sysfs.c
+index d233c24ea342..e2b8b3437c58 100644
+--- a/fs/ext4/sysfs.c
++++ b/fs/ext4/sysfs.c
+@@ -491,21 +491,26 @@ static void ext4_sb_release(struct kobject *kobj)
+ 	complete(&sbi->s_kobj_unregister);
+ }
+ 
++static void ext4_feat_release(struct kobject *kobj)
++{
++	kfree(kobj);
++}
++
+ static const struct sysfs_ops ext4_attr_ops = {
+ 	.show	= ext4_attr_show,
+ 	.store	= ext4_attr_store,
+ };
+ 
+ static struct kobj_type ext4_sb_ktype = {
+ 	.default_groups = ext4_groups,
+ 	.sysfs_ops	= &ext4_attr_ops,
+ 	.release	= ext4_sb_release,
+ };
+ 
+ static struct kobj_type ext4_feat_ktype = {
+ 	.default_groups = ext4_feat_groups,
+ 	.sysfs_ops	= &ext4_attr_ops,
+-	.release	= (void (*)(struct kobject *))kfree,
++	.release	= ext4_feat_release,
+ };
+ 
+ void ext4_notify_error_sysfs(struct ext4_sb_info *sbi)
 diff --git a/include/linux/fs.h b/include/linux/fs.h
 index c1769a2c5d70..d353c262d669 100644
 --- a/include/linux/fs.h
@@ -4028,6 +4680,21 @@ index ff3f3f23f649..fcb0c0f5c1e7 100644
 +}
 +
  #endif
+diff --git a/include/linux/nospec.h b/include/linux/nospec.h
+index c1e79f72cd89..9f0af4f116d9 100644
+--- a/include/linux/nospec.h
++++ b/include/linux/nospec.h
+@@ -11,6 +11,10 @@
+ 
+ struct task_struct;
+ 
++#ifndef barrier_nospec
++# define barrier_nospec() do { } while (0)
++#endif
++
+ /**
+  * array_index_mask_nospec() - generate a ~0 mask when index < size, 0 otherwise
+  * @index: array element index
 diff --git a/include/linux/pageblock-flags.h b/include/linux/pageblock-flags.h
 index 5f1ae07d724b..d0de8d666f09 100644
 --- a/include/linux/pageblock-flags.h
@@ -4428,6 +5095,28 @@ index 26de459006c4..320c9d4c8e03 100644
  	echo '$(pound)'define UTS_VERSION \""$${utsver}"\"
  
  #
+diff --git a/kernel/bpf/core.c b/kernel/bpf/core.c
+index ba3fff17e2f9..f9c3b1033ec3 100644
+--- a/kernel/bpf/core.c
++++ b/kernel/bpf/core.c
+@@ -34,6 +34,7 @@
+ #include <linux/log2.h>
+ #include <linux/bpf_verifier.h>
+ #include <linux/nodemask.h>
++#include <linux/nospec.h>
+ #include <linux/bpf_mem_alloc.h>
+ 
+ #include <asm/barrier.h>
+@@ -1910,9 +1911,7 @@ static u64 ___bpf_prog_run(u64 *regs, const struct bpf_insn *insn)
+ 		 * reuse preexisting logic from Spectre v1 mitigation that
+ 		 * happens to produce the required code on x86 for v4 as well.
+ 		 */
+-#ifdef CONFIG_X86
+ 		barrier_nospec();
+-#endif
+ 		CONT;
+ #define LDST(SIZEOP, SIZE)						\
+ 	STX_MEM_##SIZEOP:						\
 diff --git a/kernel/fork.c b/kernel/fork.c
 index 9f7fe3541897..068062cdf5a3 100644
 --- a/kernel/fork.c
@@ -4637,6 +5326,33 @@ index 54211dbd516c..16ca0c151629 100644
  static struct kmem_cache *user_ns_cachep __read_mostly;
  static DEFINE_MUTEX(userns_state_mutex);
  
+diff --git a/lib/usercopy.c b/lib/usercopy.c
+index 1505a52f23a0..d29fe29c6849 100644
+--- a/lib/usercopy.c
++++ b/lib/usercopy.c
+@@ -3,15 +3,22 @@
+ #include <linux/fault-inject-usercopy.h>
+ #include <linux/instrumented.h>
+ #include <linux/uaccess.h>
++#include <linux/nospec.h>
+ 
+ /* out-of-line parts */
+ 
+ #ifndef INLINE_COPY_FROM_USER
+ unsigned long _copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+ 	unsigned long res = n;
+ 	might_fault();
+ 	if (!should_fail_usercopy() && likely(access_ok(from, n))) {
++		/*
++		 * Ensure that bad access_ok() speculation will not
++		 * lead to nasty side effects *after* the copy is
++		 * finished:
++		 */
++		barrier_nospec();
+ 		instrument_copy_from_user_before(to, from, n);
+ 		res = raw_copy_from_user(to, from, n);
+ 		instrument_copy_from_user_after(to, from, n, res);
 diff --git a/mm/Kconfig b/mm/Kconfig
 index ff7b209dec05..fc7126b51009 100644
 --- a/mm/Kconfig
@@ -8396,3 +9112,17 @@ index cb79127f45c3..70e4de876a7f 100644
  	tcp_mstamp_refresh(tcp_sk(sk));
  	event = icsk->icsk_pending;
  
+diff --git a/security/Kconfig.hardening b/security/Kconfig.hardening
+index 53baa95cb644..0f295961e773 100644
+--- a/security/Kconfig.hardening
++++ b/security/Kconfig.hardening
+@@ -281,6 +281,9 @@ endmenu
+ 
+ config CC_HAS_RANDSTRUCT
+ 	def_bool $(cc-option,-frandomize-layout-seed-file=/dev/null)
++	# Randstruct was first added in Clang 15, but it isn't safe to use until
++	# Clang 16 due to https://github.com/llvm/llvm-project/issues/60349
++	depends on !CC_IS_CLANG || CLANG_VERSION >= 160000
+ 
+ choice
+ 	prompt "Randomize layout of sensitive kernel structures"
