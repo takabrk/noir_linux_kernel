@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#March 12,2023
+#March 13,2023
 
 . ./config
 
@@ -30,7 +30,7 @@ case $e_num in
         cat patches/linux/patch-$VERSIONPOINT \
             patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
-            patches/other/v6.2.1-zen1.patch \
+            patches/other/v6.2.5-zen1.patch \
             patches/other/0001-clearlinux-6.2-introduce-clearlinux-patchset.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0008-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
