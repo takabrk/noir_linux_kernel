@@ -13127,39 +13127,6 @@ index c52d19d67557..03c8da688a8c 100644
  #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
  #define MIN_FREQUENCY_UP_THRESHOLD		(1)
  #define MAX_FREQUENCY_UP_THRESHOLD		(100)
-diff --git a/drivers/cpufreq/davinci-cpufreq.c b/drivers/cpufreq/davinci-cpufreq.c
-index 9e97f60f8199..ebb3a8102681 100644
---- a/drivers/cpufreq/davinci-cpufreq.c
-+++ b/drivers/cpufreq/davinci-cpufreq.c
-@@ -133,12 +133,14 @@ static int __init davinci_cpufreq_probe(struct platform_device *pdev)
- 
- static int __exit davinci_cpufreq_remove(struct platform_device *pdev)
- {
-+	cpufreq_unregister_driver(&davinci_driver);
-+
- 	clk_put(cpufreq.armclk);
- 
- 	if (cpufreq.asyncclk)
- 		clk_put(cpufreq.asyncclk);
- 
--	return cpufreq_unregister_driver(&davinci_driver);
-+	return 0;
- }
- 
- static struct platform_driver davinci_cpufreq_driver = {
-diff --git a/drivers/cpufreq/intel_pstate.c b/drivers/cpufreq/intel_pstate.c
-index fd73d6d2b808..524e47b60326 100644
---- a/drivers/cpufreq/intel_pstate.c
-+++ b/drivers/cpufreq/intel_pstate.c
-@@ -3504,6 +3504,8 @@ static int __init intel_pstate_setup(char *str)
- 
- 	if (!strcmp(str, "disable"))
- 		no_load = 1;
-+	else if (!strcmp(str, "enable"))
-+		no_load = 0;
- 	else if (!strcmp(str, "active"))
- 		default_driver = &intel_pstate;
- 	else if (!strcmp(str, "passive"))
 diff --git a/drivers/cpuidle/Kconfig.arm b/drivers/cpuidle/Kconfig.arm
 index 747aa537389b..f0714a32921e 100644
 --- a/drivers/cpuidle/Kconfig.arm
