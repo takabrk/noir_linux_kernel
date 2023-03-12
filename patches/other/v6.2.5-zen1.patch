@@ -1780,6 +1780,57 @@ index 60acc39e0e93..147efec626e5 100644
  :Parameters: none
  :Returns:   -ENOMEM if there is not enough free memory to start migration mode;
  	    -EINVAL if the state of the VM is invalid (e.g. no memory defined);
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 135d93368d36..f77188f30210 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3515,7 +3515,7 @@ F:	drivers/net/ieee802154/atusb.h
+ AUDIT SUBSYSTEM
+ M:	Paul Moore <paul@paul-moore.com>
+ M:	Eric Paris <eparis@redhat.com>
+-L:	linux-audit@redhat.com (moderated for non-subscribers)
++L:	audit@vger.kernel.org
+ S:	Supported
+ W:	https://github.com/linux-audit
+ T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pcmoore/audit.git
+diff --git a/Makefile b/Makefile
+index 3f6628780eb2..8ebc8247347f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,9 +1,9 @@
+ # SPDX-License-Identifier: GPL-2.0
+ VERSION = 6
+ PATCHLEVEL = 2
+-SUBLEVEL = 0
+-EXTRAVERSION =
+-NAME = Hurr durr I'ma ninja sloth
++SUBLEVEL = 5
++EXTRAVERSION = -zen1
++NAME = Finding Humor In Nothing
+ 
+ # *DOCUMENTATION*
+ # To see a list of typical targets execute "make help"
+@@ -834,6 +834,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
+ ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+ KBUILD_CFLAGS += -O2
+ KBUILD_RUSTFLAGS += -Copt-level=2
++else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
++KBUILD_CFLAGS += -O3
++KBUILD_RUSTFLAGS += -Copt-level=3
+ else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS += -Os
+ KBUILD_RUSTFLAGS += -Copt-level=s
+@@ -1075,11 +1078,6 @@ KBUILD_CFLAGS	+= -fno-strict-overflow
+ # Make sure -fstack-check isn't enabled (like gentoo apparently did)
+ KBUILD_CFLAGS  += -fno-stack-check
+ 
+-# conserve stack if available
+-ifdef CONFIG_CC_IS_GCC
+-KBUILD_CFLAGS   += -fconserve-stack
+-endif
+-
+ # Prohibit date/time macros, which would make the build non-deterministic
+ KBUILD_CFLAGS   += -Werror=date-time
  
 diff --git a/arch/alpha/boot/tools/objstrip.c b/arch/alpha/boot/tools/objstrip.c
 index 08b430d25a31..7cf92d172dce 100644
