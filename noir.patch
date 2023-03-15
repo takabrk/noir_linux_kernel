@@ -22,7 +22,7 @@ index 51540b291738..ab8c480660a6 100644
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2023-03-13 07:31:04.288074325 +0900
+--- /dev/null	2023-03-15 04:32:22.388018827 +0900
 +++ patches/noir_base/.config	2023-02-27 10:01:21.704243000 +0900
 @@ -0,0 +1,10919 @@
 +#
@@ -11152,6 +11152,7 @@ index 000000000000..dcbcaa389249
  arch/x86/include/asm/virtext.h                     |   16 +-
  arch/x86/kernel/acpi/boot.c                        |   19 +-
  arch/x86/kernel/alternative.c                      |   62 +-
+ arch/x86/kernel/cpu/amd.c                          |    9 +
  arch/x86/kernel/cpu/bugs.c                         |   35 +-
  arch/x86/kernel/cpu/common.c                       |   45 +-
  arch/x86/kernel/cpu/microcode/amd.c                |   55 +-
@@ -11225,7 +11226,7 @@ index 000000000000..dcbcaa389249
  drivers/char/ipmi/ipmi_ipmb.c                      |    2 +-
  drivers/char/ipmi/ipmi_ssif.c                      |  104 +-
  drivers/char/pcmcia/cm4000_cs.c                    |    6 +-
- drivers/char/tpm/tpm-chip.c                        |   62 +-
+ drivers/char/tpm/tpm-chip.c                        |   60 +-
  drivers/char/tpm/tpm.h                             |   73 +
  drivers/clocksource/timer-riscv.c                  |   10 +-
  drivers/cpufreq/Kconfig.x86                        |    2 -
@@ -11762,6 +11763,7 @@ index 000000000000..dcbcaa389249
  drivers/staging/media/atomisp/Kconfig              |    2 +-
  drivers/staging/media/atomisp/pci/atomisp_fops.c   |    4 +-
  drivers/staging/pi433/pi433_if.c                   |   11 +-
+ drivers/staging/rtl8192e/rtl8192e/rtl_dm.c         |   35 -
  drivers/thermal/hisi_thermal.c                     |    4 -
  drivers/thermal/imx_sc_thermal.c                   |    4 +-
  drivers/thermal/intel/Kconfig                      |    3 +-
@@ -12021,9 +12023,9 @@ index 000000000000..dcbcaa389249
  kernel/rcu/tree_exp.h                              |    2 +
  kernel/resource.c                                  |   14 -
  kernel/sched/Makefile                              |    5 +
- kernel/sched/alt_core.c                            | 8121 ++++++++++++++++++++
+ kernel/sched/alt_core.c                            | 8119 ++++++++++++++++++++
  kernel/sched/alt_debug.c                           |   31 +
- kernel/sched/alt_sched.h                           |  671 ++
+ kernel/sched/alt_sched.h                           |  670 ++
  kernel/sched/bmq.h                                 |  110 +
  kernel/sched/build_policy.c                        |    8 +-
  kernel/sched/build_utility.c                       |    2 +
@@ -12032,7 +12034,7 @@ index 000000000000..dcbcaa389249
  kernel/sched/debug.c                               |   10 +
  kernel/sched/fair.c                                |   23 +
  kernel/sched/idle.c                                |    2 +
- kernel/sched/pds.h                                 |  127 +
+ kernel/sched/pds.h                                 |  129 +
  kernel/sched/pelt.c                                |    4 +-
  kernel/sched/pelt.h                                |    8 +-
  kernel/sched/rt.c                                  |    5 +-
@@ -12137,7 +12139,7 @@ index 000000000000..dcbcaa389249
  net/sunrpc/clnt.c                                  |    2 +
  net/tls/tls_sw.c                                   |   26 +-
  net/wireless/nl80211.c                             |    2 +-
- net/wireless/sme.c                                 |   48 +-
+ net/wireless/sme.c                                 |   46 +-
  net/xdp/xsk.c                                      |   59 +-
  scripts/bpf_doc.py                                 |    2 +-
  scripts/gcc-plugins/Makefile                       |    2 +-
@@ -12259,7 +12261,7 @@ index 000000000000..dcbcaa389249
  tools/tracing/rtla/src/osnoise_hist.c              |    5 +-
  virt/kvm/coalesced_mmio.c                          |    8 +-
  virt/kvm/kvm_main.c                                |   31 +-
- 1315 files changed, 30194 insertions(+), 8156 deletions(-)
+ 1317 files changed, 30198 insertions(+), 8191 deletions(-)
 
 diff --git a/Documentation/ABI/testing/configfs-usb-gadget-uvc b/Documentation/ABI/testing/configfs-usb-gadget-uvc
 index f00cff6d8c5c..c25cc2823fc8 100644
@@ -12740,7 +12742,7 @@ index 135d93368d36..f77188f30210 100644
  W:	https://github.com/linux-audit
  T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pcmoore/audit.git
 diff --git a/Makefile b/Makefile
-index 3f6628780eb2..8ebc8247347f 100644
+index 3f6628780eb2..f1a825f3b7aa 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,9 +1,9 @@
@@ -12750,7 +12752,7 @@ index 3f6628780eb2..8ebc8247347f 100644
 -SUBLEVEL = 0
 -EXTRAVERSION =
 -NAME = Hurr durr I'ma ninja sloth
-+SUBLEVEL = 5
++SUBLEVEL = 6
 +EXTRAVERSION = -zen1
 +NAME = Finding Humor In Nothing
  
@@ -19441,6 +19443,26 @@ index 7d8c3cbde368..81381a0194f3 100644
  		tp->disp = insn.immediate.value;
  		break;
  
+diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
+index f769d6d08b43..06f2ede1544f 100644
+--- a/arch/x86/kernel/cpu/amd.c
++++ b/arch/x86/kernel/cpu/amd.c
+@@ -880,6 +880,15 @@ void init_spectral_chicken(struct cpuinfo_x86 *c)
+ 		}
+ 	}
+ #endif
++	/*
++	 * Work around Erratum 1386.  The XSAVES instruction malfunctions in
++	 * certain circumstances on Zen1/2 uarch, and not all parts have had
++	 * updated microcode at the time of writing (March 2023).
++	 *
++	 * Affected parts all have no supervisor XSAVE states, meaning that
++	 * the XSAVEC instruction (which works fine) is equivalent.
++	 */
++	clear_cpu_cap(c, X86_FEATURE_XSAVES);
+ }
+ 
+ static void init_amd_zn(struct cpuinfo_x86 *c)
 diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
 index bca0bd8f4846..daad10e7665b 100644
 --- a/arch/x86/kernel/cpu/bugs.c
@@ -23822,20 +23844,27 @@ index adaec8fd4b16..e656f42a28ac 100644
  
  	/* check whether it is a short PTS reply? */
 diff --git a/drivers/char/tpm/tpm-chip.c b/drivers/char/tpm/tpm-chip.c
-index 741d8f3e8fb3..348dd5705fbb 100644
+index 741d8f3e8fb3..c467eeae9973 100644
 --- a/drivers/char/tpm/tpm-chip.c
 +++ b/drivers/char/tpm/tpm-chip.c
-@@ -512,16 +512,76 @@ static int tpm_add_legacy_sysfs(struct tpm_chip *chip)
+@@ -512,16 +512,74 @@ static int tpm_add_legacy_sysfs(struct tpm_chip *chip)
  	return 0;
  }
  
-+static bool tpm_is_rng_defective(struct tpm_chip *chip)
++/*
++ * Some AMD fTPM versions may cause stutter
++ * https://www.amd.com/en/support/kb/faq/pa-410
++ *
++ * Fixes are available in two series of fTPM firmware:
++ * 6.x.y.z series: 6.0.18.6 +
++ * 3.x.y.z series: 3.57.y.5 +
++ */
++static bool tpm_amd_is_rng_defective(struct tpm_chip *chip)
 +{
-+	int ret;
-+	u64 version;
 +	u32 val1, val2;
++	u64 version;
++	int ret;
 +
-+	/* No known-broken TPM1 chips. */
 +	if (!(chip->flags & TPM_CHIP_FLAG_TPM2))
 +		return false;
 +
@@ -23843,7 +23872,6 @@ index 741d8f3e8fb3..348dd5705fbb 100644
 +	if (ret)
 +		return false;
 +
-+	/* Some AMD fTPM versions may cause stutter */
 +	ret = tpm2_get_tpm_pt(chip, TPM2_PT_MANUFACTURER, &val1, NULL);
 +	if (ret)
 +		goto release;
@@ -23855,8 +23883,6 @@ index 741d8f3e8fb3..348dd5705fbb 100644
 +	if (ret)
 +		goto release;
 +	ret = tpm2_get_tpm_pt(chip, TPM2_PT_FIRMWARE_VERSION_2, &val2, NULL);
-+	if (ret)
-+		goto release;
 +
 +release:
 +	tpm_relinquish_locality(chip);
@@ -23865,13 +23891,6 @@ index 741d8f3e8fb3..348dd5705fbb 100644
 +		return false;
 +
 +	version = ((u64)val1 << 32) | val2;
-+	/*
-+	 * Fixes for stutter as described in
-+	 * https://www.amd.com/en/support/kb/faq/pa-410
-+	 * are available in two series of fTPM firmware:
-+	 *   6.x.y.z series: 6.0.18.6 +
-+	 *   3.x.y.z series: 3.57.x.5 +
-+	 */
 +	if ((version >> 48) == 6) {
 +		if (version >= 0x0006000000180006ULL)
 +			return false;
@@ -23881,6 +23900,7 @@ index 741d8f3e8fb3..348dd5705fbb 100644
 +	} else {
 +		return false;
 +	}
++
 +	dev_warn(&chip->dev,
 +		 "AMD fTPM version 0x%llx causes system stutter; hwrng disabled\n",
 +		 version);
@@ -23899,7 +23919,7 @@ index 741d8f3e8fb3..348dd5705fbb 100644
  {
 -	if (!IS_ENABLED(CONFIG_HW_RANDOM_TPM) || tpm_is_firmware_upgrade(chip))
 +	if (!IS_ENABLED(CONFIG_HW_RANDOM_TPM) || tpm_is_firmware_upgrade(chip) ||
-+	    tpm_is_rng_defective(chip))
++	    tpm_amd_is_rng_defective(chip))
  		return 0;
  
  	snprintf(chip->hwrng_name, sizeof(chip->hwrng_name),
@@ -24073,6 +24093,7 @@ index c52d19d67557..03c8da688a8c 100644
  #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
  #define MIN_FREQUENCY_UP_THRESHOLD		(1)
  #define MAX_FREQUENCY_UP_THRESHOLD		(100)
+
 diff --git a/drivers/cpuidle/Kconfig.arm b/drivers/cpuidle/Kconfig.arm
 index 747aa537389b..f0714a32921e 100644
 --- a/drivers/cpuidle/Kconfig.arm
@@ -50834,6 +50855,90 @@ index d4e06a3929f3..b59f6a4cb611 100644
  }
  module_exit(pi433_exit);
  
+diff --git a/drivers/staging/rtl8192e/rtl8192e/rtl_dm.c b/drivers/staging/rtl8192e/rtl8192e/rtl_dm.c
+index a18393c8a833..4eb66781649c 100644
+--- a/drivers/staging/rtl8192e/rtl8192e/rtl_dm.c
++++ b/drivers/staging/rtl8192e/rtl8192e/rtl_dm.c
+@@ -185,7 +185,6 @@ static void _rtl92e_dm_init_fsync(struct net_device *dev);
+ static void _rtl92e_dm_deinit_fsync(struct net_device *dev);
+ 
+ static	void _rtl92e_dm_check_txrateandretrycount(struct net_device *dev);
+-static  void _rtl92e_dm_check_ac_dc_power(struct net_device *dev);
+ static void _rtl92e_dm_check_fsync(struct net_device *dev);
+ static void _rtl92e_dm_check_rf_ctrl_gpio(void *data);
+ static void _rtl92e_dm_fsync_timer_callback(struct timer_list *t);
+@@ -238,45 +237,23 @@ void rtl92e_dm_watchdog(struct net_device *dev)
+ 	if (priv->being_init_adapter)
+ 		return;
+ 
+-	_rtl92e_dm_check_ac_dc_power(dev);
+-
+ 	_rtl92e_dm_check_txrateandretrycount(dev);
+ 	_rtl92e_dm_check_edca_turbo(dev);
+ 
+ 	_rtl92e_dm_check_rate_adaptive(dev);
+ 	_rtl92e_dm_dynamic_tx_power(dev);
+ 	_rtl92e_dm_check_tx_power_tracking(dev);
+ 
+ 	_rtl92e_dm_ctrl_initgain_byrssi(dev);
+ 	_rtl92e_dm_bandwidth_autoswitch(dev);
+ 
+ 	_rtl92e_dm_check_rx_path_selection(dev);
+ 	_rtl92e_dm_check_fsync(dev);
+ 
+ 	_rtl92e_dm_send_rssi_to_fw(dev);
+ 	_rtl92e_dm_cts_to_self(dev);
+ }
+ 
+-static void _rtl92e_dm_check_ac_dc_power(struct net_device *dev)
+-{
+-	struct r8192_priv *priv = rtllib_priv(dev);
+-	static const char ac_dc_script[] = "/etc/acpi/wireless-rtl-ac-dc-power.sh";
+-	char *argv[] = {(char *)ac_dc_script, DRV_NAME, NULL};
+-	static char *envp[] = {"HOME=/",
+-			"TERM=linux",
+-			"PATH=/usr/bin:/bin",
+-			 NULL};
+-
+-	if (priv->rst_progress == RESET_TYPE_SILENT)
+-		return;
+-	if (priv->rtllib->state != RTLLIB_LINKED)
+-		return;
+-	call_usermodehelper(ac_dc_script, argv, envp, UMH_WAIT_PROC);
+-
+-	return;
+-};
+-
+-
+ void rtl92e_init_adaptive_rate(struct net_device *dev)
+ {
+ 
+@@ -1662,10 +1639,6 @@ static void _rtl92e_dm_check_rf_ctrl_gpio(void *data)
+ 	u8 tmp1byte;
+ 	enum rt_rf_power_state rf_power_state_to_set;
+ 	bool bActuallySet = false;
+-	char *argv[3];
+-	static const char RadioPowerPath[] = "/etc/acpi/events/RadioPower.sh";
+-	static char *envp[] = {"HOME=/", "TERM=linux", "PATH=/usr/bin:/bin",
+-			       NULL};
+ 
+ 	bActuallySet = false;
+ 
+@@ -1695,14 +1668,6 @@ static void _rtl92e_dm_check_rf_ctrl_gpio(void *data)
+ 		mdelay(1000);
+ 		priv->hw_rf_off_action = 1;
+ 		rtl92e_set_rf_state(dev, rf_power_state_to_set, RF_CHANGE_BY_HW);
+-		if (priv->hw_radio_off)
+-			argv[1] = "RFOFF";
+-		else
+-			argv[1] = "RFON";
+-
+-		argv[0] = (char *)RadioPowerPath;
+-		argv[2] = NULL;
+-		call_usermodehelper(RadioPowerPath, argv, envp, UMH_WAIT_PROC);
+ 	}
+ }
+ 
 diff --git a/drivers/thermal/hisi_thermal.c b/drivers/thermal/hisi_thermal.c
 index d6974db7aaf7..15af90f5c7d9 100644
 --- a/drivers/thermal/hisi_thermal.c
@@ -63012,6 +63117,35 @@ index 44873594de03..84d5b649b95f 100644
  	__rwsem_set_reader_owned(sem, NULL);
  }
  EXPORT_SYMBOL(down_read_non_owner);
+
+diff --git a/kernel/pid_namespace.c b/kernel/pid_namespace.c
+index f4f8cb0435b4..fc21c5d5fd5d 100644
+--- a/kernel/pid_namespace.c
++++ b/kernel/pid_namespace.c
+@@ -244,7 +244,24 @@ void zap_pid_ns_processes(struct pid_namespace *pid_ns)
+ 		set_current_state(TASK_INTERRUPTIBLE);
+ 		if (pid_ns->pid_allocated == init_pids)
+ 			break;
++		/*
++		 * Release tasks_rcu_exit_srcu to avoid following deadlock:
++		 *
++		 * 1) TASK A unshare(CLONE_NEWPID)
++		 * 2) TASK A fork() twice -> TASK B (child reaper for new ns)
++		 *    and TASK C
++		 * 3) TASK B exits, kills TASK C, waits for TASK A to reap it
++		 * 4) TASK A calls synchronize_rcu_tasks()
++		 *                   -> synchronize_srcu(tasks_rcu_exit_srcu)
++		 * 5) *DEADLOCK*
++		 *
++		 * It is considered safe to release tasks_rcu_exit_srcu here
++		 * because we assume the current task can not be concurrently
++		 * reaped at this point.
++		 */
++		exit_tasks_rcu_stop();
+ 		schedule();
++		exit_tasks_rcu_start();
+ 	}
+ 	__set_current_state(TASK_RUNNING);
  
 diff --git a/kernel/power/energy_model.c b/kernel/power/energy_model.c
 index f82111837b8d..7b44f5b89fa1 100644
@@ -63294,10 +63428,10 @@ index 976092b7bd45..31d587c16ec1 100644
  obj-y += build_utility.o
 diff --git a/kernel/sched/alt_core.c b/kernel/sched/alt_core.c
 new file mode 100644
-index 000000000000..bde8b204cc04
+index 000000000000..f48751af40ed
 --- /dev/null
 +++ b/kernel/sched/alt_core.c
-@@ -0,0 +1,8121 @@
+@@ -0,0 +1,8119 @@
 +/*
 + *  kernel/sched/alt_core.c
 + *
@@ -63367,7 +63501,7 @@ index 000000000000..bde8b204cc04
 +#define sched_feat(x)	(0)
 +#endif /* CONFIG_SCHED_DEBUG */
 +
-+#define ALT_SCHED_VERSION "v6.2-r0"
++#define ALT_SCHED_VERSION "v6.2-r1"
 +
 +/* rt_prio(prio) defined in include/linux/sched/rt.h */
 +#define rt_task(p)		rt_prio((p)->prio)
@@ -63430,9 +63564,9 @@ index 000000000000..bde8b204cc04
 +#ifdef CONFIG_SMP
 +static cpumask_t sched_rq_pending_mask ____cacheline_aligned_in_smp;
 +
-+DEFINE_PER_CPU(cpumask_t [NR_CPU_AFFINITY_LEVELS], sched_cpu_topo_masks);
-+DEFINE_PER_CPU(cpumask_t *, sched_cpu_llc_mask);
-+DEFINE_PER_CPU(cpumask_t *, sched_cpu_topo_end_mask);
++DEFINE_PER_CPU_ALIGNED(cpumask_t [NR_CPU_AFFINITY_LEVELS], sched_cpu_topo_masks);
++DEFINE_PER_CPU_ALIGNED(cpumask_t *, sched_cpu_llc_mask);
++DEFINE_PER_CPU_ALIGNED(cpumask_t *, sched_cpu_topo_end_mask);
 +
 +#ifdef CONFIG_SCHED_SMT
 +DEFINE_STATIC_KEY_FALSE(sched_smt_present);
@@ -63526,13 +63660,13 @@ index 000000000000..bde8b204cc04
 +
 +	if (prio < last_prio) {
 +		if (IDLE_TASK_SCHED_PRIO == last_prio) {
-+			cpumask_clear_cpu(cpu, sched_idle_mask);
-+			last_prio -= 2;
 +#ifdef CONFIG_SCHED_SMT
 +			if (static_branch_likely(&sched_smt_present))
 +				cpumask_andnot(&sched_sg_idle_mask,
 +					       &sched_sg_idle_mask, cpu_smt_mask(cpu));
 +#endif
++			cpumask_clear_cpu(cpu, sched_idle_mask);
++			last_prio -= 2;
 +		}
 +		clear_recorded_preempt_mask(pr, prio, last_prio, cpu);
 +
@@ -63540,18 +63674,14 @@ index 000000000000..bde8b204cc04
 +	}
 +	/* last_prio < prio */
 +	if (IDLE_TASK_SCHED_PRIO == prio) {
++#ifdef CONFIG_SCHED_SMT
++		if (static_branch_likely(&sched_smt_present) &&
++		    cpumask_intersects(cpu_smt_mask(cpu), sched_idle_mask))
++			cpumask_or(&sched_sg_idle_mask,
++				   &sched_sg_idle_mask, cpu_smt_mask(cpu));
++#endif
 +		cpumask_set_cpu(cpu, sched_idle_mask);
 +		prio -= 2;
-+#ifdef CONFIG_SCHED_SMT
-+		if (static_branch_likely(&sched_smt_present)) {
-+			cpumask_t tmp;
-+
-+			cpumask_and(&tmp, cpu_smt_mask(cpu), sched_idle_mask);
-+			if (cpumask_equal(&tmp, cpu_smt_mask(cpu)))
-+				cpumask_or(&sched_sg_idle_mask,
-+					   &sched_sg_idle_mask, cpu_smt_mask(cpu));
-+		}
-+#endif
 +	}
 +	set_recorded_preempt_mask(pr, last_prio, prio, cpu);
 +}
@@ -67463,10 +67593,9 @@ index 000000000000..bde8b204cc04
 +/*
 + * sg_balance - slibing group balance check for run queue @rq
 + */
-+static inline void sg_balance(struct rq *rq)
++static inline void sg_balance(struct rq *rq, int cpu)
 +{
 +	cpumask_t chk;
-+	int cpu = cpu_of(rq);
 +
 +	/* exit when cpu is offline */
 +	if (unlikely(!rq->online))
@@ -68130,13 +68259,15 @@ index 000000000000..bde8b204cc04
 +
 +		/* Also unlocks the rq: */
 +		rq = context_switch(rq, prev, next);
++
++		cpu = cpu_of(rq);
 +	} else {
 +		__balance_callbacks(rq);
 +		raw_spin_unlock_irq(&rq->lock);
 +	}
 +
 +#ifdef CONFIG_SCHED_SMT
-+	sg_balance(rq);
++	sg_balance(rq, cpu);
 +#endif
 +}
 +
@@ -70892,7 +71023,8 @@ index 000000000000..bde8b204cc04
 +{
 +	int i;
 +
-+	printk(KERN_INFO ALT_SCHED_VERSION_MSG);
++	printk(KERN_INFO "sched/alt: "ALT_SCHED_NAME" CPU Scheduler "ALT_SCHED_VERSION\
++			 " by Alfred Chen.\n");
 +
 +	wait_bit_init();
 +
@@ -71458,10 +71590,10 @@ index 000000000000..1212a031700e
 +{}
 diff --git a/kernel/sched/alt_sched.h b/kernel/sched/alt_sched.h
 new file mode 100644
-index 000000000000..0b563999d4c1
+index 000000000000..78a3d17a4264
 --- /dev/null
 +++ b/kernel/sched/alt_sched.h
-@@ -0,0 +1,671 @@
+@@ -0,0 +1,670 @@
 +#ifndef ALT_SCHED_H
 +#define ALT_SCHED_H
 +
@@ -71754,8 +71886,7 @@ index 000000000000..0b563999d4c1
 +	NR_CPU_AFFINITY_LEVELS
 +};
 +
-+DECLARE_PER_CPU(cpumask_t [NR_CPU_AFFINITY_LEVELS], sched_cpu_topo_masks);
-+DECLARE_PER_CPU(cpumask_t *, sched_cpu_llc_mask);
++DECLARE_PER_CPU_ALIGNED(cpumask_t [NR_CPU_AFFINITY_LEVELS], sched_cpu_topo_masks);
 +
 +static inline int
 +__best_mask_cpu(const cpumask_t *cpumask, const cpumask_t *mask)
@@ -72135,11 +72266,11 @@ index 000000000000..0b563999d4c1
 +#endif /* ALT_SCHED_H */
 diff --git a/kernel/sched/bmq.h b/kernel/sched/bmq.h
 new file mode 100644
-index 000000000000..66b77291b9d0
+index 000000000000..f29b8f3aa786
 --- /dev/null
 +++ b/kernel/sched/bmq.h
 @@ -0,0 +1,110 @@
-+#define ALT_SCHED_VERSION_MSG "sched/bmq: BMQ CPU Scheduler "ALT_SCHED_VERSION" by Alfred Chen.\n"
++#define ALT_SCHED_NAME "BMQ"
 +
 +/*
 + * BMQ only routines
@@ -72603,11 +72734,11 @@ index f26ab2675f7d..480d4ad16d45 100644
 +#endif
 diff --git a/kernel/sched/pds.h b/kernel/sched/pds.h
 new file mode 100644
-index 000000000000..56a649d02e49
+index 000000000000..16950c2a775f
 --- /dev/null
 +++ b/kernel/sched/pds.h
-@@ -0,0 +1,127 @@
-+#define ALT_SCHED_VERSION_MSG "sched/pds: PDS CPU Scheduler "ALT_SCHED_VERSION" by Alfred Chen.\n"
+@@ -0,0 +1,129 @@
++#define ALT_SCHED_NAME "PDS"
 +
 +static int sched_timeslice_shift = 22;
 +
@@ -72627,11 +72758,13 @@ index 000000000000..56a649d02e49
 +{
 +	s64 delta = p->deadline - rq->time_edge + NORMAL_PRIO_NUM - NICE_WIDTH;
 +
++#ifdef ALT_SCHED_DEBUG
 +	if (WARN_ONCE(delta > NORMAL_PRIO_NUM - 1,
 +		      "pds: task_sched_prio_normal() delta %lld\n", delta))
 +		return NORMAL_PRIO_NUM - 1;
++#endif
 +
-+	return (delta < 0) ? 0 : delta;
++	return max(0LL, delta);
 +}
 +
 +static inline int task_sched_prio(const struct task_struct *p)
@@ -80783,7 +80916,7 @@ index 33a82ecab9d5..02b9a0280896 100644
  
  	rekey_data.kek = nla_data(tb[NL80211_REKEY_DATA_KEK]);
 diff --git a/net/wireless/sme.c b/net/wireless/sme.c
-index 4b5b6ee0fe01..4f813e346a8b 100644
+index 4b5b6ee0fe01..ce1ac01705f9 100644
 --- a/net/wireless/sme.c
 +++ b/net/wireless/sme.c
 @@ -285,27 +285,33 @@ void cfg80211_conn_work(struct work_struct *work)
@@ -80880,7 +81013,7 @@ index 4b5b6ee0fe01..4f813e346a8b 100644
  	return;
  out:
  	for_each_valid_link(cr, link)
-@@ -1468,6 +1497,15 @@ int cfg80211_connect(struct cfg80211_registered_device *rdev,
+@@ -1468,6 +1497,13 @@ int cfg80211_connect(struct cfg80211_registered_device *rdev,
  	} else {
  		if (WARN_ON(connkeys))
  			return -EINVAL;
@@ -80891,8 +81024,6 @@ index 4b5b6ee0fe01..4f813e346a8b 100644
 +		connect->key = NULL;
 +		connect->key_len = 0;
 +		connect->key_idx = 0;
-+		connect->crypto.cipher_group = 0;
-+		connect->crypto.n_ciphers_pairwise = 0;
  	}
  
  	wdev->connect_keys = connkeys;
