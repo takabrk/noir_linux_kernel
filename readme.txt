@@ -31,7 +31,7 @@ $ ./build.sh -e build
 
 - Built on the GCC 12.1.0
 - CPU scheduler -> CFS
-- Default I/O scheduler -> BFQ
+- Default I/O scheduler -> MQ-deadline
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - Preemption Model -> Full Preemptible Kernel(Real Time)
@@ -44,12 +44,10 @@ $ ./build.sh -e build
 - VM_READAHEAD_PAGES=8MB
 - dcache-cache_pressure=50
 - futex support
-- PCIe ACS support
 - OpenRGB support
 - Zen Interactive Tune support
 - Core scheduling for SMT ON
 - Clear Linux support
-- BBR2 support
 - AMD p-state support
 - winesync support
 
