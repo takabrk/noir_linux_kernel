@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#March 18,2023
+#March 23,2023
 
 . ./config
 
@@ -26,11 +26,12 @@ case $e_num in
         truncate patches/noir_base/custom_config.patch --size 0
 
 #build custom_config.patch
-#patches/linux/patch-$VERSIONPOINT \
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-        cat patches/noir_base/noir_base.patch \
+        cat patches/linux/patch-$VERSIONPOINT \
+            patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
-            patches/other/v6.2.7-zen1.patch \
+            patches/other/zen.patch \
+            patches/other/zen_other.patch \
             patches/other/0001-clearlinux-6.2-introduce-clearlinux-patchset.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0008-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
