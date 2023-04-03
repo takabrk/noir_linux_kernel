@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#March 23,2023
+#April 3,2023
 
 . ./config
 
@@ -40,6 +40,7 @@ case $e_num in
             patches/other/set_8megabytes_for_address_space-level_file.patch \
             patches/other/0007-v6.2-winesync.patch \
             patches/other/patch-6.2-rt3.patch \
+            patches/other/0001-tcp_bbr2-introduce-BBRv2.patch \
             > noir.patch
             ;;
 
