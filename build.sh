@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#April 17,2023
+#April 25,2023
 
 . ./config
 
@@ -27,20 +27,12 @@ case $e_num in
 
 #build custom_config.patch
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-        cat patches/linux/patch-$VERSIONPOINT \
-            patches/noir_base/noir_base.patch \
+        cat patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
-            patches/other/zen.patch \
-            patches/other/zen_other.patch \
-            patches/other/0001-clearlinux-6.2-introduce-clearlinux-patchset.patch \
             patches/other/0001-amd-pstate-patches.patch \
-            patches/other/0008-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
-            patches/other/0004-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
-            patches/other/0006-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
-            patches/other/set_8megabytes_for_address_space-level_file.patch \
-            patches/other/0007-v6.2-winesync.patch \
-            patches/other/patch-6.2-rt3.patch \
+            patches/other/0001-futex-6.3-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0001-tcp_bbr2-introduce-BBRv2.patch \
+            patches/other/patch-6.3-rc7-rt9.patch \
             > noir.patch
             ;;
 

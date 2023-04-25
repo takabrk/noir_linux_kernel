@@ -1,9 +1,9 @@
-From bb5fd2e7d3df86e983c2ed22b61e0c1e1c54b984 Mon Sep 17 00:00:00 2001
-From: Oleksandr Natalenko <oleksandr@natalenko.name>
-Date: Sun, 1 Jan 2023 23:52:00 +0100
+From c17915882638a3315f823c40462343581c2580bc Mon Sep 17 00:00:00 2001
+From: Piotr Gorski <lucjan.lucjanov@gmail.com>
+Date: Mon, 20 Feb 2023 08:42:10 +0100
 Subject: [PATCH] tcp_bbr2: introduce BBRv2
 
-Signed-off-by: Oleksandr Natalenko <oleksandr@natalenko.name>
+Signed-off-by: Piotr Gorski <lucjan.lucjanov@gmail.com>
 ---
  include/linux/tcp.h                |    3 +-
  include/net/inet_connection_sock.h |    3 +-
@@ -256,10 +256,10 @@ index 2dfb12230..b6bec331a 100644
  
  config TCP_MD5SIG
 diff --git a/net/ipv4/Makefile b/net/ipv4/Makefile
-index 880277c9f..ef1da49d2 100644
+index af7d2cf49..e7a86a508 100644
 --- a/net/ipv4/Makefile
 +++ b/net/ipv4/Makefile
-@@ -47,6 +47,7 @@ obj-$(CONFIG_INET_TCP_DIAG) += tcp_diag.o
+@@ -46,6 +46,7 @@ obj-$(CONFIG_INET_TCP_DIAG) += tcp_diag.o
  obj-$(CONFIG_INET_UDP_DIAG) += udp_diag.o
  obj-$(CONFIG_INET_RAW_DIAG) += raw_diag.o
  obj-$(CONFIG_TCP_CONG_BBR) += tcp_bbr.o
@@ -268,10 +268,10 @@ index 880277c9f..ef1da49d2 100644
  obj-$(CONFIG_TCP_CONG_CDG) += tcp_cdg.o
  obj-$(CONFIG_TCP_CONG_CUBIC) += tcp_cubic.o
 diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 288693981..1d530667b 100644
+index 33f559f49..e9e8040d6 100644
 --- a/net/ipv4/tcp.c
 +++ b/net/ipv4/tcp.c
-@@ -3192,6 +3192,7 @@ int tcp_disconnect(struct sock *sk, int flags)
+@@ -3191,6 +3191,7 @@ int tcp_disconnect(struct sock *sk, int flags)
  	tp->rx_opt.dsack = 0;
  	tp->rx_opt.num_sacks = 0;
  	tp->rcv_ooopack = 0;
@@ -280,7 +280,7 @@ index 288693981..1d530667b 100644
  
  	/* Clean up fastopen related fields */
 diff --git a/net/ipv4/tcp_bbr.c b/net/ipv4/tcp_bbr.c
-index 146792cd2..16038f6ee 100644
+index d2c470524..af08fb3cb 100644
 --- a/net/ipv4/tcp_bbr.c
 +++ b/net/ipv4/tcp_bbr.c
 @@ -294,26 +294,40 @@ static void bbr_set_pacing_rate(struct sock *sk, u32 bw, int gain)
@@ -288,7 +288,7 @@ index 146792cd2..16038f6ee 100644
  }
  
 -/* override sysctl_tcp_min_tso_segs */
- __bpf_kfunc static u32 bbr_min_tso_segs(struct sock *sk)
+ static u32 bbr_min_tso_segs(struct sock *sk)
  {
  	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
  }
@@ -3025,7 +3025,7 @@ index 000000000..85f805214
 +MODULE_LICENSE("Dual BSD/GPL");
 +MODULE_DESCRIPTION("TCP BBR (Bottleneck Bandwidth and RTT)");
 diff --git a/net/ipv4/tcp_cong.c b/net/ipv4/tcp_cong.c
-index db8b4b488..0d6d1a949 100644
+index d3cae4074..0f268f2ff 100644
 --- a/net/ipv4/tcp_cong.c
 +++ b/net/ipv4/tcp_cong.c
 @@ -189,6 +189,7 @@ void tcp_init_congestion_control(struct sock *sk)
@@ -3123,7 +3123,7 @@ index cc072d2cf..754e0212c 100644
  	    tcp_in_quickack_mode(sk) ||
  	    /* Protocol state mandates a one-time immediate ACK */
 diff --git a/net/ipv4/tcp_output.c b/net/ipv4/tcp_output.c
-index ba839e441..5ffec885e 100644
+index 71d01cf3c..0da3da9e5 100644
 --- a/net/ipv4/tcp_output.c
 +++ b/net/ipv4/tcp_output.c
 @@ -375,7 +375,8 @@ static void tcp_ecn_send(struct sock *sk, struct sk_buff *skb,
@@ -3281,5 +3281,5 @@ index cb79127f4..70e4de876 100644
  	event = icsk->icsk_pending;
  
 -- 
-2.40.0.71.g950264636c
+2.39.1.418.g7876265d61
 
