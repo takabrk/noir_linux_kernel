@@ -43,17 +43,10 @@ $ ./build.sh -e build
 - futex support
 - Core scheduling for SMT ON
 - AMD p-state support
-
-[後日対応予定]
 - Preemption Model -> Full Preemptible Kernel(Real Time)
 - CPU Timer frequency -> 500Hz
-- vm_swappiness = 30
-- VM_READAHEAD_PAGES=8MB
-- dcache-cache_pressure=50
 - OpenRGB support
 - Zen Interactive Tune support
-- Clear Linux support
-- winesync support
 
 [patches]
 https://www.kernel.org/
