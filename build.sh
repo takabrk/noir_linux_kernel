@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#April 25,2023
+#May 3,2023
 
 . ./config
 
@@ -27,23 +27,25 @@ case $e_num in
 
 #build custom_config.patch
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-        cat patches/noir_base/noir_base.patch \
+        cat patches/linux/patch-$VERSIONPOINT \
+            patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0001-futex-6.3-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0001-tcp_bbr2-introduce-BBRv2.patch \
             patches/other/patch-6.3-rc7-rt9.patch \
+            patches/other/v6.3-zen1.patch \
             > noir.patch
             ;;
-
-    source)
-           wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$VERSIONBASE.tar.xz
+    vanilla)  
+            wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$VERSIONBASE.tar.xz
            tar -Jxvf linux-$VERSIONBASE.tar.xz
+           ;;
+    source)
            cd linux-$VERSIONBASE
            patch -p1 < ../noir.patch
            cd ../
            mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
-           rm -r linux-$VERSIONBASE.tar.xz
            ;;
     build)
            cd linux-$VERSIONPOINT-$NOIR_VERSION
@@ -56,5 +58,6 @@ case $e_num in
            sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION
            sudo dpkg -i *.deb
            sudo update-grub
+           rm -r linux-$VERSIONBASE.tar.xz
            ;;
 esac

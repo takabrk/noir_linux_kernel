@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-April 25,2023
+May 3,2023
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -22,7 +22,9 @@ noir.patchというファイルは、それらのパッチを統合した物で�
 $ ./build.sh -e patch
 
 ◇バニラカーネルのソースコードのダウンロードとパッチ当て（カスタムカーネルのビルド作業は、ここから始める）
-- ソースコード取得・パッチ当て
+- バニラカーネルのソースコード取得
+$ ./build.sh -e vanilla
+- パッチ当て
 $ ./build.sh -e source
 
 ◇前述を行った後にカスタムカーネルのビルドとインストール
