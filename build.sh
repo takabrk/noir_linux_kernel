@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#May 19,2023
+#May 28,2023
 
 . ./config
 
@@ -35,6 +35,9 @@ case $e_num in
             patches/other/0001-tcp_bbr2-introduce-BBRv2.patch \
             patches/other/patch-6.3-rc7-rt9.patch \
             patches/other/v6.3-zen1.patch \
+            patches/other/0001-winesync-Introduce-the-winesync-driver-and-character.patch \
+            patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
+            patches/other/0012-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
             > noir.patch
             ;;
     vanilla)  
