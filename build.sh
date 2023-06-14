@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#June 6,2023
+#June 14,2023
 
 . ./config
 
