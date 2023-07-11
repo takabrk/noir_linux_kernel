@@ -24,7 +24,7 @@ index ef540865ad22e..a9ef00509c9b1 100644
  System utilities
  ****************
 diff --git a/Makefile b/Makefile
-index e51e4d9174ab3..bcac81556b569 100644
+index e51e4d9174ab3..56abbcac061d4 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,7 +1,7 @@
@@ -32,7 +32,7 @@ index e51e4d9174ab3..bcac81556b569 100644
  VERSION = 6
  PATCHLEVEL = 4
 -SUBLEVEL = 0
-+SUBLEVEL = 2
++SUBLEVEL = 3
  EXTRAVERSION =
  NAME = Hurr durr I'ma ninja sloth
  
@@ -2271,6 +2271,26 @@ index a910b9a638c5e..8172dd4135a1d 100644
  			STATX_CHANGE_COOKIE;
  
  	if ((query_flags & AT_STATX_DONT_SYNC) && !force_sync) {
+diff --git a/include/linux/bootmem_info.h b/include/linux/bootmem_info.h
+index cc35d010fa949..e1a3c9c9754c5 100644
+--- a/include/linux/bootmem_info.h
++++ b/include/linux/bootmem_info.h
+@@ -3,6 +3,7 @@
+ #define __LINUX_BOOTMEM_INFO_H
+ 
+ #include <linux/mm.h>
++#include <linux/kmemleak.h>
+ 
+ /*
+  * Types for free bootmem stored in page->lru.next. These have to be in
+@@ -59,6 +60,7 @@ static inline void get_page_bootmem(unsigned long info, struct page *page,
+ 
+ static inline void free_bootmem_page(struct page *page)
+ {
++	kmemleak_free_part(page_to_virt(page), PAGE_SIZE);
+ 	free_reserved_page(page);
+ }
+ #endif
 diff --git a/include/linux/mm.h b/include/linux/mm.h
 index 27ce77080c79c..9e10485f37e7f 100644
 --- a/include/linux/mm.h
@@ -2335,6 +2355,18 @@ index 27ce77080c79c..9e10485f37e7f 100644
  int remap_pfn_range(struct vm_area_struct *, unsigned long addr,
  			unsigned long pfn, unsigned long size, pgprot_t);
  int remap_pfn_range_notrack(struct vm_area_struct *vma, unsigned long addr,
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 41c964104b584..8103ffd217e97 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -690,6 +690,7 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
+ 	for_each_vma(old_vmi, mpnt) {
+ 		struct file *file;
+ 
++		vma_start_write(mpnt);
+ 		if (mpnt->vm_flags & VM_DONTCOPY) {
+ 			vm_stat_account(mm, mpnt->vm_flags, -vma_pages(mpnt));
+ 			continue;
 diff --git a/lib/maple_tree.c b/lib/maple_tree.c
 index 8ebc43d4cc8c5..35264f1936a37 100644
 --- a/lib/maple_tree.c
@@ -2471,10 +2503,24 @@ index 2d0d58fb4e7fa..47b59f2843f60 100644
  		/*
  		 * We control three references to the page:
 diff --git a/mm/memory.c b/mm/memory.c
-index f69fbc2511984..5ce82a76201d5 100644
+index f69fbc2511984..07bab1e774994 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
-@@ -5262,6 +5262,125 @@ out:
+@@ -3932,6 +3932,13 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
+ 		}
+ 	}
+ 
++	/*
++	 * Some architectures may have to restore extra metadata to the page
++	 * when reading from swap. This metadata may be indexed by swap entry
++	 * so this must be called before swap_free().
++	 */
++	arch_swap_restore(entry, folio);
++
+ 	/*
+ 	 * Remove the swap entry and conditionally try to free up the swapcache.
+ 	 * We're already holding a reference on the page but haven't mapped it
+@@ -5262,6 +5269,125 @@ out:
  }
  EXPORT_SYMBOL_GPL(handle_mm_fault);
  
@@ -2600,7 +2646,7 @@ index f69fbc2511984..5ce82a76201d5 100644
  #ifdef CONFIG_PER_VMA_LOCK
  /*
   * Lookup and lock a VMA under RCU protection. Returned VMA is guaranteed to be
-@@ -5594,6 +5713,14 @@ int __access_remote_vm(struct mm_struct *mm, unsigned long addr, void *buf,
+@@ -5594,6 +5720,14 @@ int __access_remote_vm(struct mm_struct *mm, unsigned long addr, void *buf,
  	if (mmap_read_lock_killable(mm))
  		return 0;
  
@@ -2616,7 +2662,7 @@ index f69fbc2511984..5ce82a76201d5 100644
  	while (len) {
  		int bytes, ret, offset;
 diff --git a/mm/mmap.c b/mm/mmap.c
-index d600404580b28..bc510361acec2 100644
+index d600404580b28..30bf7772d4ac1 100644
 --- a/mm/mmap.c
 +++ b/mm/mmap.c
 @@ -1935,7 +1935,7 @@ static int acct_stack_growth(struct vm_area_struct *vma,
@@ -2628,7 +2674,16 @@ index d600404580b28..bc510361acec2 100644
  {
  	struct mm_struct *mm = vma->vm_mm;
  	struct vm_area_struct *next;
-@@ -2027,6 +2027,7 @@ int expand_upwards(struct vm_area_struct *vma, unsigned long address)
+@@ -1975,6 +1975,8 @@ int expand_upwards(struct vm_area_struct *vma, unsigned long address)
+ 		return -ENOMEM;
+ 	}
+ 
++	/* Lock the VMA before expanding to prevent concurrent page faults */
++	vma_start_write(vma);
+ 	/*
+ 	 * vma->vm_start/vm_end cannot change under us because the caller
+ 	 * is required to hold the mmap_lock in read mode.  We need the
+@@ -2027,6 +2029,7 @@ int expand_upwards(struct vm_area_struct *vma, unsigned long address)
  
  /*
   * vma is the first one with address < vma->vm_start.  Have to extend vma.
@@ -2636,7 +2691,7 @@ index d600404580b28..bc510361acec2 100644
   */
  int expand_downwards(struct vm_area_struct *vma, unsigned long address)
  {
-@@ -2035,16 +2036,20 @@ int expand_downwards(struct vm_area_struct *vma, unsigned long address)
+@@ -2035,16 +2038,20 @@ int expand_downwards(struct vm_area_struct *vma, unsigned long address)
  	struct vm_area_struct *prev;
  	int error = 0;
  
@@ -2661,7 +2716,16 @@ index d600404580b28..bc510361acec2 100644
  			return -ENOMEM;
  	}
  
-@@ -2124,13 +2129,12 @@ static int __init cmdline_parse_stack_guard_gap(char *p)
+@@ -2057,6 +2064,8 @@ int expand_downwards(struct vm_area_struct *vma, unsigned long address)
+ 		return -ENOMEM;
+ 	}
+ 
++	/* Lock the VMA before expanding to prevent concurrent page faults */
++	vma_start_write(vma);
+ 	/*
+ 	 * vma->vm_start/vm_end cannot change under us because the caller
+ 	 * is required to hold the mmap_lock in read mode.  We need the
+@@ -2124,13 +2133,12 @@ static int __init cmdline_parse_stack_guard_gap(char *p)
  __setup("stack_guard_gap=", cmdline_parse_stack_guard_gap);
  
  #ifdef CONFIG_STACK_GROWSUP
@@ -2677,7 +2741,7 @@ index d600404580b28..bc510361acec2 100644
  {
  	struct vm_area_struct *vma, *prev;
  
-@@ -2138,20 +2142,23 @@ find_extend_vma(struct mm_struct *mm, unsigned long addr)
+@@ -2138,20 +2146,23 @@ find_extend_vma(struct mm_struct *mm, unsigned long addr)
  	vma = find_vma_prev(mm, addr, &prev);
  	if (vma && (vma->vm_start <= addr))
  		return vma;
@@ -2705,7 +2769,7 @@ index d600404580b28..bc510361acec2 100644
  {
  	struct vm_area_struct *vma;
  	unsigned long start;
-@@ -2162,10 +2169,8 @@ find_extend_vma(struct mm_struct *mm, unsigned long addr)
+@@ -2162,10 +2173,8 @@ find_extend_vma(struct mm_struct *mm, unsigned long addr)
  		return NULL;
  	if (vma->vm_start <= addr)
  		return vma;
@@ -2717,7 +2781,7 @@ index d600404580b28..bc510361acec2 100644
  		return NULL;
  	if (vma->vm_flags & VM_LOCKED)
  		populate_vma_page_range(vma, addr, start, NULL);
-@@ -2173,7 +2178,91 @@ find_extend_vma(struct mm_struct *mm, unsigned long addr)
+@@ -2173,7 +2182,91 @@ find_extend_vma(struct mm_struct *mm, unsigned long addr)
  }
  #endif
  
@@ -2810,6 +2874,15 @@ index d600404580b28..bc510361acec2 100644
  
  /*
   * Ok - we have the memory areas we should free on a maple tree so release them,
+@@ -2708,6 +2801,8 @@ cannot_expand:
+ 	if (vma_iter_prealloc(&vmi))
+ 		goto close_and_free_vma;
+ 
++	/* Lock the VMA since it is modified after insertion into VMA tree */
++	vma_start_write(vma);
+ 	if (vma->vm_file)
+ 		i_mmap_lock_write(vma->vm_file->f_mapping);
+ 
 diff --git a/mm/nommu.c b/mm/nommu.c
 index f670d9979a261..c072a660ec2cf 100644
 --- a/mm/nommu.c
