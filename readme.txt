@@ -33,7 +33,7 @@ $ ./build.sh -e build
 
 - Built on the GCC 12.1.0
 - CPU scheduler -> CFS
-- Default I/O scheduler -> MQ-deadline
+- Default I/O scheduler -> BFQ
 - Processor family -> Generic X86_64
 - Kernel Compression mode -> zstd
 - RCU boost delay -> 339
@@ -47,10 +47,12 @@ $ ./build.sh -e build
 - CPU Timer frequency -> 500Hz
 - OpenRGB support
 - Zen Interactive Tune support
+- Clear Linux support
+- WineSync support
 
 [patches]
 https://www.kernel.org/
-https://github.com/zen-kernel/zen-kernel/tree/6.4/master
+https://github.com/zen-kernel/zen-kernel/tree/6.5/master
 https://github.com/sirlucjan/kernel-patches 
 https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/
 https://github.com/Frogging-Family/linux-tkg
