@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#August 24,2023
+#August 31,2023
 
 . ./config
 
@@ -27,18 +27,18 @@ case $e_num in
 
 #build custom_config.patch
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-        cat patches/linux/patch-$VERSIONPOINT \
-            patches/noir_base/noir_base.patch \
+#patches/linux/patch-$VERSIONPOINT \
+        cat patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
-            patches/other/patch-6.4-rt6.patch \
-            patches/other/v6.4-zen1.patch \
+            patches/other/patch-6.5-rt5.patch \
+            patches/other/v6.5-zen1.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0002-clear-patches.patch \
-            patches/other/0007-v6.4-winesync.patch \
-            patches/other/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
-            patches/other/0010-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
-            patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
-            patches/other/0012-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
+            patches/other/0001-winesync-Introduce-the-winesync-driver-and-character.patch \
+            patches/other/0001-futex-6.5-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
+            patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
+            patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
+            patches/other/0013-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
             > noir.patch
             ;;
     vanilla)  
