@@ -1,7 +1,7 @@
-From 7d7669874b086ac1aa2369fe501913bcd85d4533 Mon Sep 17 00:00:00 2001
+From 82b9f7fcefd3121a2b922db75aaa65d62b3c1b2b Mon Sep 17 00:00:00 2001
 From: Alexandre Frade <admfrade@gmail.com>
 Date: Mon, 29 Jan 2018 16:59:22 +0000
-Subject: [PATCH 12/19] XANMOD: dcache: cache_pressure = 50 decreases the rate
+Subject: [PATCH 06/13] XANMOD: dcache: cache_pressure = 50 decreases the rate
  at which VFS caches are reclaimed
 
 Signed-off-by: Alexandre Frade <admfrade@gmail.com>
@@ -11,7 +11,7 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/fs/dcache.c b/fs/dcache.c
-index 52e6d5fdab6b..39ff71350997 100644
+index 25ac74d30..af9ef019a 100644
 --- a/fs/dcache.c
 +++ b/fs/dcache.c
 @@ -71,7 +71,7 @@
@@ -24,5 +24,5 @@ index 52e6d5fdab6b..39ff71350997 100644
  
  __cacheline_aligned_in_smp DEFINE_SEQLOCK(rename_lock);
 -- 
-2.39.2
+2.42.0
 

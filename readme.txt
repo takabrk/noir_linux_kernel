@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-August 31,2023
+November 1,2023
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -47,7 +47,7 @@ $ ./build.sh -e build
 - CPU Timer frequency -> 500Hz
 - OpenRGB support
 - Zen Interactive Tune support
-- Clear Linux support
+- futex support
 - WineSync support
 
 [patches]

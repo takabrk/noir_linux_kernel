@@ -1,0 +1,772 @@
+From 2ffc45fae2417c332726d98b4c75ab0227a5485e Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
+Date: Sun, 11 Dec 2022 23:48:49 +0100
+Subject: [PATCH] ZEN: Add ZEN branding
+
+Adds a tag to the kernel version string (uname -v) and a suffix to
+the kernel release (uname -r).
+---
+ Makefile      | 4 ++--
+ init/Makefile | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 5c418efbe89b6c..33af4bc65fc827 100644
+--- a/Makefile
++++ b/Makefile
+@@ -2,8 +2,8 @@
+ VERSION = 6
+ PATCHLEVEL = 6
+ SUBLEVEL = 0
+-EXTRAVERSION =
+-NAME = Hurr durr I'ma ninja sloth
++EXTRAVERSION = -zen
++NAME = Finding Humor In Nothing
+ 
+ # *DOCUMENTATION*
+ # To see a list of typical targets execute "make help"
+diff --git a/init/Makefile b/init/Makefile
+index ec557ada3c12ef..213bc4858228e4 100644
+--- a/init/Makefile
++++ b/init/Makefile
+@@ -33,7 +33,7 @@ build-timestamp = $(or $(KBUILD_BUILD_TIMESTAMP), $(build-timestamp-auto))
+ 
+ # Maximum length of UTS_VERSION is 64 chars
+ filechk_uts_version = \
+-	utsver=$$(echo '$(pound)'"$(build-version)" $(smp-flag-y) $(preempt-flag-y) "$(build-timestamp)" | cut -b -64); \
++	utsver=$$(echo '$(pound)'"$(build-version)" ZEN $(smp-flag-y) $(preempt-flag-y) "$(build-timestamp)" | cut -b -64); \
+ 	echo '$(pound)'define UTS_VERSION \""$${utsver}"\"
+ 
+ #
+From a5772fa315ec0d8d054de294e5868511f669dd64 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:10:06 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Base config item
+
+---
+ init/Kconfig | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 686cb8b982d32f..fbc081446b14a1 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -123,6 +123,12 @@ config THREAD_INFO_IN_TASK
+ 
+ menu "General setup"
+ 
++config ZEN_INTERACTIVE
++	bool "Tune kernel for interactivity"
++	default y
++	help
++	  Tunes the kernel for responsiveness at the cost of throughput and power usage.
++
+ config BROKEN
+ 	bool
+ 
+From b1a09e7e94b1086892f6c5db11277842b8b682b1 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:11:05 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Use BFQ as the elevator for SQ devices
+
+---
+ block/elevator.c | 4 ++++
+ init/Kconfig     | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/block/elevator.c b/block/elevator.c
+index 5ff093cb3cf8f5..cd1a2c9881bc60 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -576,7 +576,11 @@ static struct elevator_type *elevator_get_default(struct request_queue *q)
+ 	    !blk_mq_is_shared_tags(q->tag_set->flags))
+ 		return NULL;
+ 
++#if defined(CONFIG_ZEN_INTERACTIVE) && defined(CONFIG_IOSCHED_BFQ)
++	return elevator_find_get(q, "bfq");
++#else
+ 	return elevator_find_get(q, "mq-deadline");
++#endif
+ }
+ 
+ /*
+diff --git a/init/Kconfig b/init/Kconfig
+index fbc081446b14a1..898d0cca23a6e1 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -129,6 +129,10 @@ config ZEN_INTERACTIVE
+ 	help
+ 	  Tunes the kernel for responsiveness at the cost of throughput and power usage.
+ 
++	  --- Block Layer ----------------------------------------
++
++	    Default scheduler for SQ..: mq-deadline ->   bfq
++
+ config BROKEN
+ 	bool
+ From 2ec75d0127b337b4b8bc01cf8359d9d9ab90010e Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
+Date: Mon, 12 Dec 2022 00:03:03 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Use Kyber as the elevator for MQ devices
+
+---
+ block/elevator.c | 6 ++++++
+ init/Kconfig     | 1 +
+ 2 files changed, 7 insertions(+)
+
+diff --git a/block/elevator.c b/block/elevator.c
+index cd1a2c9881bc60..200eb60c8e8b52 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -574,7 +574,13 @@ static struct elevator_type *elevator_get_default(struct request_queue *q)
+ 
+ 	if (q->nr_hw_queues != 1 &&
+ 	    !blk_mq_is_shared_tags(q->tag_set->flags))
++#if defined(CONFIG_ZEN_INTERACTIVE) && defined(CONFIG_MQ_IOSCHED_KYBER)
++		return elevator_find_get(q, "kyber");
++#elif defined(CONFIG_ZEN_INTERACTIVE)
++		return elevator_find_get(q, "mq-deadline");
++#else
+ 		return NULL;
++#endif
+ 
+ #if defined(CONFIG_ZEN_INTERACTIVE) && defined(CONFIG_IOSCHED_BFQ)
+ 	return elevator_find_get(q, "bfq");
+diff --git a/init/Kconfig b/init/Kconfig
+index 898d0cca23a6e1..60f1ad26ec1116 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -132,6 +132,7 @@ config ZEN_INTERACTIVE
+ 	  --- Block Layer ----------------------------------------
+ 
+ 	    Default scheduler for SQ..: mq-deadline ->   bfq
++	    Default scheduler for MQ..:        none ->   kyber
+ 
+ config BROKEN
+ 	bool
+
+From 017822df73d73da6edb27fb09c552fc53aa92074 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:21:09 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Enable background reclaim of hugepages
+
+Use [defer+madvise] as default khugepaged defrag strategy:
+
+For some reason, the default strategy to respond to THP fault fallbacks
+is still just madvise, meaning stall if the program wants transparent
+hugepages, but don't trigger a background reclaim / compaction if THP
+begins to fail allocations.  This creates a snowball affect where we
+still use the THP code paths, but we almost always fail once a system
+has been active and busy for a while.
+
+The option "defer" was created for interactive systems where THP can
+still improve performance.  If we have to fallback to a regular page due
+to an allocation failure or anything else, we will trigger a background
+reclaim and compaction so future THP attempts succeed and previous
+attempts eventually have their smaller pages combined without stalling
+running applications.
+
+We still want madvise to stall applications that explicitely want THP,
+so defer+madvise _does_ make a ton of sense.  Make it the default for
+interactive systems, especially if the kernel maintainer left
+transparent hugepages on "always".
+
+Reasoning and details in the original patch: https://lwn.net/Articles/711248/
+---
+ init/Kconfig     | 4 ++++
+ mm/huge_memory.c | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 60f1ad26ec1116..f373e699d647b2 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -134,6 +134,10 @@ config ZEN_INTERACTIVE
+ 	    Default scheduler for SQ..: mq-deadline ->   bfq
+ 	    Default scheduler for MQ..:        none ->   kyber
+ 
++	  --- Virtual Memory Subsystem ---------------------------
++
++	    Background-reclaim hugepages...:   no   ->   yes
++
+ config BROKEN
+ 	bool
+ 
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 064fbd90822b49..3f56e909e0dba9 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -61,7 +61,11 @@ unsigned long transparent_hugepage_flags __read_mostly =
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE_MADVISE
+ 	(1<<TRANSPARENT_HUGEPAGE_REQ_MADV_FLAG)|
+ #endif
++#ifdef CONFIG_ZEN_INTERACTIVE
++	(1<<TRANSPARENT_HUGEPAGE_DEFRAG_KSWAPD_OR_MADV_FLAG)|
++#else
+ 	(1<<TRANSPARENT_HUGEPAGE_DEFRAG_REQ_MADV_FLAG)|
++#endif
+ 	(1<<TRANSPARENT_HUGEPAGE_DEFRAG_KHUGEPAGED_FLAG)|
+ 	(1<<TRANSPARENT_HUGEPAGE_USE_ZERO_PAGE_FLAG);
+ 
+From 06d932d7a5f858bba3354ba4fce7c2f976b2cf03 Mon Sep 17 00:00:00 2001
+From: Steven Barrett <steven@liquorix.net>
+Date: Wed, 11 Aug 2021 18:47:46 -0500
+Subject: [PATCH] ZEN: INTERACTIVE: Tune mgLRU to protect cache used in the
+ last second
+
+Although not identical to the le9 patches that protect a byte-amount of
+cache through tunables, multigenerational LRU now supports protecting
+cache accessed in the last X milliseconds.
+
+In #218, Yu recommends starting with 1000ms and tuning as needed.  This
+looks like a safe default and turning on this feature should help users
+that don't know they need it.
+---
+ init/Kconfig | 1 +
+ mm/vmscan.c  | 4 ++++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index f373e699d647b2..c84bbb7a612c77 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -137,6 +137,7 @@ config ZEN_INTERACTIVE
+ 	  --- Virtual Memory Subsystem ---------------------------
+ 
+ 	    Background-reclaim hugepages...:   no   ->   yes
++	    MG-LRU minimum cache TTL.......:   0    ->   1000 ms
+ 
+ config BROKEN
+ 	bool
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 4a61d351f27948..84bc46407132b8 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -4595,7 +4595,11 @@ static bool lruvec_is_reclaimable(struct lruvec *lruvec, struct scan_control *sc
+ }
+ 
+ /* to protect the working set of the last N jiffies */
++#ifdef CONFIG_ZEN_INTERACTIVE
++static unsigned long lru_gen_min_ttl __read_mostly = HZ;
++#else
+ static unsigned long lru_gen_min_ttl __read_mostly;
++#endif
+ 
+ static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
+ {
+
+From f6c3711eb1e59ab536de7fca01d37f2a0dff27b3 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
+Date: Tue, 31 Oct 2023 19:03:10 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Tune EEVDF for interactivity
+
+5.7:
+Take "sysctl_sched_nr_migrate" tune from early XanMod builds of 128. As
+of 5.7, XanMod uses 256 but that may affect applications that require
+timely response to IRQs.
+
+5.15:
+Per [a comment][1] on our ZEN INTERACTIVE commit, reducing the cost of
+migration causes the system less responsive under high load.  Most
+likely the combination of reduced migration cost + the higher number of
+tasks that can be migrated at once contributes to this.
+
+To better handle this situation, restore the mainline migration cost
+value and also reduce the max number of tasks that can be migrated in
+batch from 128 to 64.
+
+If this doesn't help, we'll restore the reduced migration cost and keep
+total number of tasks that can be migrated at once to 32.
+
+[1]: https://github.com/zen-kernel/zen-kernel/commit/be5ba234ca0a5aabe74bfc7e1f636f085bd3823c#commitcomment-63159674
+
+6.6:
+Port the tuning to EEVDF, which removed a couple of settings.
+---
+ init/Kconfig         | 6 ++++++
+ kernel/sched/fair.c  | 9 +++++++++
+ kernel/sched/sched.h | 2 ++
+ 3 files changed, 17 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index c84bbb7a612c77..1fdc1f9664d394 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -139,6 +139,12 @@ config ZEN_INTERACTIVE
+ 	    Background-reclaim hugepages...:   no   ->   yes
+ 	    MG-LRU minimum cache TTL.......:   0    ->   1000 ms
+ 
++	  --- EEVDF CPU Scheduler --------------------------------
++
++	    Minimal granularity............:   0.75 ->   0.4  ms
++	    Bandwidth slice size...........:   5    ->   3    ms
++	    Task rebalancing threshold.....:  32    ->  64
++
+ config BROKEN
+ 	bool
+ 
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index df348aa55d3c7e..df879524a13875 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -75,8 +75,13 @@ unsigned int sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
+  *
+  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++unsigned int sysctl_sched_base_slice			= 400000ULL;
++static unsigned int normalized_sysctl_sched_base_slice	= 400000ULL;
++#else
+ unsigned int sysctl_sched_base_slice			= 750000ULL;
+ static unsigned int normalized_sysctl_sched_base_slice	= 750000ULL;
++#endif
+ 
+ /*
+  * After fork, child runs first. If set to 0 (default) then
+@@ -135,8 +140,12 @@ int __weak arch_asym_cpu_priority(int cpu)
+  *
+  * (default: 5 msec, units: microseconds)
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++static unsigned int sysctl_sched_cfs_bandwidth_slice		= 3000UL;
++#else
+ static unsigned int sysctl_sched_cfs_bandwidth_slice		= 5000UL;
+ #endif
++#endif
+ 
+ #ifdef CONFIG_NUMA_BALANCING
+ /* Restrict the NUMA promotion throughput (MB/s) for each target node. */
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+index 04846272409cc0..8706ed0ab801a0 100644
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -2517,6 +2517,8 @@ extern void check_preempt_curr(struct rq *rq, struct task_struct *p, int flags);
+ 
+ #ifdef CONFIG_PREEMPT_RT
+ #define SCHED_NR_MIGRATE_BREAK 8
++#elif defined(CONFIG_ZEN_INTERACTIVE)
++#define SCHED_NR_MIGRATE_BREAK 64
+ #else
+ #define SCHED_NR_MIGRATE_BREAK 32
+ #endif
+
+From 1c93b5c6a2f8397c935fbce3c25d1754b1da2845 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <jan.steffens@gmail.com>
+Date: Mon, 27 Jan 2020 18:27:16 +0100
+Subject: [PATCH] ZEN: INTERACTIVE: Tune ondemand governor for interactivity
+
+4.10:
+During some personal testing with the Dolphin emulator, MuQSS has
+serious problems scaling its frequencies causing poor performance where
+boosting the CPU frequencies would have fixed them.  Reducing the
+up_threshold to 45 with MuQSS appears to fix the issue, letting the
+introduction to "Star Wars: Rogue Leader" run at 100% speed versus about
+80% on my test system.
+
+Also, lets refactor the definitions and include some indentation to help
+the reader discern what the scope of all the macros are.
+
+5.4:
+On the last custom kernel benchmark from Phoronix with Xanmod, Michael
+configured all the kernels to run using ondemand instead of the kernel's
+[default selection][1].  This reminded me that another option outside of
+the kernels control is the user's choice to change the cpufreq governor,
+for better or for worse.
+
+In Liquorix, performance is the default governor whether you're running
+acpi-cpufreq or intel-pstate.  I expect laptop users to install TLP or
+LMT to control the power balance on their system, especially when
+they're plugged in or on battery.  However, it's pretty clear to me a
+lot of people would choose ondemand over performance since it's not
+obvious it has huge performance ramifications with MuQSS, and ondemand
+otherwise is "good enough" for most people.
+
+Lets codify lower up thresholds for MuQSS to more closely synergize with
+its aggressive thread migration behavior.  This way when ondemand is
+configured, you get sort of a "performance-lite" type of result but with
+the power savings you expect when leaving the running system idle.
+
+[1]: https://www.phoronix.com/scan.php?page=article&item=xanmod-2020-kernel
+
+5.14:
+Although CFS and similar schedulers (BMQ, PDS, and CacULE), reuse a lot
+more of mainline scheduling and do a good job of pinning single threaded
+tasks to their respective core, there's still applications that
+confusingly run steady near 50% and benefit from going full speed or
+turbo when they need to run (emulators for more recent consoles come to
+mind).
+
+Drop the up threshold for all non-MuQSS schedulers from 80/95 to 55/60.
+
+5.15:
+Remove MuQSS cpufreq configuration.
+---
+ drivers/cpufreq/cpufreq_ondemand.c | 8 +++++++-
+ init/Kconfig                       | 6 ++++++
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/cpufreq/cpufreq_ondemand.c b/drivers/cpufreq/cpufreq_ondemand.c
+index c52d19d67557f5..03c8da688a8cdb 100644
+--- a/drivers/cpufreq/cpufreq_ondemand.c
++++ b/drivers/cpufreq/cpufreq_ondemand.c
+@@ -18,10 +18,16 @@
+ #include "cpufreq_ondemand.h"
+ 
+ /* On-demand governor macros */
++#if defined(CONFIG_ZEN_INTERACTIVE)
++#define DEF_FREQUENCY_UP_THRESHOLD		(55)
++#define MICRO_FREQUENCY_UP_THRESHOLD		(60)
++#define DEF_SAMPLING_DOWN_FACTOR		(5)
++#else
+ #define DEF_FREQUENCY_UP_THRESHOLD		(80)
++#define MICRO_FREQUENCY_UP_THRESHOLD		(95)
+ #define DEF_SAMPLING_DOWN_FACTOR		(1)
++#endif
+ #define MAX_SAMPLING_DOWN_FACTOR		(100000)
+-#define MICRO_FREQUENCY_UP_THRESHOLD		(95)
+ #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
+ #define MIN_FREQUENCY_UP_THRESHOLD		(1)
+ #define MAX_FREQUENCY_UP_THRESHOLD		(100)
+diff --git a/init/Kconfig b/init/Kconfig
+index 1fdc1f9664d394..9f15dcf20888da 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -145,6 +145,12 @@ config ZEN_INTERACTIVE
+ 	    Bandwidth slice size...........:   5    ->   3    ms
+ 	    Task rebalancing threshold.....:  32    ->  64
+ 
++	  --- CPUFreq Settings -----------------------------------
++
++	    Ondemand sampling down factor..:   1    ->   5
++	    Ondemand default up threshold..:  80    ->  55
++	    Ondemand micro up threshold....:  95    ->  60
++
+ config BROKEN
+ 	bool
+ 
+From d48ede166e96c0f4c5f7d7f0aba971e5801e4e1d Mon Sep 17 00:00:00 2001
+From: Steven Barrett <steven@liquorix.net>
+Date: Sat, 5 Mar 2022 11:37:14 -0600
+Subject: [PATCH] ZEN: INTERACTIVE: mm: Disable unevictable compaction
+
+This option is already disabled when CONFIG_PREEMPT_RT is enabled, lets
+turn it off when CONFIG_ZEN_INTERACTIVE is set as well.
+---
+ init/Kconfig | 1 +
+ mm/Kconfig   | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 9f15dcf20888da..ab14569b41fe10 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -138,6 +138,7 @@ config ZEN_INTERACTIVE
+ 
+ 	    Background-reclaim hugepages...:   no   ->   yes
+ 	    MG-LRU minimum cache TTL.......:   0    ->   1000 ms
++	    Compact unevictable............:   yes  ->   no
+ 
+ 	  --- EEVDF CPU Scheduler --------------------------------
+ 
+diff --git a/mm/Kconfig b/mm/Kconfig
+index 264a2df5ecf5b9..025833f2442694 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -653,7 +653,7 @@ config COMPACTION
+ config COMPACT_UNEVICTABLE_DEFAULT
+ 	int
+ 	depends on COMPACTION
+-	default 0 if PREEMPT_RT
++	default 0 if PREEMPT_RT || ZEN_INTERACTIVE
+ 	default 1
+ 
+ #
+From b89c1c4f696fb706e7857c944930845a6271664a Mon Sep 17 00:00:00 2001
+From: Sultan Alsawaf <sultan@kerneltoast.com>
+Date: Sat, 24 Oct 2020 22:17:49 -0700
+Subject: [PATCH] ZEN: INTERACTIVE: mm: Disable proactive compaction by default
+
+On-demand compaction works fine assuming that you don't have a need to
+spam the page allocator nonstop for large order page allocations.
+
+Signed-off-by: Sultan Alsawaf <sultan@kerneltoast.com>
+---
+ init/Kconfig    | 1 +
+ mm/compaction.c | 4 ++++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index ab14569b41fe10..bfad615be02395 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -139,6 +139,7 @@ config ZEN_INTERACTIVE
+ 	    Background-reclaim hugepages...:   no   ->   yes
+ 	    MG-LRU minimum cache TTL.......:   0    ->   1000 ms
+ 	    Compact unevictable............:   yes  ->   no
++	    Compaction proactiveness.......:  20    ->   0
+ 
+ 	  --- EEVDF CPU Scheduler --------------------------------
+ 
+diff --git a/mm/compaction.c b/mm/compaction.c
+index 38c8d216c6a3bf..805d1f7047be56 100644
+--- a/mm/compaction.c
++++ b/mm/compaction.c
+@@ -1809,7 +1809,11 @@ static int sysctl_compact_unevictable_allowed __read_mostly = CONFIG_COMPACT_UNE
+  * aggressively the kernel should compact memory in the
+  * background. It takes values in the range [0, 100].
+  */
++#ifdef CONFIG_ZEN_INTERACTIVE
++static unsigned int __read_mostly sysctl_compaction_proactiveness;
++#else
+ static unsigned int __read_mostly sysctl_compaction_proactiveness = 20;
++#endif
+ static int sysctl_extfrag_threshold = 500;
+ static int __read_mostly sysctl_compact_memory;
+ From c9f01c61d1105c0510608e41ac63b2d1c073394d Mon Sep 17 00:00:00 2001
+From: Sultan Alsawaf <sultan@kerneltoast.com>
+Date: Sat, 28 Mar 2020 13:06:28 -0700
+Subject: [PATCH] ZEN: INTERACTIVE: mm: Disable watermark boosting by default
+
+What watermark boosting does is preemptively fire up kswapd to free
+memory when there hasn't been an allocation failure. It does this by
+increasing kswapd's high watermark goal and then firing up kswapd. The
+reason why this causes freezes is because, with the increased high
+watermark goal, kswapd will steal memory from processes that need it in
+order to make forward progress. These processes will, in turn, try to
+allocate memory again, which will cause kswapd to steal necessary pages
+from those processes again, in a positive feedback loop known as page
+thrashing. When page thrashing occurs, your system is essentially
+livelocked until the necessary forward progress can be made to stop
+processes from trying to continuously allocate memory and trigger
+kswapd to steal it back.
+
+This problem already occurs with kswapd *without* watermark boosting,
+but it's usually only encountered on machines with a small amount of
+memory and/or a slow CPU. Watermark boosting just makes the existing
+problem worse enough to notice on higher spec'd machines.
+
+Disable watermark boosting by default since it's a total dumpster fire.
+I can't imagine why anyone would want to explicitly enable it, but the
+option is there in case someone does.
+
+Signed-off-by: Sultan Alsawaf <sultan@kerneltoast.com>
+---
+ init/Kconfig    | 1 +
+ mm/page_alloc.c | 4 ++++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index bfad615be02395..7e2d9dcd45eeb7 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -140,6 +140,7 @@ config ZEN_INTERACTIVE
+ 	    MG-LRU minimum cache TTL.......:   0    ->   1000 ms
+ 	    Compact unevictable............:   yes  ->   no
+ 	    Compaction proactiveness.......:  20    ->   0
++	    Watermark boost factor.........:   1.5  ->   0
+ 
+ 	  --- EEVDF CPU Scheduler --------------------------------
+ 
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 2fb1d35ce03212..149c464d255cb8 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -288,7 +288,11 @@ const char * const migratetype_names[MIGRATE_TYPES] = {
+ 
+ int min_free_kbytes = 1024;
+ int user_min_free_kbytes = -1;
++#ifdef CONFIG_ZEN_INTERACTIVE
++static int watermark_boost_factor __read_mostly;
++#else
+ static int watermark_boost_factor __read_mostly = 15000;
++#endif
+ static int watermark_scale_factor = 10;
+ 
+ /* movable_zone is the "real" zone pages in ZONE_MOVABLE are taken from */
+From d85161a38042b69051a546d614fd46704d0451b2 Mon Sep 17 00:00:00 2001
+From: Sultan Alsawaf <sultan@kerneltoast.com>
+Date: Wed, 20 Oct 2021 20:50:11 -0700
+Subject: [PATCH] ZEN: INTERACTIVE: mm: Lower the non-hugetlbpage pageblock
+ size to reduce scheduling delays
+
+The page allocator processes free pages in groups of pageblocks, where
+the size of a pageblock is typically quite large (1024 pages without
+hugetlbpage support). Pageblocks are processed atomically with the zone
+lock held, which can cause severe scheduling delays on both the CPU
+going through the pageblock and any other CPUs waiting to acquire the
+zone lock. A frequent offender is move_freepages_block(), which is used
+by rmqueue() for page allocation.
+
+As it turns out, there's no requirement for pageblocks to be so large,
+so the pageblock order can simply be reduced to ease the scheduling
+delays and zone lock contention. PAGE_ALLOC_COSTLY_ORDER is used as a
+reasonable setting to ensure non-costly page allocation requests can
+still be serviced without always needing to free up more than one
+pageblock's worth of pages at a time.
+
+This has a noticeable effect on overall system latency when memory
+pressure is elevated. The various mm functions which operate on
+pageblocks no longer appear in the preemptoff tracer, where previously
+they would spend up to 100 ms on a mobile arm64 CPU processing a
+pageblock with preemption disabled and the zone lock held.
+
+Signed-off-by: Sultan Alsawaf <sultan@kerneltoast.com>
+---
+ include/linux/pageblock-flags.h | 4 ++++
+ init/Kconfig                    | 1 +
+ 2 files changed, 5 insertions(+)
+
+diff --git a/include/linux/pageblock-flags.h b/include/linux/pageblock-flags.h
+index e83c4c09504173..a029ac2e355405 100644
+--- a/include/linux/pageblock-flags.h
++++ b/include/linux/pageblock-flags.h
+@@ -48,7 +48,11 @@ extern unsigned int pageblock_order;
+ #else /* CONFIG_HUGETLB_PAGE */
+ 
+ /* If huge pages are not used, group by MAX_ORDER_NR_PAGES */
++#ifdef CONFIG_ZEN_INTERACTIVE
++#define pageblock_order		PAGE_ALLOC_COSTLY_ORDER
++#else
+ #define pageblock_order		MAX_ORDER
++#endif
+ 
+ #endif /* CONFIG_HUGETLB_PAGE */
+ 
+diff --git a/init/Kconfig b/init/Kconfig
+index 7e2d9dcd45eeb7..e1b0df19cab237 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -141,6 +141,7 @@ config ZEN_INTERACTIVE
+ 	    Compact unevictable............:   yes  ->   no
+ 	    Compaction proactiveness.......:  20    ->   0
+ 	    Watermark boost factor.........:   1.5  ->   0
++	    Pageblock order................:  10    ->   3
+ 
+ 	  --- EEVDF CPU Scheduler --------------------------------
+ 
+From 966ceff868923fefccaef09a60e9f097a0c4236d Mon Sep 17 00:00:00 2001
+From: Steven Barrett <steven@liquorix.net>
+Date: Sat, 21 May 2022 15:15:09 -0500
+Subject: [PATCH] ZEN: INTERACTIVE: dm-crypt: Disable workqueues for crypto ops
+
+Queueing in dm-crypt for crypto operations reduces performance on modern
+systems.  As discussed in an article from Cloudflare, they discovered
+that queuing was introduced because the crypto subsystem used to be
+synchronous.  Since it's now asynchronous, we get double queueing when
+using the subsystem through dm-crypt.  This is obviously undesirable and
+reduces throughput and increases latency.
+
+Disable queueing when using our Zen Interactive configuration.
+
+Fixes: https://github.com/zen-kernel/zen-kernel/issues/282
+---
+ drivers/md/dm-crypt.c | 5 +++++
+ init/Kconfig          | 1 +
+ 2 files changed, 6 insertions(+)
+
+diff --git a/drivers/md/dm-crypt.c b/drivers/md/dm-crypt.c
+index 5315fd261c23b7..dafd67fa294a42 100644
+--- a/drivers/md/dm-crypt.c
++++ b/drivers/md/dm-crypt.c
+@@ -3240,6 +3240,11 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
+ 			goto bad;
+ 	}
+ 
++#ifdef CONFIG_ZEN_INTERACTIVE
++	set_bit(DM_CRYPT_NO_READ_WORKQUEUE, &cc->flags);
++	set_bit(DM_CRYPT_NO_WRITE_WORKQUEUE, &cc->flags);
++#endif
++
+ 	ret = crypt_ctr_cipher(ti, argv[0], argv[1]);
+ 	if (ret < 0)
+ 		goto bad;
+diff --git a/init/Kconfig b/init/Kconfig
+index e1b0df19cab237..c79f8bfcbffcb8 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -133,6 +133,7 @@ config ZEN_INTERACTIVE
+ 
+ 	    Default scheduler for SQ..: mq-deadline ->   bfq
+ 	    Default scheduler for MQ..:        none ->   kyber
++	    DM-Crypt workqueues.......:        yes  ->   no
+ 
+ 	  --- Virtual Memory Subsystem ---------------------------
+ 
+From c1ee9b8be367026cb13c8202e9297ea0de6b498d Mon Sep 17 00:00:00 2001
+From: Steven Barrett <steven@liquorix.net>
+Date: Mon, 5 Sep 2022 11:35:20 -0500
+Subject: [PATCH] ZEN: INTERACTIVE: mm/swap: Disable swap-in readahead
+
+Per an [issue][1] on the chromium project, swap-in readahead causes more
+jank than not.  This might be caused by poor optimization on the
+swapping code, or the fact under memory pressure, we're pulling in pages
+we don't need, causing more swapping.
+
+Either way, this is mainline/upstream to Chromium, and ChromeOS
+developers care a lot about system responsiveness. Lets implement the
+same change so Zen Kernel users benefit.
+
+[1]: https://bugs.chromium.org/p/chromium/issues/detail?id=263561
+---
+ init/Kconfig | 1 +
+ mm/swap.c    | 5 +++++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index c79f8bfcbffcb8..83fa33833b0693 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -143,6 +143,7 @@ config ZEN_INTERACTIVE
+ 	    Compaction proactiveness.......:  20    ->   0
+ 	    Watermark boost factor.........:   1.5  ->   0
+ 	    Pageblock order................:  10    ->   3
++	    Swap-in readahead..............:   3    ->   0
+ 
+ 	  --- EEVDF CPU Scheduler --------------------------------
+ 
+diff --git a/mm/swap.c b/mm/swap.c
+index cd8f0150ba3aa8..ed791c2906aa51 100644
+--- a/mm/swap.c
++++ b/mm/swap.c
+@@ -1090,6 +1090,10 @@ void folio_batch_remove_exceptionals(struct folio_batch *fbatch)
+  */
+ void __init swap_setup(void)
+ {
++#ifdef CONFIG_ZEN_INTERACTIVE
++	/* Only swap-in pages requested, avoid readahead */
++	page_cluster = 0;
++#else
+ 	unsigned long megs = totalram_pages() >> (20 - PAGE_SHIFT);
+ 
+ 	/* Use a smaller cluster for small-memory machines */
+@@ -1101,4 +1105,5 @@ void __init swap_setup(void)
+ 	 * Right now other parts of the system means that we
+ 	 * _really_ don't want to cluster much more
+ 	 */
++#endif
+ }
+From 9a3bd63bdee9819618d36dbe52aa1d1544234887 Mon Sep 17 00:00:00 2001
+From: Steven Barrett <steven@liquorix.net>
+Date: Sun, 19 Sep 2021 16:03:36 -0500
+Subject: [PATCH] ZEN: INTERACTIVE: Document PDS/BMQ configuration
+
+---
+ init/Kconfig | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 83fa33833b0693..cb37aa793d316d 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -151,6 +151,11 @@ config ZEN_INTERACTIVE
+ 	    Bandwidth slice size...........:   5    ->   3    ms
+ 	    Task rebalancing threshold.....:  32    ->  64
+ 
++	  --- PDS/BMQ CPU Scheduler ------------------------------
++
++	    Scheduling timeslice...........:   4    ->   2    ms
++	    Yield type.....................:   1    ->   0
++
+ 	  --- CPUFreq Settings -----------------------------------
+ 
+ 	    Ondemand sampling down factor..:   1    ->   5
