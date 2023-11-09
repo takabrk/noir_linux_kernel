@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#November 1,2023
+#November 9,2023
 
 . ./config
 
@@ -12,12 +12,12 @@ do
          ;;
   esac
 done
-#if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
-#    rm -r patches/linux/patch-$VERSIONPOINT
-#fi
-#if  [ -e patches/linux/patch-$VERSIONPOINT.xz ]; then
-#    xz -k -d patches/linux/patch-$VERSIONPOINT.xz
-#fi
+if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
+    rm -r patches/linux/patch-$VERSIONPOINT
+fi
+if  [ -e patches/linux/patch-$VERSIONPOINT.xz ]; then
+    xz -k -d patches/linux/patch-$VERSIONPOINT.xz
+fi
 
 case $e_num in
 #build noir.patch
@@ -26,17 +26,18 @@ case $e_num in
         truncate patches/noir_base/custom_config.patch --size 0
 
 #build custom_config.patch
-#patches/linux/patch-$VERSIONPOINT \
         diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch
-        cat patches/noir_base/noir_base.patch \
+        cat patches/linux/patch-$VERSIONPOINT \
+            patches/noir_base/noir_base.patch \
             patches/noir_base/custom_config.patch \
             patches/other/patch-6.6-rc6-rt10.patch \
-            patches/other/zen.patch \
-            patches/other/zen_option.patch \
+            patches/other/linux-v6.6-zen1.patch \
             patches/other/0001-futex-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-opcode.patch \
             patches/other/0001-winesync-Introduce-the-winesync-driver-and-character.patch \
             patches/other/0006-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-mm-vmscan-vm_swappiness-30-decreases-the-amou.patch \
+            patches/other/0010-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
+            patches/other/0002-clear-patches.patch \
             > noir.patch
             ;;
     vanilla)  
