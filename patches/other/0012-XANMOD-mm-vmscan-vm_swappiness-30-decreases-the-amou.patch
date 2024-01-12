@@ -1,7 +1,7 @@
-From 722a5ed370b68a96085e15ad305125d99e9c5cf3 Mon Sep 17 00:00:00 2001
+From e6dc708b2a1cc09148621661be1d42da880e05e2 Mon Sep 17 00:00:00 2001
 From: Alexandre Frade <admfrade@gmail.com>
-Date: Mon, 29 Jan 2018 17:31:25 +0000
-Subject: [PATCH 07/13] XANMOD: mm/vmscan: vm_swappiness = 30 decreases the
+Date: Sun, 7 Jan 2024 19:30:54 -0300
+Subject: [PATCH 12/18] XANMOD: mm/vmscan: vm_swappiness = 30 decreases the
  amount of swapping
 
 Signed-off-by: Alexandre Frade <admfrade@gmail.com>
@@ -11,18 +11,18 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mm/vmscan.c b/mm/vmscan.c
-index 6f13394b1..0d3b90fbd 100644
+index bba207f41b14..508498ffba05 100644
 --- a/mm/vmscan.c
 +++ b/mm/vmscan.c
-@@ -186,7 +186,7 @@ struct scan_control {
+@@ -185,7 +185,7 @@ struct scan_control {
  /*
   * From 0 .. 200.  Higher means more swappy.
   */
 -int vm_swappiness = 60;
 +int vm_swappiness = 30;
  
- LIST_HEAD(shrinker_list);
- DECLARE_RWSEM(shrinker_rwsem);
+ #ifdef CONFIG_MEMCG
+ 
 -- 
-2.42.0
+2.39.2
 

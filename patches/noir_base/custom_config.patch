@@ -1,12 +1,12 @@
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2023-12-27 09:33:39.452961456 +0900
-+++ patches/noir_base/.config	2023-11-09 10:00:43.400203000 +0900
-@@ -0,0 +1,10990 @@
+--- /dev/null	2024-01-12 08:52:41.665065873 +0900
++++ patches/noir_base/.config	2023-12-27 12:21:18.113876000 +0900
+@@ -0,0 +1,10987 @@
 +#
 +# Automatically generated file; DO NOT EDIT.
-+# Linux/x86 6.6.1-noir Kernel Configuration
++# Linux/x86 6.6.8-noir Kernel Configuration
 +#
 +CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0"
 +CONFIG_CC_IS_GCC=y
@@ -3484,7 +3484,6 @@ index 000000000000..dcbcaa389249
 +CONFIG_STMMAC_PLATFORM=m
 +CONFIG_DWMAC_GENERIC=m
 +CONFIG_DWMAC_INTEL=m
-+# CONFIG_DWMAC_LOONGSON is not set
 +CONFIG_STMMAC_PCI=m
 +CONFIG_NET_VENDOR_SUN=y
 +CONFIG_HAPPYMEAL=m
@@ -10769,8 +10768,6 @@ index 000000000000..dcbcaa389249
 +# CONFIG_DEBUG_NOTIFIERS is not set
 +# CONFIG_DEBUG_MAPLE_TREE is not set
 +# end of Debug kernel data structures
-+
-+# CONFIG_DEBUG_CREDENTIALS is not set
 +
 +#
 +# RCU Debugging
