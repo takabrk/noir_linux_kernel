@@ -56,11 +56,11 @@ $ ./build.sh -e install_kernel
 - Zen Interactive Tune support
 - futex support
 - WineSync support
-- Clear Linux support
+- Clear bcachefs support
 
 [patches]
 https://www.kernel.org/
-https://github.com/zen-kernel/zen-kernel/tree/6.5/master
+https://github.com/zen-kernel/zen-kernel
 https://github.com/sirlucjan/kernel-patches 
 https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/
 https://github.com/Frogging-Family/linux-tkg
