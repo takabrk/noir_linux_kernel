@@ -56,7 +56,7 @@ $ ./build.sh -e install_kernel
 - Zen Interactive Tune support
 - futex support
 - WineSync support
-- Clear bcachefs support
+- bcachefs support
 
 [patches]
 https://www.kernel.org/
