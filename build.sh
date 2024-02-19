@@ -55,7 +55,9 @@ case $e_num in
            make menuconfig
            #make xconfig
            sudo make clean
-           time sudo make -j3 bindeb-pkg
+           time sudo make -j3
+           time sudo make modules -j3
+           sudo make bindeb-pkg
            ;;
     install_kernel)
            cd linux-$VERSIONPOINT-$NOIR_VERSION
