@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-February 19,2024
+March 2,2024
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -17,25 +17,23 @@ https://github.com/takabrk/noir_linux_kernel/releases
 
 $ sudo dpkg -i *.deb
 
-システムのパフォーマンスとPulseAudioの音質を向上させたい場合は、以下のコマンドを使います。
-$ ./performanceup.sh
 
 カスタムカーネルには、様々なパッチを適用しています。
 noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
-◇Noir Linux Kernelパッチの組み立て
+1.Noir Linux Kernelパッチの組み立て
 $ ./build.sh -e patch
 
-◇バニラカーネルのソースコード取得と解凍
+2.バニラカーネルのソースコード取得と解凍
 $ ./build.sh -e vanilla
 
-◇パッチ当て
+3.パッチ当て
 $ ./build.sh -e source
 
-◇前述を行った後にカスタムカーネルのビルド
+4.前述を行った後にカスタムカーネルのビルド
 $ ./build.sh -e build
 
-◇ビルドしたカスタムカーネルのインストール
+5.ビルドしたカスタムカーネルのインストール
 $ ./build.sh -e install_kernel
 
 - Built on the GCC 12.1.0
@@ -75,3 +73,6 @@ I/Oスケジューラーを変更するには、以下のコマンドを実行�
 # echo 変更したいスケジューラー > /sys/block/sda/queue/scheduler
 
 設定を永続化するには、起動時に「elevator=変更したいスケジューラー」を付けます。
+
+システムのパフォーマンスとPulseAudioの音質を向上させたい場合は、以下のコマンドを使います。
+$ ./performanceup.sh

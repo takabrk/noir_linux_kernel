@@ -1,0 +1,34 @@
+Format: 1.8
+Date: Sat, 02 Mar 2024 11:03:09 +0900
+Source: linux-upstream
+Binary: linux-headers-6.7.7-noir-v2-rt5 linux-image-6.7.7-noir-v2-rt5 linux-libc-dev
+Built-For-Profiles: noudeb
+Architecture: amd64
+Version: 6.7.7-noir-v2-2
+Distribution: jammy
+Urgency: low
+Maintainer: root <root@valkyrie-desktop>
+Changed-By: root <root@valkyrie-desktop>
+Description:
+ linux-headers-6.7.7-noir-v2-rt5 - Linux kernel headers for 6.7.7-noir-v2-rt5 on amd64
+ linux-image-6.7.7-noir-v2-rt5 - Linux kernel, version 6.7.7-noir-v2-rt5
+ linux-libc-dev - Linux support headers for userspace development
+Changes:
+ linux-upstream (6.7.7-noir-v2-2) jammy; urgency=low
+ .
+   * Custom built Linux kernel.
+Checksums-Sha1:
+ 17d4f1a0d00a43236b6e5da93a29dfd6c930c017 9689262 linux-headers-6.7.7-noir-v2-rt5_6.7.7-noir-v2-2_amd64.deb
+ d3c7513009ab5ae1e5c8f039c969d2c2caed22b3 70521350 linux-image-6.7.7-noir-v2-rt5_6.7.7-noir-v2-2_amd64.deb
+ 0ddd226e364840b9630643259e60dd66c93b3080 1372008 linux-libc-dev_6.7.7-noir-v2-2_amd64.deb
+ ceef06577c197a6af98d846f426f4a012b25c7e1 7426 linux-upstream_6.7.7-noir-v2-2_amd64.buildinfo
+Checksums-Sha256:
+ 98e9fb06f3b88859d11f2760a8fd4afad6bf7bc96347bc945727190bc858023f 9689262 linux-headers-6.7.7-noir-v2-rt5_6.7.7-noir-v2-2_amd64.deb
+ 6e9ccaa4bc6101b6b266172fd92a50bd710194def84a8b7d62e8de6870a5ae3c 70521350 linux-image-6.7.7-noir-v2-rt5_6.7.7-noir-v2-2_amd64.deb
+ 63a9b44ed4dbdc58bf0db94d125f0c8eee1110ab2e011641c1a495fb7cf1829e 1372008 linux-libc-dev_6.7.7-noir-v2-2_amd64.deb
+ 40af73453b5539134c8c8f734526bb34a4298b5fa0069009db6cbd2f845be7e7 7426 linux-upstream_6.7.7-noir-v2-2_amd64.buildinfo
+Files:
+ a3184e94ce36b696d21193948b7f689c 9689262 kernel optional linux-headers-6.7.7-noir-v2-rt5_6.7.7-noir-v2-2_amd64.deb
+ 1bf39ac7a1b4a9d77aae78ad2ac4efc5 70521350 kernel optional linux-image-6.7.7-noir-v2-rt5_6.7.7-noir-v2-2_amd64.deb
+ 42cff6c8aeb430d5122fda535c7b382f 1372008 devel optional linux-libc-dev_6.7.7-noir-v2-2_amd64.deb
+ 006d985951fab7bfc20e9b027f3d4d14 7426 kernel optional linux-upstream_6.7.7-noir-v2-2_amd64.buildinfo
