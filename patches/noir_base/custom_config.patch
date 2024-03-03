@@ -1,7 +1,7 @@
 diff --git a/.config b/.config
 new file mode 100644
 index 000000000000..dcbcaa389249
---- /dev/null	2024-03-02 08:11:39.736085610 +0900
+--- /dev/null	2024-03-02 22:20:19.751139059 +0900
 +++ patches/noir_base/.config	2024-02-29 00:02:33.034937000 +0900
 @@ -0,0 +1,11013 @@
 +#
