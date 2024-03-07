@@ -1,0 +1,34 @@
+Format: 1.8
+Date: Thu, 07 Mar 2024 10:46:52 +0900
+Source: linux-upstream
+Binary: linux-headers-6.7.9-noir-rt5 linux-image-6.7.9-noir-rt5 linux-libc-dev
+Built-For-Profiles: noudeb
+Architecture: amd64
+Version: 6.7.9-noir-2
+Distribution: jammy
+Urgency: low
+Maintainer: root <root@valkyrie-desktop>
+Changed-By: root <root@valkyrie-desktop>
+Description:
+ linux-headers-6.7.9-noir-rt5 - Linux kernel headers for 6.7.9-noir-rt5 on amd64
+ linux-image-6.7.9-noir-rt5 - Linux kernel, version 6.7.9-noir-rt5
+ linux-libc-dev - Linux support headers for userspace development
+Changes:
+ linux-upstream (6.7.9-noir-2) jammy; urgency=low
+ .
+   * Custom built Linux kernel.
+Checksums-Sha1:
+ 8a4654693608b2b6129b2deea3ea454725bafac0 9693510 linux-headers-6.7.9-noir-rt5_6.7.9-noir-2_amd64.deb
+ 4aa3517737cac69eb75aefd5d1c3a11eb1016548 70554902 linux-image-6.7.9-noir-rt5_6.7.9-noir-2_amd64.deb
+ 21f58a054518fa826e732792374f4fd9ef7f439c 1372224 linux-libc-dev_6.7.9-noir-2_amd64.deb
+ 11e44a8c83e157c18bf4359c4a8e15997d575e80 7372 linux-upstream_6.7.9-noir-2_amd64.buildinfo
+Checksums-Sha256:
+ 87c47dd8d6fc22d4b6949a22028a0c5e8784633a73754bda1f682cbe07ca5222 9693510 linux-headers-6.7.9-noir-rt5_6.7.9-noir-2_amd64.deb
+ cd8e58a7aa28d0db49c604850e1af349b365afe0628aca6619d9d60b26f0eda4 70554902 linux-image-6.7.9-noir-rt5_6.7.9-noir-2_amd64.deb
+ 85f681b65db49c46827b4493364e19ffd40387a89d53d4d90843ea2995c66724 1372224 linux-libc-dev_6.7.9-noir-2_amd64.deb
+ 6d29827b3627602ed93eb2151fef8bd1ed5b890b02ecdc6ff7a2a874513543fe 7372 linux-upstream_6.7.9-noir-2_amd64.buildinfo
+Files:
+ 730569023b87fbfbbf59e0424fd1b085 9693510 kernel optional linux-headers-6.7.9-noir-rt5_6.7.9-noir-2_amd64.deb
+ 1f29d16edc2895c97c2c3881d573901c 70554902 kernel optional linux-image-6.7.9-noir-rt5_6.7.9-noir-2_amd64.deb
+ a7cd71bf9bc72f03d22530ec7f446f60 1372224 devel optional linux-libc-dev_6.7.9-noir-2_amd64.deb
+ 6141e786a30857727817da2851868891 7372 kernel optional linux-upstream_6.7.9-noir-2_amd64.buildinfo
