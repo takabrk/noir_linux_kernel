@@ -1,0 +1,3 @@
+truncate noir.patch --size 0
+truncate patches/noir_base/custom_config.patch --size 0
+diff -Naur /dev/null patches/noir_base/.config | sed 1i"diff --git a/.config b/.config\nnew file mode 100644\nindex 000000000000..dcbcaa389249" > patches/noir_base/custom_config.patch

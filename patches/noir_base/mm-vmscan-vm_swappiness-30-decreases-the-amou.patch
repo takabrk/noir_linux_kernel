@@ -1,0 +1,16 @@
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+index 4255619a1a31..709a91e0f06b 100644
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -185,7 +185,7 @@ struct scan_control {
+ /*
+  * From 0 .. 200.  Higher means more swappy.
+  */
+-int vm_swappiness = 60;
++int vm_swappiness = 30;
+ 
+ #ifdef CONFIG_MEMCG
+ 
+-- 
+2.39.2
+
