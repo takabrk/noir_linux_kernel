@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-April 11,2024
+May 15,2024
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -40,21 +40,22 @@ $ ./build.sh -e install_kernel
 - CPU scheduler -> EEVDF
 - Default I/O scheduler -> BFQ
 - Processor family -> Generic X86_64
+- Preemption Model -> Fully Preemptible Kernel (Real Time) 
+- CPU Timer frequency -> 500Hz
 - Kernel Compression mode -> zstd
 - RCU boost delay -> 339
 - Timer tick handling -> Full dynticks system
 - Default CPUFreq Governor -> schedutil
 - CPU idle governor -> TEO
-- futex support
 - Core scheduling for SMT ON
 - AMD p-state support
-- Preemption Model -> Full Preemptible Kernel(Real Time)
-- CPU Timer frequency -> 500Hz
-- OpenRGB support
-- Zen Interactive Tune support
 - futex support
-- WineSync support
+- BBR3 support
 - bcachefs support
+- Clear Linux support
+
+[Option]
+- Zen Interactive Tune support
 
 [patches]
 https://www.kernel.org/

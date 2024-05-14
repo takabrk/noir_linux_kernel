@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#April 11,2024
+#May 15,2024
 
 . ./config
 
@@ -21,19 +21,25 @@ fi
 
 case $e_num in
 #build noir.patch
-    patch)
 #build custom_config.patch
+    patch)
+        truncate noir.patch --size 0
+        truncate patches/noir_base/custom_config.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
             cat patches/linux/patch-$VERSIONPOINT > noir.patch
-        fi
+        fi     
         cat patches/noir_base/noir_base.patch \
-            patches/other/linux-v6.8-zen1.patch \
-            patches/other/patch-6.8.2-rt11.patch \
-            patches/other/0001-amd-pstate-patches.patch \
-            patches/other/0001-futex-6.8-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
-            patches/other/0007-v6.8-winesync.patch \
-            patches/other/0001-bcachefs-6.8-merge-changes-from-dev-tree.patch \
+            patches/other/0001-amd-6.9-merge-changes-from-dev-tree.patch \
+            patches/other/0001-bcachefs-6.9-merge-changes-from-dev-tree.patch \
+            patches/other/0001-futex-6.9-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
+            patches/other/0001-tcp-bbr3-initial-import.patch \
+            patches/other/0002-clear-patches.patch \
             >> noir.patch
+            if [ -e patches/other/patch-6.9-rc6-rt4.patch ]; then
+                cat patches/other/patch-6.9-rc6-rt4.patch >> noir.patch
+            elif [ -e patches/other/linux-v6.9-zen1.patch ]; then
+                cat patches/other/linux-v6.9-zen1.patch >> noir.patch
+            fi
            ;;
     vanilla)  
             wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$VERSIONBASE.tar.xz
