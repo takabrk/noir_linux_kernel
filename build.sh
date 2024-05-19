@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#May 15,2024
+#May 19,2024
 
 . ./config
 
@@ -12,6 +12,7 @@ do
          ;;
   esac
 done
+
 if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
     rm -r patches/linux/patch-$VERSIONPOINT
 fi
@@ -21,12 +22,10 @@ fi
 
 case $e_num in
 #build noir.patch
-#build custom_config.patch
     patch)
         truncate noir.patch --size 0
-        truncate patches/noir_base/custom_config.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
-            cat patches/linux/patch-$VERSIONPOINT > noir.patch
+            cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         fi     
         cat patches/noir_base/noir_base.patch \
             patches/other/0001-amd-6.9-merge-changes-from-dev-tree.patch \
@@ -34,11 +33,11 @@ case $e_num in
             patches/other/0001-futex-6.9-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
             patches/other/0002-clear-patches.patch \
+            patches/other/0006-add-acs-overrides_iommu.patch \
+            patches/other/0014-OpenRGB.patch \
             >> noir.patch
             if [ -e patches/other/patch-6.9-rc6-rt4.patch ]; then
                 cat patches/other/patch-6.9-rc6-rt4.patch >> noir.patch
-            elif [ -e patches/other/linux-v6.9-zen1.patch ]; then
-                cat patches/other/linux-v6.9-zen1.patch >> noir.patch
             fi
            ;;
     vanilla)  
@@ -52,12 +51,14 @@ case $e_num in
            mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
            ;;
     build)
+           JOBS=$(grep processor /proc/cpuinfo | wc -l)
+           echo "Threads : $JOBS"
            cd linux-$VERSIONPOINT-$NOIR_VERSION
            make menuconfig
            #make xconfig
            sudo make clean
-           time sudo make -j3
-           time sudo make modules -j3
+           time sudo make -j$JOBS
+           time sudo make modules -j$JOBS
            sudo make bindeb-pkg
            ;;
     install_kernel)
