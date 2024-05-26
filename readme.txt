@@ -48,7 +48,6 @@ $ ./build.sh -e install_kernel
 - Default CPUFreq Governor -> schedutil
 - CPU idle governor -> TEO
 - Core scheduling for SMT ON
-- AMD p-state support
 - futex support
 - BBR3 support
 - bcachefs support
