@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#May 19,2024
+#May 27,2024
 
 . ./config
 
@@ -28,7 +28,6 @@ case $e_num in
             cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         fi     
         cat patches/noir_base/noir_base.patch \
-            patches/other/0001-amd-6.9-merge-changes-from-dev-tree.patch \
             patches/other/0001-bcachefs-6.9-merge-changes-from-dev-tree.patch \
             patches/other/0001-futex-6.9-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
@@ -36,8 +35,8 @@ case $e_num in
             patches/other/0006-add-acs-overrides_iommu.patch \
             patches/other/0014-OpenRGB.patch \
             >> noir.patch
-            if [ -e patches/other/patch-6.9-rc6-rt4.patch ]; then
-                cat patches/other/patch-6.9-rc6-rt4.patch >> noir.patch
+            if [ -e patches/other/patch-6.9-rt5.patch ]; then
+                cat patches/other/patch-6.9-rt5.patch >> noir.patch
             fi
            ;;
     vanilla)  
@@ -69,5 +68,8 @@ case $e_num in
            sudo update-grub
            sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION
            rm -r linux-$VERSIONBASE.tar.xz
+           if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
+               rm -r patches/linux/patch-$VERSIONPOINT
+           fi
            ;;
 esac
