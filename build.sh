@@ -34,6 +34,8 @@ case $e_num in
             patches/other/0002-clear-patches.patch \
             patches/other/0006-add-acs-overrides_iommu.patch \
             patches/other/0014-OpenRGB.patch \
+            Add_grayskys_more-uarches.patch \
+            Add_VHBA_driver.patch \
             >> noir.patch
             if [ -e patches/other/patch-6.9-rt5.patch ]; then
                 cat patches/other/patch-6.9-rt5.patch >> noir.patch

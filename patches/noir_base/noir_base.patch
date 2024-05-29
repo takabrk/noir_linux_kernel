@@ -62,6 +62,13 @@ index 38ef6d06888e..0ff51d4d265c 100644
 +	 on desktops with great smoothness without increasing CPU power
 +	 consumption and sacrificing the battery life on laptops.
 +
++	config HZ_700
++		bool "700 HZ"
++	help
++	 700 Hz is a balanced timer frequency. Provides fast interactivity
++	 on desktops with great smoothness without increasing CPU power
++	 consumption and sacrificing the battery life on laptops.
++
  	config HZ_1000
  		bool "1000 HZ"
  	help
@@ -70,6 +77,7 @@ index 38ef6d06888e..0ff51d4d265c 100644
  	default 250 if HZ_250
  	default 300 if HZ_300
 +	default 500 if HZ_500
++	default 500 if HZ_700
  	default 1000 if HZ_1000
  
  config SCHED_HRTICK
