@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#May 27,2024
+#May 30,2024
 
 . ./config
 
@@ -36,6 +36,10 @@ case $e_num in
             patches/other/0014-OpenRGB.patch \
             patches/other/Add_grayskys_more-uarches.patch \
             patches/other/Add_VHBA_driver.patch \
+            patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
+            patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
+            patches/other/0009-XANMOD-block-set-rq_affinity-to-force-full-multithre.patch \
+            patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             >> noir.patch
             if [ -e patches/other/patch-6.9-rt5.patch ]; then
                 cat patches/other/patch-6.9-rt5.patch >> noir.patch
