@@ -10,7 +10,7 @@ index 51540b291738..ab8c480660a6 100644
  PHONY := __all
  __all:
  
-+NRVERSION = -noir-v2
++NRVERSION = -noir
 +NRNAME =  With Extra patchsets
 +EXTRAVERSION := $(EXTRAVERSION)$(NRVERSION)
 +
@@ -55,17 +55,10 @@ index 38ef6d06888e..0ff51d4d265c 100644
  	 on SMP and NUMA systems and exactly dividing by both PAL and
  	 NTSC frame rates for video and multimedia work.
  
-+	config HZ_500
-+		bool "500 HZ"
-+	help
-+	 500 Hz is a balanced timer frequency. Provides fast interactivity
-+	 on desktops with great smoothness without increasing CPU power
-+	 consumption and sacrificing the battery life on laptops.
-+
 +	config HZ_700
 +		bool "700 HZ"
 +	help
-+	 700 Hz is a balanced timer frequency. Provides fast interactivity
++	 500 Hz is a balanced timer frequency. Provides fast interactivity
 +	 on desktops with great smoothness without increasing CPU power
 +	 consumption and sacrificing the battery life on laptops.
 +
@@ -76,8 +69,7 @@ index 38ef6d06888e..0ff51d4d265c 100644
  	default 100 if HZ_100
  	default 250 if HZ_250
  	default 300 if HZ_300
-+	default 500 if HZ_500
-+	default 500 if HZ_700
++	default 700 if HZ_700
  	default 1000 if HZ_1000
  
  config SCHED_HRTICK
