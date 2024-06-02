@@ -27,9 +27,16 @@ case $e_num in
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
             cat patches/linux/patch-$VERSIONPOINT >> noir.patch
-        fi     
-        cat patches/noir_base/noir_base.patch \
-            patches/other/0001-bcachefs-6.9-merge-changes-from-dev-tree.patch \
+        fi
+        case $f_num in
+            rt)
+                cat patches/noir_base/noir_base.patch >> noir.patch
+            ;;
+            xenomai)
+                cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
+            ;;
+        esac
+        cat patches/other/0001-bcachefs-6.9-merge-changes-from-dev-tree.patch \
             patches/other/0001-futex-6.9-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
             patches/other/0002-clear-patches.patch \
