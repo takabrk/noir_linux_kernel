@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-June 1,2024
+June 2,2024
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -19,23 +19,30 @@ $ sudo dpkg -i *.deb
 
 
 カスタムカーネルには、様々なパッチを適用しています。
-noir.patchというファイルは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
+noir_rt.patch、noir_xenomai.patchは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
+PREEMPT_RT版以外に、オプションでXenomai版をビルド出来ます。
 
 1.Noir Linux Kernelパッチの組み立て
-$ ./build.sh -e patch
+$ ./build.sh -e patch -f rt (PREEMPT_RT版)
+$ ./build.sh -e patch -f xenomai (Xenomai版)
 
 2.バニラカーネルのソースコード取得と解凍
-$ ./build.sh -e vanilla
+$ ./build.sh -e vanilla -f rt (PREEMPT_RT版)
+$ ./build.sh -e vanilla -f xenomai (Xenomai版)
 
 3.パッチ当て
-$ ./build.sh -e source
+$ ./build.sh -e source -f rt (PREEMPT_RT版)
+$ ./build.sh -e source -f xenomai (Xenomai版)
 
 4.前述を行った後にカスタムカーネルのビルド
-$ ./build.sh -e build
+$ ./build.sh -e build -f rt (PREEMPT_RT版)
+$ ./build.sh -e build -f xenomai (Xenomai版)
 
-5.ビルドしたカスタムカーネルのインストール
-$ ./build.sh -e install_kernel
+5.カーネルのインストール
+$ ./build.sh -e install_kernel -f rt (PREEMPT_RT版)
+$ ./build.sh -e install_kernel -f xenomai (Xenomai版)
 
+[PREEMPT_RT版スペック]
 - Built on the GCC 12.1.0
 - CPU scheduler -> EEVDF
 - Default I/O scheduler -> MQ-deadline

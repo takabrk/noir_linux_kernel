@@ -1,15 +1,16 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#May 30,2024
+#June 2,2024
 
 . ./config
 
-while getopts e: OPT
+while getopts e:f: OPT
 do
   case $OPT in
       e) e_num=$OPTARG
          ;;
+      f) f_num=$OPTARG
   esac
 done
 
@@ -21,7 +22,7 @@ if  [ -e patches/linux/patch-$VERSIONPOINT.xz ]; then
 fi
 
 case $e_num in
-#build noir.patch
+#build noir.patch,noir_rt.patch,noir_xenomai.patch
     patch)
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -41,41 +42,98 @@ case $e_num in
             patches/other/0009-XANMOD-block-set-rq_affinity-to-force-full-multithre.patch \
             patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             >> noir.patch
-            if [ -e patches/other/patch-6.9-rt5.patch ]; then
-                cat patches/other/patch-6.9-rt5.patch >> noir.patch
-            fi
+            case $f_num in
+                rt)
+                    cp -a noir.patch noir_rt.patch
+                    if [ -e patches/other/patch-6.9-rt5.patch ]; then
+                        cat patches/other/patch-6.9-rt5.patch >> noir_rt.patch
+                    fi 
+                ;;
+                xenomai)
+                    cp -a noir.patch noir_xenomai.patch
+                ;;
+            esac
            ;;
-    vanilla)  
-            wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$VERSIONBASE.tar.xz
-           ;;
+    vanilla)
+            case $f_num in
+               rt)
+                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$VERSIONBASE.tar.xz
+                   ;;
+               xenomai)
+                   wget https://source.denx.de/Xenomai/xenomai4/linux-evl/-/archive/v6.9-evl-rebase/linux-$VERSIONXENOMAI.tar.gz
+                   ;;
+            esac 
+            ;;
     source)
-           tar -Jxvf linux-$VERSIONBASE.tar.xz
-           cd linux-$VERSIONBASE
-           patch -p1 < ../noir.patch
-           cd ../
-           mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
-           ;;
+           case $f_num in
+               rt)
+                   tar -Jxvf linux-$VERSIONBASE.tar.xz
+                   cd linux-$VERSIONBASE
+                   patch -p1 < ../noir_rt.patch
+                   cd ../
+                   mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
+                   ;;
+               xenomai)
+                   tar -zxvf linux-$VERSIONXENOMAI.tar.gz
+                   cd linux-$VERSIONXENOMAI
+                   patch -p1 < ../noir_xenomai.patch
+                   cd ../
+                   mv linux-$VERSIONXENOMAI linux-$VERSIONPOINT-$NOIR_VERSION-xenomai
+                   ;;
+           esac
+           ;;                
     build)
-           JOBS=$(grep processor /proc/cpuinfo | wc -l)
-           echo "Threads : $JOBS"
-           cd linux-$VERSIONPOINT-$NOIR_VERSION
-           make menuconfig
-           #make xconfig
-           sudo make clean
-           time sudo make -j$JOBS
-           time sudo make modules -j$JOBS
-           sudo make bindeb-pkg
+           case $f_num in
+               rt)
+                   JOBS=$(grep processor /proc/cpuinfo | wc -l)
+                   echo "Threads : $JOBS"
+                   cd linux-$VERSIONPOINT-$NOIR_VERSION
+                   make menuconfig
+                   #make xconfig
+                   sudo make clean
+                   time sudo make -j$JOBS
+                   time sudo make modules -j$JOBS
+                   sudo make bindeb-pkg
+                   ;;
+               xenomai)
+                   JOBS=$(grep processor /proc/cpuinfo | wc -l)
+                   echo "Threads : $JOBS"
+                   cd linux-$VERSIONPOINT-$NOIR_VERSION-xenomai
+                   make menuconfig
+                   #make xconfig
+                   sudo make clean
+                   time sudo make -j$JOBS
+                   time sudo make modules -j$JOBS
+                   sudo make bindeb-pkg
+                   ;;     
+           esac
            ;;
     install_kernel)
-           cd linux-$VERSIONPOINT-$NOIR_VERSION
-           sudo make clean
-           cd ../
-           sudo dpkg -i *.deb
-           sudo update-grub
-           sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION
-           rm -r linux-$VERSIONBASE.tar.xz
-           if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
-               rm -r patches/linux/patch-$VERSIONPOINT
-           fi
-           ;;
+           case $f_num in
+               rt)
+                   cd linux-$VERSIONPOINT-$NOIR_VERSION
+                   sudo make clean
+                   cd ../
+                   sudo dpkg -i *.deb
+                   sudo update-grub
+                   sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION
+                   rm -r linux-$VERSIONBASE.tar.xz
+                   if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
+                       rm -r patches/linux/patch-$VERSIONPOINT
+                   fi
+                   ;;
+               xenomai)
+                   cd linux-$VERSIONPOINT-$NOIR_VERSION-xenomai
+                   sudo make clean
+                   cd ../
+                   sudo dpkg -i *.deb
+                   sudo update-grub
+                   sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION-xenomai
+                   rm -r linux-$VERSIONXENOMAI.tar.gz
+                   if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
+                       rm -r patches/linux/patch-$VERSIONPOINT
+                   fi
+                   ;;
+           esac
+           ;;                 
 esac
