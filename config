@@ -1,7 +1,7 @@
 #/usr/bin/bash
 
 NOIR_VERSION="noir"
-VERSIONBASE="6.9"
-VERSIONPOINT="6.9.9"
+VERSIONBASE="6.10"
+VERSIONPOINT="6.10"
 VERSIONXENOMAI="evl-v6.9-evl-rebase"
 

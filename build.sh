@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#June 2,2024
+#June 18,2024
 
 . ./config
 
@@ -36,14 +36,10 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-        cat patches/other/0001-bcachefs-6.9-merge-changes-from-dev-tree.patch \
-            patches/other/0001-futex-6.9-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
+        cat patches/other/0001-bcachefs-6.10-merge-changes-from-dev-tree.patch \
+            patches/other/0001-futex-6.10-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
             patches/other/0002-clear-patches.patch \
-            patches/other/0006-add-acs-overrides_iommu.patch \
-            patches/other/0014-OpenRGB.patch \
-            patches/other/Add_grayskys_more-uarches.patch \
-            patches/other/Add_VHBA_driver.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
             patches/other/0009-XANMOD-block-set-rq_affinity-to-force-full-multithre.patch \
@@ -52,8 +48,8 @@ case $e_num in
             case $f_num in
                 rt)
                     cp -a noir.patch noir_rt.patch
-                    if [ -e patches/other/patch-6.9-rt5.patch ]; then
-                        cat patches/other/patch-6.9-rt5.patch >> noir_rt.patch
+                    if [ -e patches/other/patch-6.10-rc6-rt11.patch ]; then
+                        cat patches/other/patch-6.10-rc6-rt11.patch >> noir_rt.patch
                     fi 
                 ;;
                 xenomai)
