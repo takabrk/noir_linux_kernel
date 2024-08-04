@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#June 26,2024
+#August 5,2024
 
 . ./config
 
@@ -48,8 +48,8 @@ case $e_num in
             case $f_num in
                 rt)
                     cp -a noir.patch noir_rt.patch
-                    if [ -e patches/other/patch-6.10-rc6-rt11.patch ]; then
-                        cat patches/other/patch-6.10-rc6-rt11.patch >> noir_rt.patch
+                    if [ -e patches/other/patch-6.10.2-rt14.patch ]; then
+                        cat patches/other/patch-6.10.2-rt14.patch >> noir_rt.patch
                     fi 
                 ;;
                 xenomai)
