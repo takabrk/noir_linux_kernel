@@ -22,7 +22,7 @@ if  [ -e patches/linux/patch-$VERSIONPOINT.xz ]; then
 fi
 
 case $e_num in
-#build noir.patch,noir_rt.patch,noir_xenomai.patch
+#build noir_rt.patch,noir_xenomai.patch
     patch)
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -47,13 +47,13 @@ case $e_num in
             >> noir.patch
             case $f_num in
                 rt)
-                    cp -a noir.patch noir_rt.patch
+                    mv noir.patch noir_rt.patch
                     if [ -e patches/other/patch-6.10.2-rt14.patch ]; then
                         cat patches/other/patch-6.10.2-rt14.patch >> noir_rt.patch
                     fi 
                 ;;
                 xenomai)
-                    cp -a noir.patch noir_xenomai.patch
+                    mv noir.patch noir_xenomai.patch
                 ;;
             esac
            ;;
