@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#August 5,2024
+#August 7,2024
 
 . ./config
 
@@ -44,6 +44,9 @@ case $e_num in
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
             patches/other/0009-XANMOD-block-set-rq_affinity-to-force-full-multithre.patch \
             patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
+            patches/other/ACSoverride.patch \
+            patches/other/OpenRGB.patch \
+            patches/other/VHBA.patch \
             >> noir.patch
             case $f_num in
                 rt)
