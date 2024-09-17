@@ -46,10 +46,8 @@ case $e_num in
             patches/other/grayskys_more-uarches.patch \
             patches/other/OpenRGB.patch \
             patches/other/VHBA_driver.patch \
-            patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
-            patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
-            patches/other/0009-XANMOD-block-set-rq_affinity-to-force-full-multithre.patch \
-            patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
+            patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
+            patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             >> noir.patch
             case $f_num in
                 rt)
