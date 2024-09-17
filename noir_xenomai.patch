@@ -15564,107 +15564,50 @@ index 00000000000000..676af31c33ad95
 +module_init(vhba_init);
 +module_exit(vhba_exit);
 +
-From 5e21dc23e33793984f0787c1c7726970ceae62e7 Mon Sep 17 00:00:00 2001
+From 1637fbf551572f4578ed5644ae485b8da659b509 Mon Sep 17 00:00:00 2001
 From: Alexandre Frade <kernel@xanmod.org>
-Date: Wed, 11 May 2022 18:56:51 +0000
-Subject: [PATCH 07/18] XANMOD: block/mq-deadline: Increase write priority to
- improve responsiveness
+Date: Mon, 29 Jan 2018 17:26:15 +0000
+Subject: [PATCH 11/19] XANMOD: kconfig: add 500Hz timer interrupt kernel
+ config option
 
 Signed-off-by: Alexandre Frade <kernel@xanmod.org>
 ---
- block/mq-deadline.c | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+ kernel/Kconfig.hz | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/block/mq-deadline.c b/block/mq-deadline.c
-index 02a916ba62ee..4796753ad460 100644
---- a/block/mq-deadline.c
-+++ b/block/mq-deadline.c
-@@ -4,6 +4,9 @@
-  *  for the blk-mq scheduling framework
-  *
-  *  Copyright (C) 2016 Jens Axboe <axboe@kernel.dk>
-+ *
-+ *  Tunes for responsiveness by Alexandre Frade
-+ *  (C) 2022 Alexandre Frade <kernel@xanmod.org>
-  */
- #include <linux/kernel.h>
- #include <linux/fs.h>
-@@ -28,13 +31,13 @@
-  * See Documentation/block/deadline-iosched.rst
-  */
- static const int read_expire = HZ / 2;  /* max time before a read is submitted. */
--static const int write_expire = 5 * HZ; /* ditto for writes, these limits are SOFT! */
-+static const int write_expire = HZ;     /* ditto for writes, these limits are SOFT! */
- /*
-  * Time after which to dispatch lower priority requests even if higher
-  * priority requests are pending.
-  */
- static const int prio_aging_expire = 10 * HZ;
--static const int writes_starved = 2;    /* max times reads can starve a write */
-+static const int writes_starved = 1;    /* max times reads can starve a write */
- static const int fifo_batch = 16;       /* # of sequential requests treated as one
- 				     by the above parameters. For throughput. */
+diff --git a/kernel/Kconfig.hz b/kernel/Kconfig.hz
+index 38ef6d06888e..0ff51d4d265c 100644
+--- a/kernel/Kconfig.hz
++++ b/kernel/Kconfig.hz
+@@ -40,6 +40,13 @@ choice
+ 	 on SMP and NUMA systems and exactly dividing by both PAL and
+ 	 NTSC frame rates for video and multimedia work.
  
--- 
-2.43.0
-
-From 0dde1dcd2b9c9e80c7aca25db4422376a4726946 Mon Sep 17 00:00:00 2001
-From: Alexandre Frade <kernel@xanmod.org>
-Date: Thu, 6 Jan 2022 16:59:01 +0000
-Subject: [PATCH 08/18] XANMOD: block/mq-deadline: Disable front_merges by
- default
-
-Signed-off-by: Alexandre Frade <kernel@xanmod.org>
----
- block/mq-deadline.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/block/mq-deadline.c b/block/mq-deadline.c
-index 4796753ad460..4ffa96148c96 100644
---- a/block/mq-deadline.c
-+++ b/block/mq-deadline.c
-@@ -720,7 +720,7 @@ static int dd_init_sched(struct request_queue *q, struct elevator_type *e)
- 	dd->fifo_expire[DD_READ] = read_expire;
- 	dd->fifo_expire[DD_WRITE] = write_expire;
- 	dd->writes_starved = writes_starved;
--	dd->front_merges = 1;
-+	dd->front_merges = 0;
- 	dd->last_dir = DD_WRITE;
- 	dd->fifo_batch = fifo_batch;
- 	dd->prio_aging_expire = prio_aging_expire;
--- 
-2.43.0
-
-From beae1903abdfa78a296b1696ef407a8f620c0f9f Mon Sep 17 00:00:00 2001
-From: Alexandre Frade <kernel@xanmod.org>
-Date: Mon, 14 Dec 2020 16:24:26 +0000
-Subject: [PATCH 09/18] XANMOD: block: set rq_affinity to force full
- multithreading I/O requests
-
-Signed-off-by: Alexandre Frade <kernel@xanmod.org>
----
- include/linux/blkdev.h | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 69e7da33ca49..5a06dcd45e6c 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -548,6 +548,7 @@ struct request_queue {
++	config HZ_500
++		bool "500 HZ"
++	help
++	 500 Hz is a balanced timer frequency. Provides fast interactivity
++	 on desktops with great smoothness without increasing CPU power
++	 consumption and sacrificing the battery life on laptops.
++
+ 	config HZ_1000
+ 		bool "1000 HZ"
+ 	help
+@@ -53,6 +60,7 @@ config HZ
+ 	default 100 if HZ_100
+ 	default 250 if HZ_250
+ 	default 300 if HZ_300
++	default 500 if HZ_500
+ 	default 1000 if HZ_1000
  
- #define QUEUE_FLAG_MQ_DEFAULT	((1UL << QUEUE_FLAG_IO_STAT) |		\
- 				 (1UL << QUEUE_FLAG_SAME_COMP) |	\
-+				 (1UL << QUEUE_FLAG_SAME_FORCE) |	\
- 				 (1UL << QUEUE_FLAG_NOWAIT))
- 
- void blk_queue_flag_set(unsigned int flag, struct request_queue *q);
+ config SCHED_HRTICK
 -- 
-2.43.0
+2.45.2
 
-From 274f226acdad50f8658d8d6bc10ff54805deeced Mon Sep 17 00:00:00 2001
+From 53a8dc8afb62674acc347ac7d9ebb46338ab7d64 Mon Sep 17 00:00:00 2001
 From: Alexandre Frade <kernel@xanmod.org>
 Date: Mon, 29 Jan 2018 16:59:22 +0000
-Subject: [PATCH 11/18] XANMOD: dcache: cache_pressure = 50 decreases the rate
+Subject: [PATCH 12/19] XANMOD: dcache: cache_pressure = 50 decreases the rate
  at which VFS caches are reclaimed
 
 Signed-off-by: Alexandre Frade <kernel@xanmod.org>
@@ -15673,10 +15616,10 @@ Signed-off-by: Alexandre Frade <kernel@xanmod.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/fs/dcache.c b/fs/dcache.c
-index 71a8e943a0fa..be35cce496a7 100644
+index 6386b9b625dd..819bac36f5b8 100644
 --- a/fs/dcache.c
 +++ b/fs/dcache.c
-@@ -71,7 +71,7 @@
+@@ -73,7 +73,7 @@
   * If no ancestor relationship:
   * arbitrary, since it's serialized on rename_lock
   */
@@ -15686,5 +15629,5 @@ index 71a8e943a0fa..be35cce496a7 100644
  
  __cacheline_aligned_in_smp DEFINE_SEQLOCK(rename_lock);
 -- 
-2.43.0
+2.45.2
 
