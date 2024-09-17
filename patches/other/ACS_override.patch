@@ -1,4 +1,4 @@
-From a761208ac1d7ba808a196b13916f34143dc0acdc Mon Sep 17 00:00:00 2001
+From 4b6829a2814814f0e612ccb18f752d87023562a3 Mon Sep 17 00:00:00 2001
 From: Steven Barrett <steven@liquorix.net>
 Date: Sat, 30 Jan 2021 11:34:18 -0600
 Subject: [PATCH] ZEN: Add ACS override support
@@ -10,10 +10,10 @@ Source: https://gitlab.com/Queuecumber/linux-acs-override/-/raw/master/workspace
  2 files changed, 110 insertions(+)
 
 diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 27ec49af1bf27b..db94b472543f5e 100644
+index 426fa892d311a3..6498f85ec13663 100644
 --- a/Documentation/admin-guide/kernel-parameters.txt
 +++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4447,6 +4447,15 @@
+@@ -4124,6 +4124,15 @@
  		nomsi		[MSI] If the PCI_MSI kernel config parameter is
  				enabled, this kernel boot option can be used to
  				disable the use of MSI interrupts system-wide.
@@ -30,10 +30,10 @@ index 27ec49af1bf27b..db94b472543f5e 100644
  				Safety option to keep boot IRQs enabled. This
  				should never be necessary.
 diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
-index 568410e64ce64e..192d0557fb0579 100644
+index 4944798e75b5a2..d11a9aeb109644 100644
 --- a/drivers/pci/quirks.c
 +++ b/drivers/pci/quirks.c
-@@ -3732,6 +3732,106 @@ static void quirk_no_bus_reset(struct pci_dev *dev)
+@@ -3612,6 +3612,106 @@ static void quirk_no_bus_reset(struct pci_dev *dev)
  	dev->dev_flags |= PCI_DEV_FLAGS_NO_BUS_RESET;
  }
  
@@ -140,10 +140,10 @@ index 568410e64ce64e..192d0557fb0579 100644
  /*
   * Some NVIDIA GPU devices do not work with bus reset, SBR needs to be
   * prevented for those affected devices.
-@@ -5143,6 +5243,7 @@ static const struct pci_dev_acs_enabled {
+@@ -4980,6 +5080,7 @@ static const struct pci_dev_acs_enabled {
+ 	{ PCI_VENDOR_ID_NXP, 0x8d9b, pci_quirk_nxp_rp_acs },
+ 	/* Zhaoxin Root/Downstream Ports */
  	{ PCI_VENDOR_ID_ZHAOXIN, PCI_ANY_ID, pci_quirk_zhaoxin_pcie_ports_acs },
- 	/* Wangxun nics */
- 	{ PCI_VENDOR_ID_WANGXUN, PCI_ANY_ID, pci_quirk_wangxun_nic_acs },
 +	{ PCI_ANY_ID, PCI_ANY_ID, pcie_acs_overrides },
  	{ 0 }
  };

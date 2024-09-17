@@ -1,10 +1,10 @@
-From 8021bae21c942f929929690c68d314bac9b68502 Mon Sep 17 00:00:00 2001
+From 73a66e97c1663ec825b02f249649cbadf5dc2e2e Mon Sep 17 00:00:00 2001
 From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
 Date: Mon, 26 Apr 2021 22:12:46 +0200
 Subject: [PATCH] ZEN: Add VHBA driver
 
 remote https://github.com/cdemu/cdemu
-tag    vhba-module-20240202
+tag    vhba-module-20211218
 ---
  drivers/scsi/Kconfig       |    2 +
  drivers/scsi/Makefile      |    1 +
@@ -17,7 +17,7 @@ tag    vhba-module-20240202
  create mode 100644 drivers/scsi/vhba/vhba.c
 
 diff --git a/drivers/scsi/Kconfig b/drivers/scsi/Kconfig
-index 065db86d602164..8067a45dd22272 100644
+index 955cb69a541815..64a051155fdbba 100644
 --- a/drivers/scsi/Kconfig
 +++ b/drivers/scsi/Kconfig
 @@ -1523,4 +1523,6 @@ endif # SCSI_LOWLEVEL
@@ -28,10 +28,10 @@ index 065db86d602164..8067a45dd22272 100644
 +
  endmenu
 diff --git a/drivers/scsi/Makefile b/drivers/scsi/Makefile
-index 1313ddf2fd1a1e..5942e8f79159d2 100644
+index f055bfd54a6832..e16e95f2c3ded9 100644
 --- a/drivers/scsi/Makefile
 +++ b/drivers/scsi/Makefile
-@@ -153,6 +153,7 @@ obj-$(CONFIG_CHR_DEV_SCH)	+= ch.o
+@@ -151,6 +151,7 @@ obj-$(CONFIG_CHR_DEV_SCH)	+= ch.o
  obj-$(CONFIG_SCSI_ENCLOSURE)	+= ses.o
  
  obj-$(CONFIG_SCSI_HISI_SAS) += hisi_sas/
@@ -56,17 +56,17 @@ index 00000000000000..e70a381fe3dff8
 +	  will be called vhba.
 diff --git a/drivers/scsi/vhba/Makefile b/drivers/scsi/vhba/Makefile
 new file mode 100644
-index 00000000000000..0b87fc09ca1ae7
+index 00000000000000..ad8b7c6442af07
 --- /dev/null
 +++ b/drivers/scsi/vhba/Makefile
 @@ -0,0 +1,4 @@
-+VHBA_VERSION := 20240202
++VHBA_VERSION := 20211218
 +
 +obj-$(CONFIG_VHBA)		+= vhba.o
 +ccflags-y := -DVHBA_VERSION=\"$(VHBA_VERSION)\" -Werror
 diff --git a/drivers/scsi/vhba/vhba.c b/drivers/scsi/vhba/vhba.c
 new file mode 100644
-index 00000000000000..e2331d4dc788c6
+index 00000000000000..676af31c33ad95
 --- /dev/null
 +++ b/drivers/scsi/vhba/vhba.c
 @@ -0,0 +1,1124 @@
@@ -205,8 +205,8 @@ index 00000000000000..e2331d4dc788c6
 +
 +
 +
-+static struct vhba_command *vhba_alloc_command (void);
-+static void vhba_free_command (struct vhba_command *vcmd);
++struct vhba_command *vhba_alloc_command (void);
++void vhba_free_command (struct vhba_command *vcmd);
 +
 +static struct platform_device vhba_platform_device;
 +
@@ -214,18 +214,18 @@ index 00000000000000..e2331d4dc788c6
 +
 +/* These functions define a symmetric 1:1 mapping between device numbers and
 +   the bus and id. We have reserved the last id per bus for the host itself. */
-+static void devnum_to_bus_and_id(unsigned int devnum, unsigned int *bus, unsigned int *id)
++void devnum_to_bus_and_id(unsigned int devnum, unsigned int *bus, unsigned int *id)
 +{
 +    *bus = devnum / (VHBA_MAX_ID-1);
 +    *id  = devnum % (VHBA_MAX_ID-1);
 +}
 +
-+static unsigned int bus_and_id_to_devnum(unsigned int bus, unsigned int id)
++unsigned int bus_and_id_to_devnum(unsigned int bus, unsigned int id)
 +{
 +    return (bus * (VHBA_MAX_ID-1)) + id;
 +}
 +
-+static struct vhba_device *vhba_device_alloc (void)
++struct vhba_device *vhba_device_alloc (void)
 +{
 +    struct vhba_device *vdev;
 +
@@ -245,21 +245,21 @@ index 00000000000000..e2331d4dc788c6
 +    return vdev;
 +}
 +
-+static void vhba_device_put (struct vhba_device *vdev)
++void vhba_device_put (struct vhba_device *vdev)
 +{
 +    if (atomic_dec_and_test(&vdev->refcnt)) {
 +        kfree(vdev);
 +    }
 +}
 +
-+static struct vhba_device *vhba_device_get (struct vhba_device *vdev)
++struct vhba_device *vhba_device_get (struct vhba_device *vdev)
 +{
 +    atomic_inc(&vdev->refcnt);
 +
 +    return vdev;
 +}
 +
-+static int vhba_device_queue (struct vhba_device *vdev, struct scsi_cmnd *cmd)
++int vhba_device_queue (struct vhba_device *vdev, struct scsi_cmnd *cmd)
 +{
 +    struct vhba_host *vhost;
 +    struct vhba_command *vcmd;
@@ -288,7 +288,7 @@ index 00000000000000..e2331d4dc788c6
 +    return 0;
 +}
 +
-+static int vhba_device_dequeue (struct vhba_device *vdev, struct scsi_cmnd *cmd)
++int vhba_device_dequeue (struct vhba_device *vdev, struct scsi_cmnd *cmd)
 +{
 +    struct vhba_command *vcmd;
 +    int retval;
@@ -325,7 +325,7 @@ index 00000000000000..e2331d4dc788c6
 +}
 +
 +#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
-+static int vhba_slave_alloc(struct scsi_device *sdev)
++int vhba_slave_alloc(struct scsi_device *sdev)
 +{
 +    struct Scsi_Host *shost = sdev->host;
 +
@@ -343,7 +343,7 @@ index 00000000000000..e2331d4dc788c6
 +}
 +#endif
 +
-+static void vhba_scan_devices_add (struct vhba_host *vhost, int bus, int id)
++void vhba_scan_devices_add (struct vhba_host *vhost, int bus, int id)
 +{
 +    struct scsi_device *sdev;
 +
@@ -356,7 +356,7 @@ index 00000000000000..e2331d4dc788c6
 +    }
 +}
 +
-+static void vhba_scan_devices_remove (struct vhba_host *vhost, int bus, int id)
++void vhba_scan_devices_remove (struct vhba_host *vhost, int bus, int id)
 +{
 +    struct scsi_device *sdev;
 +
@@ -369,7 +369,7 @@ index 00000000000000..e2331d4dc788c6
 +    }
 +}
 +
-+static void vhba_scan_devices (struct work_struct *work)
++void vhba_scan_devices (struct work_struct *work)
 +{
 +    struct vhba_host *vhost = container_of(work, struct vhba_host, scan_devices);
 +    unsigned long flags;
@@ -417,7 +417,7 @@ index 00000000000000..e2331d4dc788c6
 +    }
 +}
 +
-+static int vhba_add_device (struct vhba_device *vdev)
++int vhba_add_device (struct vhba_device *vdev)
 +{
 +    struct vhba_host *vhost;
 +    unsigned int devnum;
@@ -451,7 +451,7 @@ index 00000000000000..e2331d4dc788c6
 +    return 0;
 +}
 +
-+static int vhba_remove_device (struct vhba_device *vdev)
++int vhba_remove_device (struct vhba_device *vdev)
 +{
 +    struct vhba_host *vhost;
 +    unsigned long flags;
@@ -472,7 +472,7 @@ index 00000000000000..e2331d4dc788c6
 +    return 0;
 +}
 +
-+static struct vhba_device *vhba_lookup_device (int devnum)
++struct vhba_device *vhba_lookup_device (int devnum)
 +{
 +    struct vhba_host *vhost;
 +    struct vhba_device *vdev = NULL;
@@ -493,7 +493,7 @@ index 00000000000000..e2331d4dc788c6
 +    return vdev;
 +}
 +
-+static struct vhba_command *vhba_alloc_command (void)
++struct vhba_command *vhba_alloc_command (void)
 +{
 +    struct vhba_host *vhost;
 +    struct vhba_command *vcmd;
@@ -531,7 +531,7 @@ index 00000000000000..e2331d4dc788c6
 +    return vcmd;
 +}
 +
-+static void vhba_free_command (struct vhba_command *vcmd)
++void vhba_free_command (struct vhba_command *vcmd)
 +{
 +    struct vhba_host *vhost;
 +    unsigned long flags;
@@ -543,7 +543,7 @@ index 00000000000000..e2331d4dc788c6
 +    spin_unlock_irqrestore(&vhost->cmd_lock, flags);
 +}
 +
-+static int vhba_queuecommand (struct Scsi_Host *shost, struct scsi_cmnd *cmd)
++int vhba_queuecommand (struct Scsi_Host *shost, struct scsi_cmnd *cmd)
 +{
 +    struct vhba_device *vdev;
 +    int retval;
@@ -577,7 +577,7 @@ index 00000000000000..e2331d4dc788c6
 +    return retval;
 +}
 +
-+static int vhba_abort (struct scsi_cmnd *cmd)
++int vhba_abort (struct scsi_cmnd *cmd)
 +{
 +    struct vhba_device *vdev;
 +    int retval = SUCCESS;
@@ -620,7 +620,7 @@ index 00000000000000..e2331d4dc788c6
 +#endif
 +};
 +
-+static ssize_t do_request (struct vhba_device *vdev, unsigned long metatag, struct scsi_cmnd *cmd, char __user *buf, size_t buf_len)
++ssize_t do_request (struct vhba_device *vdev, unsigned long metatag, struct scsi_cmnd *cmd, char __user *buf, size_t buf_len)
 +{
 +    struct vhba_request vreq;
 +    ssize_t ret;
@@ -686,7 +686,7 @@ index 00000000000000..e2331d4dc788c6
 +    return ret;
 +}
 +
-+static ssize_t do_response (struct vhba_device *vdev, unsigned long metatag, struct scsi_cmnd *cmd, const char __user *buf, size_t buf_len, struct vhba_response *res)
++ssize_t do_response (struct vhba_device *vdev, unsigned long metatag, struct scsi_cmnd *cmd, const char __user *buf, size_t buf_len, struct vhba_response *res)
 +{
 +    ssize_t ret = 0;
 +
@@ -762,7 +762,7 @@ index 00000000000000..e2331d4dc788c6
 +    return ret;
 +}
 +
-+static struct vhba_command *next_command (struct vhba_device *vdev)
++struct vhba_command *next_command (struct vhba_device *vdev)
 +{
 +    struct vhba_command *vcmd;
 +
@@ -779,7 +779,7 @@ index 00000000000000..e2331d4dc788c6
 +    return vcmd;
 +}
 +
-+static struct vhba_command *match_command (struct vhba_device *vdev, __u32 metatag)
++struct vhba_command *match_command (struct vhba_device *vdev, __u32 metatag)
 +{
 +    struct vhba_command *vcmd;
 +
@@ -796,7 +796,7 @@ index 00000000000000..e2331d4dc788c6
 +    return vcmd;
 +}
 +
-+static struct vhba_command *wait_command (struct vhba_device *vdev, unsigned long flags)
++struct vhba_command *wait_command (struct vhba_device *vdev, unsigned long flags)
 +{
 +    struct vhba_command *vcmd;
 +    DEFINE_WAIT(wait);
@@ -823,7 +823,7 @@ index 00000000000000..e2331d4dc788c6
 +    return vcmd;
 +}
 +
-+static ssize_t vhba_ctl_read (struct file *file, char __user *buf, size_t buf_len, loff_t *offset)
++ssize_t vhba_ctl_read (struct file *file, char __user *buf, size_t buf_len, loff_t *offset)
 +{
 +    struct vhba_device *vdev;
 +    struct vhba_command *vcmd;
@@ -868,7 +868,7 @@ index 00000000000000..e2331d4dc788c6
 +    return ret;
 +}
 +
-+static ssize_t vhba_ctl_write (struct file *file, const char __user *buf, size_t buf_len, loff_t *offset)
++ssize_t vhba_ctl_write (struct file *file, const char __user *buf, size_t buf_len, loff_t *offset)
 +{
 +    struct vhba_device *vdev;
 +    struct vhba_command *vcmd;
@@ -921,7 +921,7 @@ index 00000000000000..e2331d4dc788c6
 +    return ret;
 +}
 +
-+static long vhba_ctl_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
++long vhba_ctl_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
 +{
 +    struct vhba_device *vdev = file->private_data;
 +    struct vhba_host *vhost = platform_get_drvdata(&vhba_platform_device);
@@ -955,14 +955,14 @@ index 00000000000000..e2331d4dc788c6
 +}
 +
 +#ifdef CONFIG_COMPAT
-+static long vhba_ctl_compat_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
++long vhba_ctl_compat_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
 +{
 +    unsigned long compat_arg = (unsigned long)compat_ptr(arg);
 +    return vhba_ctl_ioctl(file, cmd, compat_arg);
 +}
 +#endif
 +
-+static unsigned int vhba_ctl_poll (struct file *file, poll_table *wait)
++unsigned int vhba_ctl_poll (struct file *file, poll_table *wait)
 +{
 +    struct vhba_device *vdev = file->private_data;
 +    unsigned int mask = 0;
@@ -979,7 +979,7 @@ index 00000000000000..e2331d4dc788c6
 +    return mask;
 +}
 +
-+static int vhba_ctl_open (struct inode *inode, struct file *file)
++int vhba_ctl_open (struct inode *inode, struct file *file)
 +{
 +    struct vhba_device *vdev;
 +    int retval;
@@ -1011,7 +1011,7 @@ index 00000000000000..e2331d4dc788c6
 +    return retval;
 +}
 +
-+static int vhba_ctl_release (struct inode *inode, struct file *file)
++int vhba_ctl_release (struct inode *inode, struct file *file)
 +{
 +    struct vhba_device *vdev;
 +    struct vhba_command *vcmd;
@@ -1067,7 +1067,7 @@ index 00000000000000..e2331d4dc788c6
 +    .fops = &vhba_ctl_fops,
 +};
 +
-+static int vhba_probe (struct platform_device *pdev)
++int vhba_probe (struct platform_device *pdev)
 +{
 +    struct Scsi_Host *shost;
 +    struct vhba_host *vhost;
@@ -1121,7 +1121,7 @@ index 00000000000000..e2331d4dc788c6
 +    return 0;
 +}
 +
-+static int vhba_remove (struct platform_device *pdev)
++int vhba_remove (struct platform_device *pdev)
 +{
 +    struct vhba_host *vhost;
 +    struct Scsi_Host *shost;
@@ -1137,7 +1137,7 @@ index 00000000000000..e2331d4dc788c6
 +    return 0;
 +}
 +
-+static void vhba_release (struct device * dev)
++void vhba_release (struct device * dev)
 +{
 +    return;
 +}
@@ -1159,7 +1159,7 @@ index 00000000000000..e2331d4dc788c6
 +    .remove = vhba_remove,
 +};
 +
-+static int __init vhba_init (void)
++int __init vhba_init (void)
 +{
 +    int ret;
 +
@@ -1184,7 +1184,7 @@ index 00000000000000..e2331d4dc788c6
 +    return 0;
 +}
 +
-+static void __exit vhba_exit(void)
++void __exit vhba_exit(void)
 +{
 +    misc_deregister(&vhba_miscdev);
 +    platform_driver_unregister(&vhba_platform_driver);

@@ -1,4 +1,4 @@
-From 7d930b748f86ce245e2667f7960a2d1a9725fc94 Mon Sep 17 00:00:00 2001
+From 162dc063e0382d67909cc2b08e19afc7fcdbe71d Mon Sep 17 00:00:00 2001
 From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
 Date: Mon, 3 Aug 2020 21:18:53 +0200
 Subject: [PATCH] ZEN: Add OpenRGB patches
@@ -41,10 +41,10 @@ Date:   Wed Jun 17 14:24:20 2020 -0500
  create mode 100644 drivers/i2c/busses/i2c-nct6775.c
 
 diff --git a/drivers/i2c/busses/Kconfig b/drivers/i2c/busses/Kconfig
-index fe6e8a1bb60721..1488a904e3bf68 100644
+index 7284206b278b9e..6849fe2af2463f 100644
 --- a/drivers/i2c/busses/Kconfig
 +++ b/drivers/i2c/busses/Kconfig
-@@ -238,6 +238,15 @@ config I2C_CHT_WC
+@@ -229,6 +229,15 @@ config I2C_CHT_WC
  	  combined with a FUSB302 Type-C port-controller as such it is advised
  	  to also select CONFIG_TYPEC_FUSB302=m.
  
@@ -59,9 +59,9 @@ index fe6e8a1bb60721..1488a904e3bf68 100644
 +
  config I2C_NFORCE2
  	tristate "Nvidia nForce2, nForce3 and nForce4"
- 	depends on PCI && HAS_IOPORT
+ 	depends on PCI
 diff --git a/drivers/i2c/busses/Makefile b/drivers/i2c/busses/Makefile
-index 78d0561339e5be..9ea3a294f9f023 100644
+index c5cac15f075ceb..245012554359a3 100644
 --- a/drivers/i2c/busses/Makefile
 +++ b/drivers/i2c/busses/Makefile
 @@ -20,6 +20,7 @@ obj-$(CONFIG_I2C_CHT_WC)	+= i2c-cht-wc.o
@@ -726,7 +726,7 @@ index 00000000000000..0462f095204311
 +module_init(i2c_nct6775_init);
 +module_exit(i2c_nct6775_exit);
 diff --git a/drivers/i2c/busses/i2c-piix4.c b/drivers/i2c/busses/i2c-piix4.c
-index 6a0392172b2f2e..e7dd007bf6b1f3 100644
+index 39cb1b7bb8656c..9d0b0c24b94eb0 100644
 --- a/drivers/i2c/busses/i2c-piix4.c
 +++ b/drivers/i2c/busses/i2c-piix4.c
 @@ -568,11 +568,11 @@ static int piix4_transaction(struct i2c_adapter *piix4_adapter)

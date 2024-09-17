@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu hamada
-August 7,2024
+September 17,2024
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -57,7 +57,6 @@ $ ./build.sh -e install_kernel -f xenomai (Xenomai版)
 - Core scheduling for SMT ON
 - futex support
 - BBR3 support
-- bcachefs support
 - Clear Linux support
 - ACS Overdrive support
 - OpenRGB support

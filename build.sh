@@ -36,17 +36,20 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-        cat patches/other/0001-bcachefs-6.10-merge-changes-from-dev-tree.patch \
-            patches/other/0001-futex-6.10-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
+        cat patches/other/patch-6.11-rt7.patch \
+            patches/other/0001-amd-pstate-patches.patch \
+            patches/other/0001-futex-6.11-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
+            patches/other/0001-intel-pstate-patches.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
             patches/other/0002-clear-patches.patch \
+            patches/other/ACS_override.patch \
+            patches/other/grayskys_more-uarches.patch \
+            patches/other/OpenRGB.patch \
+            patches/other/VHBA_driver.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
             patches/other/0009-XANMOD-block-set-rq_affinity-to-force-full-multithre.patch \
             patches/other/0011-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
-            patches/other/ACSoverride.patch \
-            patches/other/OpenRGB.patch \
-            patches/other/VHBA.patch \
             >> noir.patch
             case $f_num in
                 rt)
