@@ -37,23 +37,19 @@ case $e_num in
             ;;
         esac
         cat patches/other/patch-6.11-rt7.patch \
+            patches/other/linux-v6.11-zen1.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0001-futex-6.11-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0001-intel-pstate-patches.patch \
-            patches/other/0001-tcp-bbr3-initial-import.patch \
             patches/other/0002-clear-patches.patch \
-            patches/other/ACS_override.patch \
-            patches/other/grayskys_more-uarches.patch \
-            patches/other/OpenRGB.patch \
-            patches/other/VHBA_driver.patch \
             patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             >> noir.patch
             case $f_num in
                 rt)
                     mv noir.patch noir_rt.patch
-                    if [ -e patches/other/patch-6.10.2-rt14.patch ]; then
-                        cat patches/other/patch-6.10.2-rt14.patch >> noir_rt.patch
+                    if [ -e patches/other/patch-6.11.1-rt7.patch ]; then
+                        cat patches/other/patch-6.11.1-rt7.patch >> noir_rt.patch
                     fi 
                 ;;
                 xenomai)
