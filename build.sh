@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#October 1,2024
+#November 21,2024
 
 . ./config
 
@@ -36,12 +36,11 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-        cat patches/other/patch-6.11-rt7.patch \
-            patches/other/linux-v6.11-zen1.patch \
+        cat patches/other/patch-6.12-rc4-rt6.patch \
+            patches/other/linux-v6.12-zen1.patch \
             patches/other/0001-amd-pstate-patches.patch \
-            patches/other/0001-futex-6.11-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
-            patches/other/0001-intel-pstate-patches.patch \
-            patches/other/0002-clear-patches.patch \
+            patches/other/0001-clearlinux-patches.patch \
+            patches/other/0001-futex-6.12-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
