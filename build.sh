@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#November 21,2024
+#December 10,2024
 
 . ./config
 
@@ -45,6 +45,7 @@ case $e_num in
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
+            patches/other/0001-zram-patches.patch \
             >> noir.patch
             case $f_num in
                 rt)
