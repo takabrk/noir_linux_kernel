@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#December 10,2024
+#January 27,2025
 
 . ./config
 
@@ -24,8 +24,27 @@ fi
 case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
     patch)
+        rm -r patches/other/*
+        cd patches/other
+        wget https://www.kernel.org/pub/linux/kernel/projects/rt/6.13/patch-6.13-rc6-rt3.patch.xz
+        unxz -kT0 patch-6.13-rc6-rt3.patch.xz
+        wget https://github.com/zen-kernel/zen-kernel/releases/download/v6.13-zen1/linux-v6.13-zen1.patch.zst
+        unzstd linux-v6.13-zen1.patch.zst
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.13/amd-pstate-patches-all/0001-amd-pstate-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.13/clearlinux-patches/0001-clearlinux-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.13/futex-patches/0001-futex-6.13-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
+
+        wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
+        wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch
+        wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
+        wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
+        cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
+            cd patches/linux
+            wget https://cdn.kernel.org/pub/linux/kernel/v6.x/patch-$VERSIONPOINT.xz
+            unxz patch-$VERSIONPOINT.xz
+            cd ../../
             cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         fi
         case $f_num in
@@ -36,22 +55,21 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-        cat patches/other/patch-6.12-rc4-rt6.patch \
-            patches/other/linux-v6.12-zen1.patch \
+        cat patches/other/patch-$VERSIONBASE-rc6-rt3.patch \
+            patches/other/linux-v$VERSIONBASE-zen1.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0001-clearlinux-patches.patch \
-            patches/other/0001-futex-6.12-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
+            patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
-            patches/other/0001-zram-patches.patch \
             >> noir.patch
             case $f_num in
                 rt)
                     mv noir.patch noir_rt.patch
-                    if [ -e patches/other/patch-6.11.1-rt7.patch ]; then
-                        cat patches/other/patch-6.11.1-rt7.patch >> noir_rt.patch
+                    if [ -e patches/other/patch-$VERSIONBASE-rc6-rt3.patch ]; then
+                        cat patches/other/patch-$VERSIONBASE-rc6-rt3.patch >> noir_rt.patch
                     fi 
                 ;;
                 xenomai)

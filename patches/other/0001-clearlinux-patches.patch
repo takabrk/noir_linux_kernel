@@ -1,4 +1,4 @@
-From 918c424b60338bc4c12f7c9a9d43811a8f3ddc8c Mon Sep 17 00:00:00 2001
+From 7b54d69a8f562cf17668a9d997b92869ec3b6f6a Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.king@intel.com>
 Date: Wed, 1 Feb 2023 11:53:51 +0000
 Subject: [PATCH 01/16] sched/core: add some branch hints based on gcov
@@ -10,7 +10,7 @@ Signed-off-by: Colin Ian King <colin.king@intel.com>
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index a1c353a62..d0d3d21fd 100644
+index 3e5a6bf58..48b2ca9db 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -594,7 +594,7 @@ void raw_spin_rq_lock_nested(struct rq *rq, int subclass)
@@ -31,7 +31,7 @@ index a1c353a62..d0d3d21fd 100644
  		return;
  	rq->clock += delta;
  	update_rq_clock_task(rq, delta);
-@@ -6052,7 +6052,7 @@ pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
+@@ -6104,7 +6104,7 @@ pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
  	struct rq *rq_i;
  	bool need_sync;
  
@@ -40,7 +40,7 @@ index a1c353a62..d0d3d21fd 100644
  		return __pick_next_task(rq, prev, rf);
  
  	cpu = cpu_of(rq);
-@@ -7213,7 +7213,7 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
+@@ -7276,7 +7276,7 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
  #if !defined(CONFIG_PREEMPTION) || defined(CONFIG_PREEMPT_DYNAMIC)
  int __sched __cond_resched(void)
  {
@@ -50,10 +50,10 @@ index a1c353a62..d0d3d21fd 100644
  		return 1;
  	}
 -- 
-2.47.0
+2.48.1
 
 
-From 863a25471bdbc685f135abe8489265fb8453ef6e Mon Sep 17 00:00:00 2001
+From 444b9d33f4959442fa84cc2e79bc1ad557fed1b0 Mon Sep 17 00:00:00 2001
 From: Arjan van de Ven <arjan@linux.intel.com>
 Date: Mon, 14 Mar 2016 11:10:58 -0600
 Subject: [PATCH 02/16] pci pme wakeups
@@ -65,7 +65,7 @@ boards (sadly, too many of them) in laptops.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 225a6cd2e..3a2385fb1 100644
+index 661f98c6c..79b7b1733 100644
 --- a/drivers/pci/pci.c
 +++ b/drivers/pci/pci.c
 @@ -61,7 +61,7 @@ struct pci_pme_device {
@@ -78,10 +78,10 @@ index 225a6cd2e..3a2385fb1 100644
  /*
   * Following exit from Conventional Reset, devices must be ready within 1 sec
 -- 
-2.47.0
+2.48.1
 
 
-From c04d5152d2634ebd35571fad1cc2def0c2aec1cf Mon Sep 17 00:00:00 2001
+From 71d8a2c3706a37a16b9154fdfbf82d357b1d62b4 Mon Sep 17 00:00:00 2001
 From: Arjan van de Ven <arjan@linux.intel.com>
 Date: Wed, 11 Feb 2015 17:28:14 -0600
 Subject: [PATCH 03/16] smpboot: reuse timer calibration
@@ -93,10 +93,10 @@ saves 200ms+ of boot time.
  1 file changed, 3 insertions(+)
 
 diff --git a/arch/x86/kernel/tsc.c b/arch/x86/kernel/tsc.c
-index dfe6847fd..8bc41b2ac 100644
+index 67aeaba4b..dfaadb8a5 100644
 --- a/arch/x86/kernel/tsc.c
 +++ b/arch/x86/kernel/tsc.c
-@@ -1592,6 +1592,9 @@ unsigned long calibrate_delay_is_known(void)
+@@ -1593,6 +1593,9 @@ unsigned long calibrate_delay_is_known(void)
  	if (!constant_tsc || !mask)
  		return 0;
  
@@ -107,10 +107,10 @@ index dfe6847fd..8bc41b2ac 100644
  	if (sibling < nr_cpu_ids)
  		return cpu_data(sibling).loops_per_jiffy;
 -- 
-2.47.0
+2.48.1
 
 
-From 26691f17d60f8ba3042b02badcc67b66d6cc59ff Mon Sep 17 00:00:00 2001
+From e6354ba460ee5ed1d1f7000ea5b044996ef3a808 Mon Sep 17 00:00:00 2001
 From: Arjan van de Ven <arjan@linux.intel.com>
 Date: Fri, 6 Jan 2017 15:34:09 +0000
 Subject: [PATCH 04/16] ipv4/tcp: allow the memory tuning for tcp to go a
@@ -121,10 +121,10 @@ Subject: [PATCH 04/16] ipv4/tcp: allow the memory tuning for tcp to go a
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index 4f77bd862..16b027e35 100644
+index 0d704bda6..d5c93c41c 100644
 --- a/net/ipv4/tcp.c
 +++ b/net/ipv4/tcp.c
-@@ -5131,8 +5131,8 @@ void __init tcp_init(void)
+@@ -5132,8 +5132,8 @@ void __init tcp_init(void)
  	tcp_init_mem();
  	/* Set per-socket limits to no more than 1/128 the pressure threshold */
  	limit = nr_free_buffer_pages() << (PAGE_SHIFT - 7);
@@ -136,10 +136,10 @@ index 4f77bd862..16b027e35 100644
  	init_net.ipv4.sysctl_tcp_wmem[0] = PAGE_SIZE;
  	init_net.ipv4.sysctl_tcp_wmem[1] = 16*1024;
 -- 
-2.47.0
+2.48.1
 
 
-From 7559c9dc6d52bc4416bed50bf5fcc46212307373 Mon Sep 17 00:00:00 2001
+From 316b7b2cfe2bb5fc621331258ddcca9aeef4a615 Mon Sep 17 00:00:00 2001
 From: Auke Kok <auke-jan.h.kok@intel.com>
 Date: Thu, 2 Aug 2018 12:03:22 -0700
 Subject: [PATCH 05/16] migrate some systemd defaults to the kernel defaults.
@@ -156,7 +156,7 @@ if we're not going to do anything else ever.
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/net/dummy.c b/drivers/net/dummy.c
-index e9c5e1e11..d912cdbd2 100644
+index 005d79975..a5e088ebd 100644
 --- a/drivers/net/dummy.c
 +++ b/drivers/net/dummy.c
 @@ -43,7 +43,7 @@
@@ -182,10 +182,10 @@ index d174914a8..bf8e2af10 100644
  #define BOND_DEFAULT_TX_QUEUES 16   /* Default number of tx queues per device */
  
 -- 
-2.47.0
+2.48.1
 
 
-From 7c7f38ad66550285ddea0c1707d597a790ab2a90 Mon Sep 17 00:00:00 2001
+From 7da7a3b375f232e2dd82537728f02533595ae960 Mon Sep 17 00:00:00 2001
 From: Arjan van de Ven <arjan.van.de.ven@intel.com>
 Date: Tue, 16 Nov 2021 17:39:25 +0000
 Subject: [PATCH 06/16] itmt_epb: use epb to scale itmt
@@ -197,10 +197,10 @@ Subject: [PATCH 06/16] itmt_epb: use epb to scale itmt
  3 files changed, 33 insertions(+), 1 deletion(-)
 
 diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
-index 92f3664dd..a9bbadb21 100644
+index fd41103ad..4d9cfd78a 100644
 --- a/arch/x86/include/asm/topology.h
 +++ b/arch/x86/include/asm/topology.h
-@@ -245,6 +245,7 @@ extern unsigned int __read_mostly sysctl_sched_itmt_enabled;
+@@ -254,6 +254,7 @@ extern unsigned int __read_mostly sysctl_sched_itmt_enabled;
  
  /* Interface to set priority of a cpu */
  void sched_set_itmt_core_prio(int prio, int core_cpu);
@@ -275,10 +275,10 @@ index 51b805c72..81e7cf72e 100644
 +	}
 +}
 -- 
-2.47.0
+2.48.1
 
 
-From cbff1ae7c3e79610f3fe5d5bd577435f2bbcb4bf Mon Sep 17 00:00:00 2001
+From ddb299d8be6b59031d58303fbfe309156731a0a4 Mon Sep 17 00:00:00 2001
 From: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
 Date: Thu, 18 Nov 2021 16:09:47 +0000
 Subject: [PATCH 07/16] itmt2 ADL fixes
@@ -301,7 +301,7 @@ Signed-off-by: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
  1 file changed, 7 insertions(+)
 
 diff --git a/drivers/cpufreq/intel_pstate.c b/drivers/cpufreq/intel_pstate.c
-index 400337f3b..d15819767 100644
+index b8e2396a7..627b584a0 100644
 --- a/drivers/cpufreq/intel_pstate.c
 +++ b/drivers/cpufreq/intel_pstate.c
 @@ -376,6 +376,13 @@ static void intel_pstate_set_itmt_prio(int cpu)
@@ -319,10 +319,10 @@ index 400337f3b..d15819767 100644
  	if (max_highest_perf <= min_highest_perf) {
  		if (cppc_perf.highest_perf > max_highest_perf)
 -- 
-2.47.0
+2.48.1
 
 
-From 64d9cef49e8e2332a871967a4bc2061d2f9922e0 Mon Sep 17 00:00:00 2001
+From f6561c42d149d0fdab5244551becf4d59a45228d Mon Sep 17 00:00:00 2001
 From: Arjan van de Ven <arjan.van.de.ven@intel.com>
 Date: Tue, 23 Nov 2021 17:38:50 +0000
 Subject: [PATCH 08/16] add a per cpu minimum high watermark an tune batch size
@@ -334,10 +334,10 @@ amount for todays system
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index b69583330..00ee777d6 100644
+index 01eab25ed..8eae8936b 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
-@@ -5527,11 +5527,11 @@ static int zone_batchsize(struct zone *zone)
+@@ -5393,11 +5393,11 @@ static int zone_batchsize(struct zone *zone)
  
  	/*
  	 * The number of pages to batch allocate is either ~0.1%
@@ -352,10 +352,10 @@ index b69583330..00ee777d6 100644
  	if (batch < 1)
  		batch = 1;
 -- 
-2.47.0
+2.48.1
 
 
-From 9c25866652ce045066afa5f61874e3d679e527c3 Mon Sep 17 00:00:00 2001
+From 54efc6f4f2fd29ce97844071a6dacf5a29d98292 Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.king@intel.com>
 Date: Fri, 28 Apr 2023 17:01:35 +0100
 Subject: [PATCH 09/16] md/raid6 algorithms: scale test duration for speedier
@@ -481,10 +481,10 @@ index cd2e88ee1..b84663554 100644
  	return best;
  }
 -- 
-2.47.0
+2.48.1
 
 
-From 7a89c73affe65a2703f42e9c640f3a3a6c14278c Mon Sep 17 00:00:00 2001
+From 882977450e4c9168a5f0a16e3ae542c616fa9b7f Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.king@intel.com>
 Date: Wed, 3 May 2023 17:31:05 +0100
 Subject: [PATCH 10/16] clocksource: only perform extended clocksource checks
@@ -519,10 +519,10 @@ index b4330a01a..e41cd5c68 100644
  		value1 = clocksource_acpi_pm.read(&clocksource_acpi_pm);
  		for (i = 0; i < ACPI_PM_READ_CHECKS; i++) {
 -- 
-2.47.0
+2.48.1
 
 
-From 52f09417f55d777c70ea883f18764082a8f4c31b Mon Sep 17 00:00:00 2001
+From 7b2242c76b5be8b6247b0e3aa3c52f16e717a3e0 Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.king@intel.com>
 Date: Tue, 27 Jun 2023 14:12:27 +0100
 Subject: [PATCH 11/16] ACPI: align slab for improved memory performance
@@ -542,10 +542,10 @@ Signed-off-by: Colin Ian King <colin.king@intel.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/acpi/osl.c b/drivers/acpi/osl.c
-index 70af3fbbe..dab3d5089 100644
+index fed446aac..4943959ef 100644
 --- a/drivers/acpi/osl.c
 +++ b/drivers/acpi/osl.c
-@@ -1549,7 +1549,7 @@ void acpi_os_release_lock(acpi_spinlock lockp, acpi_cpu_flags not_used)
+@@ -1561,7 +1561,7 @@ void acpi_os_release_lock(acpi_spinlock lockp, acpi_cpu_flags not_used)
  acpi_status
  acpi_os_create_cache(char *name, u16 size, u16 depth, acpi_cache_t **cache)
  {
@@ -555,10 +555,10 @@ index 70af3fbbe..dab3d5089 100644
  		return AE_ERROR;
  	else
 -- 
-2.47.0
+2.48.1
 
 
-From 0c47ad888a74fa2b65605798ec98ce21edfa311b Mon Sep 17 00:00:00 2001
+From 3983ad94b958b53c8b674255700c6f3d8a4caed5 Mon Sep 17 00:00:00 2001
 From: Colin Ian King <colin.i.king@intel.com>
 Date: Wed, 24 Apr 2024 16:45:47 +0100
 Subject: [PATCH 12/16] net: sock: increase default number of _SK_MEM_PACKETS
@@ -572,10 +572,10 @@ Signed-off-by: Colin Ian King <colin.i.king@intel.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/include/net/sock.h b/include/net/sock.h
-index f29c14448..eda297a1f 100644
+index 691ca7695..43b9119b0 100644
 --- a/include/net/sock.h
 +++ b/include/net/sock.h
-@@ -2807,7 +2807,7 @@ void sk_get_meminfo(const struct sock *sk, u32 *meminfo);
+@@ -2845,7 +2845,7 @@ void sk_get_meminfo(const struct sock *sk, u32 *meminfo);
   * platforms.  This makes socket queueing behavior and performance
   * not depend upon such differences.
   */
@@ -585,10 +585,10 @@ index f29c14448..eda297a1f 100644
  #define SK_WMEM_MAX		(_SK_MEM_OVERHEAD * _SK_MEM_PACKETS)
  #define SK_RMEM_MAX		(_SK_MEM_OVERHEAD * _SK_MEM_PACKETS)
 -- 
-2.47.0
+2.48.1
 
 
-From 512c8e15c45ddfb22f044a81b6141958294100e9 Mon Sep 17 00:00:00 2001
+From 115692d57c1498f87a0b47b480fc9a5af7fbbd0f Mon Sep 17 00:00:00 2001
 From: Eric Naim <dnaim@cachyos.org>
 Date: Sun, 20 Oct 2024 17:11:19 +0800
 Subject: [PATCH 13/16] clear: sched/fair: Tweak idle balance calculation
@@ -599,10 +599,10 @@ Signed-off-by: Eric Naim <dnaim@cachyos.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
-index 2d16c8545..f99789aea 100644
+index 26958431d..5305431aa 100644
 --- a/kernel/sched/fair.c
 +++ b/kernel/sched/fair.c
-@@ -12787,7 +12787,7 @@ static int sched_balance_newidle(struct rq *this_rq, struct rq_flags *rf)
+@@ -12723,7 +12723,7 @@ static int sched_balance_newidle(struct rq *this_rq, struct rq_flags *rf)
  
  		update_next_balance(sd, &next_balance);
  
@@ -612,10 +612,10 @@ index 2d16c8545..f99789aea 100644
  
  		if (sd->flags & SD_BALANCE_NEWIDLE) {
 -- 
-2.47.0
+2.48.1
 
 
-From fbbba2851b99335372974b027208a2902123ed01 Mon Sep 17 00:00:00 2001
+From 5cedad0d114a87adaff2fda6004e6fb6bdf5f161 Mon Sep 17 00:00:00 2001
 From: Eric Naim <dnaim@cachyos.org>
 Date: Sun, 20 Oct 2024 17:15:25 +0800
 Subject: [PATCH 14/16] clear: fs/binfmt_elf: Properly handle memory mapping
@@ -630,10 +630,10 @@ Signed-off-by: Eric Naim <dnaim@cachyos.org>
  1 file changed, 2 insertions(+)
 
 diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 06dc4a57b..fef929ddf 100644
+index 106f0e8af..3f3bc55d5 100644
 --- a/fs/binfmt_elf.c
 +++ b/fs/binfmt_elf.c
-@@ -1281,6 +1281,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
+@@ -1288,6 +1288,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
  	mm = current->mm;
  	mm->end_code = end_code;
  	mm->start_code = start_code;
@@ -643,10 +643,10 @@ index 06dc4a57b..fef929ddf 100644
  	mm->end_data = end_data;
  	mm->start_stack = bprm->p;
 -- 
-2.47.0
+2.48.1
 
 
-From 4520998b8db62c36283a427bdc9848c4dd846841 Mon Sep 17 00:00:00 2001
+From 43d6d39b229411de992163f0314f0df1952128d7 Mon Sep 17 00:00:00 2001
 From: Eric Naim <dnaim@cachyos.org>
 Date: Sun, 20 Oct 2024 17:21:24 +0800
 Subject: [PATCH 15/16] clear: net/sock: Introduce 64KB reclaim threshold
@@ -660,10 +660,10 @@ Signed-off-by: Eric Naim <dnaim@cachyos.org>
  1 file changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/include/net/sock.h b/include/net/sock.h
-index eda297a1f..2fbdb4a78 100644
+index 43b9119b0..1579791ba 100644
 --- a/include/net/sock.h
 +++ b/include/net/sock.h
-@@ -1573,10 +1573,17 @@ static inline void sk_mem_charge(struct sock *sk, int size)
+@@ -1585,10 +1585,17 @@ static inline void sk_mem_charge(struct sock *sk, int size)
  
  static inline void sk_mem_uncharge(struct sock *sk, int size)
  {
@@ -683,10 +683,10 @@ index eda297a1f..2fbdb4a78 100644
  
  /*
 -- 
-2.47.0
+2.48.1
 
 
-From 1de864608a0c32e59679f70c83ba03dfefc6c625 Mon Sep 17 00:00:00 2001
+From cb4127880c710becf1112d126e91dc8d58b624af Mon Sep 17 00:00:00 2001
 From: Eric Naim <dnaim@cachyos.org>
 Date: Sun, 20 Oct 2024 17:25:10 +0800
 Subject: [PATCH 16/16] clear: init/init_task: Tweak timer_slack value
@@ -697,10 +697,10 @@ Signed-off-by: Eric Naim <dnaim@cachyos.org>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/init/init_task.c b/init/init_task.c
-index 136a82313..15d739202 100644
+index e557f622b..ca1ef6677 100644
 --- a/init/init_task.c
 +++ b/init/init_task.c
-@@ -139,7 +139,7 @@ struct task_struct init_task __aligned(L1_CACHE_BYTES) = {
+@@ -140,7 +140,7 @@ struct task_struct init_task __aligned(L1_CACHE_BYTES) = {
  	.journal_info	= NULL,
  	INIT_CPU_TIMERS(init_task)
  	.pi_lock	= __RAW_SPIN_LOCK_UNLOCKED(init_task.pi_lock),
@@ -710,5 +710,5 @@ index 136a82313..15d739202 100644
  	.thread_node	= LIST_HEAD_INIT(init_signals.thread_head),
  #ifdef CONFIG_AUDIT
 -- 
-2.47.0
+2.48.1
 
