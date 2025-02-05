@@ -77,7 +77,7 @@ case $e_num in
     vanilla)
             case $f_num in
                rt)
-                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$$VERSIONBASE.tar.xz
+                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/vLinux_MAJOR.x/linux-$VERSIONBASE.tar.xz
                    ;;
                xenomai)
                    wget https://source.denx.de/Xenomai/xenomai4/linux-evl/-/archive/v6.9-evl-rebase/linux-$VERSIONXENOMAI.tar.gz
@@ -87,11 +87,11 @@ case $e_num in
     source)
            case $f_num in
                rt)
-                   tar -Jxvf linux-$$VERSIONBASE.tar.xz
-                   cd linux-$$VERSIONBASE
+                   tar -Jxvf linux-$VERSIONBASE.tar.xz
+                   cd linux-$VERSIONBASE
                    patch -p1 < ../noir_rt.patch
                    cd ../
-                   mv linux-$$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
+                   mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
                    ;;
                xenomai)
                    tar -zxvf linux-$VERSIONXENOMAI.tar.gz
@@ -137,7 +137,7 @@ case $e_num in
                    sudo dpkg -i *.deb
                    sudo update-grub
                    sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION
-                   rm -r linux-$$VERSIONBASE.tar.xz
+                   rm -r linux-$VERSIONBASE.tar.xz
                    if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
                        rm -r patches/linux/patch-$VERSIONPOINT
                    fi
