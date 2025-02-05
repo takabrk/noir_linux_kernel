@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#January 27,2025
+#February 5,2025
 
 . ./config
 
@@ -26,13 +26,13 @@ case $e_num in
     patch)
         rm -r patches/other/*
         cd patches/other
-        wget https://www.kernel.org/pub/linux/kernel/projects/rt/6.13/patch-6.13-rc6-rt3.patch.xz
-        unxz -kT0 patch-6.13-rc6-rt3.patch.xz
-        wget https://github.com/zen-kernel/zen-kernel/releases/download/v6.13-zen1/linux-v6.13-zen1.patch.zst
-        unzstd linux-v6.13-zen1.patch.zst
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.13/amd-pstate-patches-all/0001-amd-pstate-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.13/clearlinux-patches/0001-clearlinux-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.13/futex-patches/0001-futex-6.13-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
+        wget https://www.kernel.org/pub/linux/kernel/projects/rt/VERSIONBASE/patch-VERSIONRT.patch.xz
+        unxz -kT0 patch-VERSIONRT.patch.xz
+        wget https://github.com/zen-kernel/zen-kernel/releases/download/vVERSIONBASE-zen1/linux-vVERSIONBASE-zen1.patch.zst
+        unzstd linux-vVERSIONBASE-zen1.patch.zst
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/VERSIONBASE/amd-pstate-patches-all/0001-amd-pstate-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/VERSIONBASE/clearlinux-patches/0001-clearlinux-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/VERSIONBASE/futex-patches/0001-futex-VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
 
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch
