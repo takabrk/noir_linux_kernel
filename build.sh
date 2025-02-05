@@ -77,10 +77,10 @@ case $e_num in
     vanilla)
             case $f_num in
                rt)
-                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/vLinux_MAJOR.x/linux-$VERSIONBASE.tar.xz
+                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/v$Linux_MAJOR.x/linux-$VERSIONBASE.tar.xz
                    ;;
                xenomai)
-                   wget https://source.denx.de/Xenomai/xenomai4/linux-evl/-/archive/v6.9-evl-rebase/linux-$VERSIONXENOMAI.tar.gz
+                   wget https://source.denx.de/Xenomai/xenomai4/linux-evl/-/archive/v$VERSIONBASE-evl-rebase/linux-$VERSIONXENOMAI.tar.gz
                    ;;
             esac 
             ;;
