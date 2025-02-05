@@ -14,25 +14,28 @@ do
   esac
 done
 
-if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
-    rm -r patches/linux/patch-$VERSIONPOINT
+rm -r patches/linux/patch-$VERSIONPOINT
+cd patches/linux
+wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
+if  [ -e patch-$VERSIONPOINT.xz ]; then
+    unxz patch-$VERSIONPOINT.xz
 fi
-if  [ -e patches/linux/patch-$VERSIONPOINT.xz ]; then
-    xz -k -d patches/linux/patch-$VERSIONPOINT.xz
-fi
+cd ../../
 
 case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
     patch)
         rm -r patches/other/*
         cd patches/other
-        wget https://www.kernel.org/pub/linux/kernel/projects/rt/VERSIONBASE/patch-VERSIONRT.patch.xz
-        unxz -kT0 patch-VERSIONRT.patch.xz
-        wget https://github.com/zen-kernel/zen-kernel/releases/download/vVERSIONBASE-zen1/linux-vVERSIONBASE-zen1.patch.zst
-        unzstd linux-vVERSIONBASE-zen1.patch.zst
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/VERSIONBASE/amd-pstate-patches-all/0001-amd-pstate-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/VERSIONBASE/clearlinux-patches/0001-clearlinux-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/VERSIONBASE/futex-patches/0001-futex-VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
+        wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
+        unxz -kT0 patch-$VERSIONRT.patch.xz
+        rm -r patch-$VERSIONRT.patch.xz
+        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONBASE-zen1/linux-v$VERSIONBASE-zen1.patch.zst
+        unzstd linux-v$VERSIONBASE-zen1.patch.zst
+        rm -r linux-v$VERSIONBASE-zen1.patch.zst
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/amd-pstate-patches-all/0001-amd-pstate-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/clearlinux-patches/0001-clearlinux-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
 
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch
@@ -40,13 +43,7 @@ case $e_num in
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
         cd ../../
         truncate noir.patch --size 0
-        if [ -e patches/linux/patch-$VERSIONPOINT ]; then
-            cd patches/linux
-            wget https://cdn.kernel.org/pub/linux/kernel/v6.x/patch-$VERSIONPOINT.xz
-            unxz patch-$VERSIONPOINT.xz
-            cd ../../
-            cat patches/linux/patch-$VERSIONPOINT >> noir.patch
-        fi
+        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         case $f_num in
             rt)
                 cat patches/noir_base/noir_base.patch >> noir.patch
@@ -55,7 +52,7 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-        cat patches/other/patch-$VERSIONBASE-rc6-rt3.patch \
+        cat patches/other/patch-$VERSIONRT.patch \
             patches/other/linux-v$VERSIONBASE-zen1.patch \
             patches/other/0001-amd-pstate-patches.patch \
             patches/other/0001-clearlinux-patches.patch \
@@ -68,8 +65,8 @@ case $e_num in
             case $f_num in
                 rt)
                     mv noir.patch noir_rt.patch
-                    if [ -e patches/other/patch-$VERSIONBASE-rc6-rt3.patch ]; then
-                        cat patches/other/patch-$VERSIONBASE-rc6-rt3.patch >> noir_rt.patch
+                    if [ -e patches/other/patch-$VERSIONRT.patch ]; then
+                        cat patches/other/patch-$VERSIONRT.patch >> noir_rt.patch
                     fi 
                 ;;
                 xenomai)
@@ -80,7 +77,7 @@ case $e_num in
     vanilla)
             case $f_num in
                rt)
-                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$VERSIONBASE.tar.xz
+                   wget https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x/linux-$$VERSIONBASE.tar.xz
                    ;;
                xenomai)
                    wget https://source.denx.de/Xenomai/xenomai4/linux-evl/-/archive/v6.9-evl-rebase/linux-$VERSIONXENOMAI.tar.gz
@@ -90,11 +87,11 @@ case $e_num in
     source)
            case $f_num in
                rt)
-                   tar -Jxvf linux-$VERSIONBASE.tar.xz
-                   cd linux-$VERSIONBASE
+                   tar -Jxvf linux-$$VERSIONBASE.tar.xz
+                   cd linux-$$VERSIONBASE
                    patch -p1 < ../noir_rt.patch
                    cd ../
-                   mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
+                   mv linux-$$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
                    ;;
                xenomai)
                    tar -zxvf linux-$VERSIONXENOMAI.tar.gz
@@ -140,7 +137,7 @@ case $e_num in
                    sudo dpkg -i *.deb
                    sudo update-grub
                    sudo rm -r linux-$VERSIONPOINT-$NOIR_VERSION
-                   rm -r linux-$VERSIONBASE.tar.xz
+                   rm -r linux-$$VERSIONBASE.tar.xz
                    if  [ -e patches/linux/patch-$VERSIONPOINT ]; then
                        rm -r patches/linux/patch-$VERSIONPOINT
                    fi

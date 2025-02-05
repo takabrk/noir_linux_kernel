@@ -1,8 +1,9 @@
 #/usr/bin/bash
 
 NOIR_VERSION="noir"
+LINUX_MAJOR="6"
 VERSIONBASE="6.13"
 VERSIONPOINT="6.13.1"
-VERSIONRT="6.13-rc6-rt3"
+VERSIONRT="6.13-rt5"
 VERSIONXENOMAI="evl-v6.13-evl-rebase"
 
