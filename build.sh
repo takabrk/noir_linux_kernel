@@ -14,17 +14,18 @@ do
   esac
 done
 
-rm -r patches/linux/patch-$VERSIONPOINT
-cd patches/linux
-wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
-if  [ -e patch-$VERSIONPOINT.xz ]; then
-    unxz patch-$VERSIONPOINT.xz
-fi
-cd ../../
+
 
 case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
     patch)
+        rm -r patches/linux/patch-$VERSIONPOINT
+        cd patches/linux
+        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
+        if  [ -e patch-$VERSIONPOINT.xz ]; then
+            unxz patch-$VERSIONPOINT.xz
+        fi
+        cd ../../
         rm -r patches/other/*
         cd patches/other
         wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
@@ -33,11 +34,9 @@ case $e_num in
         wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONBASE-zen1/linux-v$VERSIONBASE-zen1.patch.zst
         unzstd linux-v$VERSIONBASE-zen1.patch.zst
         rm -r linux-v$VERSIONBASE-zen1.patch.zst
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/amd-pstate-patches-all/0001-amd-pstate-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/clearlinux-patches/0001-clearlinux-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
+        wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
 
-        wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
@@ -54,10 +53,8 @@ case $e_num in
         esac
         cat patches/other/patch-$VERSIONRT.patch \
             patches/other/linux-v$VERSIONBASE-zen1.patch \
-            patches/other/0001-amd-pstate-patches.patch \
-            patches/other/0001-clearlinux-patches.patch \
+            patches/other/0002-clear-patches.patch \
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
-            patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
