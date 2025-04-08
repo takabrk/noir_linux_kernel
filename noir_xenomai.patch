@@ -1,3 +1,909 @@
+diff --git a/Makefile b/Makefile
+index 8b6764d44a610f..3ede59c1146cb6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ VERSION = 6
+ PATCHLEVEL = 14
+-SUBLEVEL = 0
++SUBLEVEL = 1
+ EXTRAVERSION =
+ NAME = Baby Opossum Posse
+ 
+diff --git a/drivers/counter/microchip-tcb-capture.c b/drivers/counter/microchip-tcb-capture.c
+index 2f096a5b973d18..c391ac38b99093 100644
+--- a/drivers/counter/microchip-tcb-capture.c
++++ b/drivers/counter/microchip-tcb-capture.c
+@@ -368,6 +368,25 @@ static int mchp_tc_probe(struct platform_device *pdev)
+ 			channel);
+ 	}
+ 
++	/* Disable Quadrature Decoder and position measure */
++	ret = regmap_update_bits(regmap, ATMEL_TC_BMR, ATMEL_TC_QDEN | ATMEL_TC_POSEN, 0);
++	if (ret)
++		return ret;
++
++	/* Setup the period capture mode */
++	ret = regmap_update_bits(regmap, ATMEL_TC_REG(priv->channel[0], CMR),
++				 ATMEL_TC_WAVE | ATMEL_TC_ABETRG | ATMEL_TC_CMR_MASK |
++				 ATMEL_TC_TCCLKS,
++				 ATMEL_TC_CMR_MASK);
++	if (ret)
++		return ret;
++
++	/* Enable clock and trigger counter */
++	ret = regmap_write(regmap, ATMEL_TC_REG(priv->channel[0], CCR),
++			   ATMEL_TC_CLKEN | ATMEL_TC_SWTRG);
++	if (ret)
++		return ret;
++
+ 	priv->tc_cfg = tcb_config;
+ 	priv->regmap = regmap;
+ 	counter->name = dev_name(&pdev->dev);
+diff --git a/drivers/counter/stm32-lptimer-cnt.c b/drivers/counter/stm32-lptimer-cnt.c
+index cf73f65baf606c..b249c8647639f7 100644
+--- a/drivers/counter/stm32-lptimer-cnt.c
++++ b/drivers/counter/stm32-lptimer-cnt.c
+@@ -58,37 +58,43 @@ static int stm32_lptim_set_enable_state(struct stm32_lptim_cnt *priv,
+ 		return 0;
+ 	}
+ 
++	ret = clk_enable(priv->clk);
++	if (ret)
++		goto disable_cnt;
++
+ 	/* LP timer must be enabled before writing CMP & ARR */
+ 	ret = regmap_write(priv->regmap, STM32_LPTIM_ARR, priv->ceiling);
+ 	if (ret)
+-		return ret;
++		goto disable_clk;
+ 
+ 	ret = regmap_write(priv->regmap, STM32_LPTIM_CMP, 0);
+ 	if (ret)
+-		return ret;
++		goto disable_clk;
+ 
+ 	/* ensure CMP & ARR registers are properly written */
+ 	ret = regmap_read_poll_timeout(priv->regmap, STM32_LPTIM_ISR, val,
+ 				       (val & STM32_LPTIM_CMPOK_ARROK) == STM32_LPTIM_CMPOK_ARROK,
+ 				       100, 1000);
+ 	if (ret)
+-		return ret;
++		goto disable_clk;
+ 
+ 	ret = regmap_write(priv->regmap, STM32_LPTIM_ICR,
+ 			   STM32_LPTIM_CMPOKCF_ARROKCF);
+ 	if (ret)
+-		return ret;
++		goto disable_clk;
+ 
+-	ret = clk_enable(priv->clk);
+-	if (ret) {
+-		regmap_write(priv->regmap, STM32_LPTIM_CR, 0);
+-		return ret;
+-	}
+ 	priv->enabled = true;
+ 
+ 	/* Start LP timer in continuous mode */
+ 	return regmap_update_bits(priv->regmap, STM32_LPTIM_CR,
+ 				  STM32_LPTIM_CNTSTRT, STM32_LPTIM_CNTSTRT);
++
++disable_clk:
++	clk_disable(priv->clk);
++disable_cnt:
++	regmap_write(priv->regmap, STM32_LPTIM_CR, 0);
++
++	return ret;
+ }
+ 
+ static int stm32_lptim_setup(struct stm32_lptim_cnt *priv, int enable)
+diff --git a/drivers/hid/hid-plantronics.c b/drivers/hid/hid-plantronics.c
+index 25cfd964dc25d9..acb9eb18f7ccfe 100644
+--- a/drivers/hid/hid-plantronics.c
++++ b/drivers/hid/hid-plantronics.c
+@@ -6,9 +6,6 @@
+  *  Copyright (c) 2015-2018 Terry Junge <terry.junge@plantronics.com>
+  */
+ 
+-/*
+- */
+-
+ #include "hid-ids.h"
+ 
+ #include <linux/hid.h>
+@@ -23,30 +20,28 @@
+ 
+ #define PLT_VOL_UP		0x00b1
+ #define PLT_VOL_DOWN		0x00b2
++#define PLT_MIC_MUTE		0x00b5
+ 
+ #define PLT1_VOL_UP		(PLT_HID_1_0_PAGE | PLT_VOL_UP)
+ #define PLT1_VOL_DOWN		(PLT_HID_1_0_PAGE | PLT_VOL_DOWN)
++#define PLT1_MIC_MUTE		(PLT_HID_1_0_PAGE | PLT_MIC_MUTE)
+ #define PLT2_VOL_UP		(PLT_HID_2_0_PAGE | PLT_VOL_UP)
+ #define PLT2_VOL_DOWN		(PLT_HID_2_0_PAGE | PLT_VOL_DOWN)
++#define PLT2_MIC_MUTE		(PLT_HID_2_0_PAGE | PLT_MIC_MUTE)
++#define HID_TELEPHONY_MUTE	(HID_UP_TELEPHONY | 0x2f)
++#define HID_CONSUMER_MUTE	(HID_UP_CONSUMER | 0xe2)
+ 
+ #define PLT_DA60		0xda60
+ #define PLT_BT300_MIN		0x0413
+ #define PLT_BT300_MAX		0x0418
+ 
+-
+-#define PLT_ALLOW_CONSUMER (field->application == HID_CP_CONSUMERCONTROL && \
+-			    (usage->hid & HID_USAGE_PAGE) == HID_UP_CONSUMER)
+-
+-#define PLT_QUIRK_DOUBLE_VOLUME_KEYS BIT(0)
+-#define PLT_QUIRK_FOLLOWED_OPPOSITE_VOLUME_KEYS BIT(1)
+-
+ #define PLT_DOUBLE_KEY_TIMEOUT 5 /* ms */
+-#define PLT_FOLLOWED_OPPOSITE_KEY_TIMEOUT 220 /* ms */
+ 
+ struct plt_drv_data {
+ 	unsigned long device_type;
+-	unsigned long last_volume_key_ts;
+-	u32 quirks;
++	unsigned long last_key_ts;
++	unsigned long double_key_to;
++	__u16 last_key;
+ };
+ 
+ static int plantronics_input_mapping(struct hid_device *hdev,
+@@ -58,34 +53,43 @@ static int plantronics_input_mapping(struct hid_device *hdev,
+ 	unsigned short mapped_key;
+ 	struct plt_drv_data *drv_data = hid_get_drvdata(hdev);
+ 	unsigned long plt_type = drv_data->device_type;
++	int allow_mute = usage->hid == HID_TELEPHONY_MUTE;
++	int allow_consumer = field->application == HID_CP_CONSUMERCONTROL &&
++			(usage->hid & HID_USAGE_PAGE) == HID_UP_CONSUMER &&
++			usage->hid != HID_CONSUMER_MUTE;
+ 
+ 	/* special case for PTT products */
+ 	if (field->application == HID_GD_JOYSTICK)
+ 		goto defaulted;
+ 
+-	/* handle volume up/down mapping */
+ 	/* non-standard types or multi-HID interfaces - plt_type is PID */
+ 	if (!(plt_type & HID_USAGE_PAGE)) {
+ 		switch (plt_type) {
+ 		case PLT_DA60:
+-			if (PLT_ALLOW_CONSUMER)
++			if (allow_consumer)
+ 				goto defaulted;
+-			goto ignored;
++			if (usage->hid == HID_CONSUMER_MUTE) {
++				mapped_key = KEY_MICMUTE;
++				goto mapped;
++			}
++			break;
+ 		default:
+-			if (PLT_ALLOW_CONSUMER)
++			if (allow_consumer || allow_mute)
+ 				goto defaulted;
+ 		}
++		goto ignored;
+ 	}
+-	/* handle standard types - plt_type is 0xffa0uuuu or 0xffa2uuuu */
+-	/* 'basic telephony compliant' - allow default consumer page map */
+-	else if ((plt_type & HID_USAGE) >= PLT_BASIC_TELEPHONY &&
+-		 (plt_type & HID_USAGE) != PLT_BASIC_EXCEPTION) {
+-		if (PLT_ALLOW_CONSUMER)
+-			goto defaulted;
+-	}
+-	/* not 'basic telephony' - apply legacy mapping */
+-	/* only map if the field is in the device's primary vendor page */
+-	else if (!((field->application ^ plt_type) & HID_USAGE_PAGE)) {
++
++	/* handle standard consumer control mapping */
++	/* and standard telephony mic mute mapping */
++	if (allow_consumer || allow_mute)
++		goto defaulted;
++
++	/* handle vendor unique types - plt_type is 0xffa0uuuu or 0xffa2uuuu */
++	/* if not 'basic telephony compliant' - map vendor unique controls */
++	if (!((plt_type & HID_USAGE) >= PLT_BASIC_TELEPHONY &&
++	      (plt_type & HID_USAGE) != PLT_BASIC_EXCEPTION) &&
++	      !((field->application ^ plt_type) & HID_USAGE_PAGE))
+ 		switch (usage->hid) {
+ 		case PLT1_VOL_UP:
+ 		case PLT2_VOL_UP:
+@@ -95,8 +99,11 @@ static int plantronics_input_mapping(struct hid_device *hdev,
+ 		case PLT2_VOL_DOWN:
+ 			mapped_key = KEY_VOLUMEDOWN;
+ 			goto mapped;
++		case PLT1_MIC_MUTE:
++		case PLT2_MIC_MUTE:
++			mapped_key = KEY_MICMUTE;
++			goto mapped;
+ 		}
+-	}
+ 
+ /*
+  * Future mapping of call control or other usages,
+@@ -105,6 +112,8 @@ static int plantronics_input_mapping(struct hid_device *hdev,
+  */
+ 
+ ignored:
++	hid_dbg(hdev, "usage: %08x (appl: %08x) - ignored\n",
++		usage->hid, field->application);
+ 	return -1;
+ 
+ defaulted:
+@@ -123,38 +132,26 @@ static int plantronics_event(struct hid_device *hdev, struct hid_field *field,
+ 			     struct hid_usage *usage, __s32 value)
+ {
+ 	struct plt_drv_data *drv_data = hid_get_drvdata(hdev);
++	unsigned long prev_tsto, cur_ts;
++	__u16 prev_key, cur_key;
+ 
+-	if (drv_data->quirks & PLT_QUIRK_DOUBLE_VOLUME_KEYS) {
+-		unsigned long prev_ts, cur_ts;
++	/* Usages are filtered in plantronics_usages. */
+ 
+-		/* Usages are filtered in plantronics_usages. */
++	/* HZ too low for ms resolution - double key detection disabled */
++	/* or it is a key release - handle key presses only. */
++	if (!drv_data->double_key_to || !value)
++		return 0;
+ 
+-		if (!value) /* Handle key presses only. */
+-			return 0;
++	prev_tsto = drv_data->last_key_ts + drv_data->double_key_to;
++	cur_ts = drv_data->last_key_ts = jiffies;
++	prev_key = drv_data->last_key;
++	cur_key = drv_data->last_key = usage->code;
+ 
+-		prev_ts = drv_data->last_volume_key_ts;
+-		cur_ts = jiffies;
+-		if (jiffies_to_msecs(cur_ts - prev_ts) <= PLT_DOUBLE_KEY_TIMEOUT)
+-			return 1; /* Ignore the repeated key. */
+-
+-		drv_data->last_volume_key_ts = cur_ts;
++	/* If the same key occurs in <= double_key_to -- ignore it */
++	if (prev_key == cur_key && time_before_eq(cur_ts, prev_tsto)) {
++		hid_dbg(hdev, "double key %d ignored\n", cur_key);
++		return 1; /* Ignore the repeated key. */
+ 	}
+-	if (drv_data->quirks & PLT_QUIRK_FOLLOWED_OPPOSITE_VOLUME_KEYS) {
+-		unsigned long prev_ts, cur_ts;
+-
+-		/* Usages are filtered in plantronics_usages. */
+-
+-		if (!value) /* Handle key presses only. */
+-			return 0;
+-
+-		prev_ts = drv_data->last_volume_key_ts;
+-		cur_ts = jiffies;
+-		if (jiffies_to_msecs(cur_ts - prev_ts) <= PLT_FOLLOWED_OPPOSITE_KEY_TIMEOUT)
+-			return 1; /* Ignore the followed opposite volume key. */
+-
+-		drv_data->last_volume_key_ts = cur_ts;
+-	}
+-
+ 	return 0;
+ }
+ 
+@@ -196,12 +193,16 @@ static int plantronics_probe(struct hid_device *hdev,
+ 	ret = hid_parse(hdev);
+ 	if (ret) {
+ 		hid_err(hdev, "parse failed\n");
+-		goto err;
++		return ret;
+ 	}
+ 
+ 	drv_data->device_type = plantronics_device_type(hdev);
+-	drv_data->quirks = id->driver_data;
+-	drv_data->last_volume_key_ts = jiffies - msecs_to_jiffies(PLT_DOUBLE_KEY_TIMEOUT);
++	drv_data->double_key_to = msecs_to_jiffies(PLT_DOUBLE_KEY_TIMEOUT);
++	drv_data->last_key_ts = jiffies - drv_data->double_key_to;
++
++	/* if HZ does not allow ms resolution - disable double key detection */
++	if (drv_data->double_key_to < PLT_DOUBLE_KEY_TIMEOUT)
++		drv_data->double_key_to = 0;
+ 
+ 	hid_set_drvdata(hdev, drv_data);
+ 
+@@ -210,29 +211,10 @@ static int plantronics_probe(struct hid_device *hdev,
+ 	if (ret)
+ 		hid_err(hdev, "hw start failed\n");
+ 
+-err:
+ 	return ret;
+ }
+ 
+ static const struct hid_device_id plantronics_devices[] = {
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS,
+-					 USB_DEVICE_ID_PLANTRONICS_BLACKWIRE_3210_SERIES),
+-		.driver_data = PLT_QUIRK_DOUBLE_VOLUME_KEYS },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS,
+-					 USB_DEVICE_ID_PLANTRONICS_BLACKWIRE_3220_SERIES),
+-		.driver_data = PLT_QUIRK_DOUBLE_VOLUME_KEYS },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS,
+-					 USB_DEVICE_ID_PLANTRONICS_BLACKWIRE_3215_SERIES),
+-		.driver_data = PLT_QUIRK_DOUBLE_VOLUME_KEYS },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS,
+-					 USB_DEVICE_ID_PLANTRONICS_BLACKWIRE_3225_SERIES),
+-		.driver_data = PLT_QUIRK_DOUBLE_VOLUME_KEYS },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS,
+-					 USB_DEVICE_ID_PLANTRONICS_BLACKWIRE_3325_SERIES),
+-		.driver_data = PLT_QUIRK_FOLLOWED_OPPOSITE_VOLUME_KEYS },
+-	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS,
+-					 USB_DEVICE_ID_PLANTRONICS_ENCOREPRO_500_SERIES),
+-		.driver_data = PLT_QUIRK_FOLLOWED_OPPOSITE_VOLUME_KEYS },
+ 	{ HID_USB_DEVICE(USB_VENDOR_ID_PLANTRONICS, HID_ANY_ID) },
+ 	{ }
+ };
+@@ -241,6 +223,14 @@ MODULE_DEVICE_TABLE(hid, plantronics_devices);
+ static const struct hid_usage_id plantronics_usages[] = {
+ 	{ HID_CP_VOLUMEUP, EV_KEY, HID_ANY_ID },
+ 	{ HID_CP_VOLUMEDOWN, EV_KEY, HID_ANY_ID },
++	{ HID_TELEPHONY_MUTE, EV_KEY, HID_ANY_ID },
++	{ HID_CONSUMER_MUTE, EV_KEY, HID_ANY_ID },
++	{ PLT2_VOL_UP, EV_KEY, HID_ANY_ID },
++	{ PLT2_VOL_DOWN, EV_KEY, HID_ANY_ID },
++	{ PLT2_MIC_MUTE, EV_KEY, HID_ANY_ID },
++	{ PLT1_VOL_UP, EV_KEY, HID_ANY_ID },
++	{ PLT1_VOL_DOWN, EV_KEY, HID_ANY_ID },
++	{ PLT1_MIC_MUTE, EV_KEY, HID_ANY_ID },
+ 	{ HID_TERMINATOR, HID_TERMINATOR, HID_TERMINATOR }
+ };
+ 
+diff --git a/drivers/memstick/host/rtsx_usb_ms.c b/drivers/memstick/host/rtsx_usb_ms.c
+index 6eb892fd4d3432..3878136227e49c 100644
+--- a/drivers/memstick/host/rtsx_usb_ms.c
++++ b/drivers/memstick/host/rtsx_usb_ms.c
+@@ -813,6 +813,7 @@ static void rtsx_usb_ms_drv_remove(struct platform_device *pdev)
+ 
+ 	host->eject = true;
+ 	cancel_work_sync(&host->handle_req);
++	cancel_delayed_work_sync(&host->poll_card);
+ 
+ 	mutex_lock(&host->host_mutex);
+ 	if (host->req) {
+diff --git a/drivers/net/usb/qmi_wwan.c b/drivers/net/usb/qmi_wwan.c
+index e9208a8d2bfa61..a5a4252ea19fdd 100644
+--- a/drivers/net/usb/qmi_wwan.c
++++ b/drivers/net/usb/qmi_wwan.c
+@@ -1365,9 +1365,11 @@ static const struct usb_device_id products[] = {
+ 	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10a0, 0)}, /* Telit FN920C04 */
+ 	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10a4, 0)}, /* Telit FN920C04 */
+ 	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10a9, 0)}, /* Telit FN920C04 */
++	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10b0, 0)}, /* Telit FE990B */
+ 	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10c0, 0)}, /* Telit FE910C04 */
+ 	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10c4, 0)}, /* Telit FE910C04 */
+ 	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10c8, 0)}, /* Telit FE910C04 */
++	{QMI_QUIRK_SET_DTR(0x1bc7, 0x10d0, 0)}, /* Telit FN990B */
+ 	{QMI_FIXED_INTF(0x1bc7, 0x1100, 3)},	/* Telit ME910 */
+ 	{QMI_FIXED_INTF(0x1bc7, 0x1101, 3)},	/* Telit ME910 dual modem */
+ 	{QMI_FIXED_INTF(0x1bc7, 0x1200, 5)},	/* Telit LE920 */
+diff --git a/drivers/net/usb/usbnet.c b/drivers/net/usb/usbnet.c
+index 44179f4e807fc3..aeab2308b15008 100644
+--- a/drivers/net/usb/usbnet.c
++++ b/drivers/net/usb/usbnet.c
+@@ -178,6 +178,17 @@ int usbnet_get_ethernet_addr(struct usbnet *dev, int iMACAddress)
+ }
+ EXPORT_SYMBOL_GPL(usbnet_get_ethernet_addr);
+ 
++static bool usbnet_needs_usb_name_format(struct usbnet *dev, struct net_device *net)
++{
++	/* Point to point devices which don't have a real MAC address
++	 * (or report a fake local one) have historically used the usb%d
++	 * naming. Preserve this..
++	 */
++	return (dev->driver_info->flags & FLAG_POINTTOPOINT) != 0 &&
++		(is_zero_ether_addr(net->dev_addr) ||
++		 is_local_ether_addr(net->dev_addr));
++}
++
+ static void intr_complete (struct urb *urb)
+ {
+ 	struct usbnet	*dev = urb->context;
+@@ -1762,13 +1773,11 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
+ 		if (status < 0)
+ 			goto out1;
+ 
+-		// heuristic:  "usb%d" for links we know are two-host,
+-		// else "eth%d" when there's reasonable doubt.  userspace
+-		// can rename the link if it knows better.
++		/* heuristic: rename to "eth%d" if we are not sure this link
++		 * is two-host (these links keep "usb%d")
++		 */
+ 		if ((dev->driver_info->flags & FLAG_ETHER) != 0 &&
+-		    ((dev->driver_info->flags & FLAG_POINTTOPOINT) == 0 ||
+-		     /* somebody touched it*/
+-		     !is_zero_ether_addr(net->dev_addr)))
++		    !usbnet_needs_usb_name_format(dev, net))
+ 			strscpy(net->name, "eth%d", sizeof(net->name));
+ 		/* WLAN devices should always be named "wlan%d" */
+ 		if ((dev->driver_info->flags & FLAG_WLAN) != 0)
+diff --git a/drivers/tty/serial/8250/8250_dma.c b/drivers/tty/serial/8250/8250_dma.c
+index f245a84f4a508d..bdd26c9f34bdf2 100644
+--- a/drivers/tty/serial/8250/8250_dma.c
++++ b/drivers/tty/serial/8250/8250_dma.c
+@@ -162,7 +162,7 @@ void serial8250_tx_dma_flush(struct uart_8250_port *p)
+ 	 */
+ 	dma->tx_size = 0;
+ 
+-	dmaengine_terminate_async(dma->rxchan);
++	dmaengine_terminate_async(dma->txchan);
+ }
+ 
+ int serial8250_rx_dma(struct uart_8250_port *p)
+diff --git a/drivers/tty/serial/8250/8250_pci.c b/drivers/tty/serial/8250/8250_pci.c
+index df4d0d832e5421..73c200127b089f 100644
+--- a/drivers/tty/serial/8250/8250_pci.c
++++ b/drivers/tty/serial/8250/8250_pci.c
+@@ -2727,6 +2727,22 @@ static struct pci_serial_quirk pci_serial_quirks[] = {
+ 		.init		= pci_oxsemi_tornado_init,
+ 		.setup		= pci_oxsemi_tornado_setup,
+ 	},
++	{
++		.vendor		= PCI_VENDOR_ID_INTASHIELD,
++		.device		= 0x4026,
++		.subvendor	= PCI_ANY_ID,
++		.subdevice	= PCI_ANY_ID,
++		.init		= pci_oxsemi_tornado_init,
++		.setup		= pci_oxsemi_tornado_setup,
++	},
++	{
++		.vendor		= PCI_VENDOR_ID_INTASHIELD,
++		.device		= 0x4021,
++		.subvendor	= PCI_ANY_ID,
++		.subdevice	= PCI_ANY_ID,
++		.init		= pci_oxsemi_tornado_init,
++		.setup		= pci_oxsemi_tornado_setup,
++	},
+ 	{
+ 		.vendor         = PCI_VENDOR_ID_INTEL,
+ 		.device         = 0x8811,
+@@ -5253,6 +5269,14 @@ static const struct pci_device_id serial_pci_tbl[] = {
+ 		PCI_ANY_ID, PCI_ANY_ID,
+ 		0, 0,
+ 		pbn_b2_2_115200 },
++	{       PCI_VENDOR_ID_INTASHIELD, 0x0BA2,
++		PCI_ANY_ID, PCI_ANY_ID,
++		0, 0,
++		pbn_b2_2_115200 },
++	{       PCI_VENDOR_ID_INTASHIELD, 0x0BA3,
++		PCI_ANY_ID, PCI_ANY_ID,
++		0, 0,
++		pbn_b2_2_115200 },
+ 	/*
+ 	 * Brainboxes UC-235/246
+ 	 */
+@@ -5373,6 +5397,14 @@ static const struct pci_device_id serial_pci_tbl[] = {
+ 		PCI_ANY_ID, PCI_ANY_ID,
+ 		0, 0,
+ 		pbn_b2_4_115200 },
++	{	PCI_VENDOR_ID_INTASHIELD, 0x0C42,
++		PCI_ANY_ID, PCI_ANY_ID,
++		0, 0,
++		pbn_b2_4_115200 },
++	{	PCI_VENDOR_ID_INTASHIELD, 0x0C43,
++		PCI_ANY_ID, PCI_ANY_ID,
++		0, 0,
++		pbn_b2_4_115200 },
+ 	/*
+ 	 * Brainboxes UC-420
+ 	 */
+@@ -5599,6 +5631,20 @@ static const struct pci_device_id serial_pci_tbl[] = {
+ 		PCI_ANY_ID, PCI_ANY_ID,
+ 		0, 0,
+ 		pbn_oxsemi_1_15625000 },
++	/*
++	 * Brainboxes XC-235
++	 */
++	{	PCI_VENDOR_ID_INTASHIELD, 0x4026,
++		PCI_ANY_ID, PCI_ANY_ID,
++		0, 0,
++		pbn_oxsemi_1_15625000 },
++	/*
++	 * Brainboxes XC-475
++	 */
++	{	PCI_VENDOR_ID_INTASHIELD, 0x4021,
++		PCI_ANY_ID, PCI_ANY_ID,
++		0, 0,
++		pbn_oxsemi_1_15625000 },
+ 
+ 	/*
+ 	 * Perle PCI-RAS cards
+diff --git a/drivers/tty/serial/fsl_lpuart.c b/drivers/tty/serial/fsl_lpuart.c
+index c91b9d9818cd83..79623b2482a04c 100644
+--- a/drivers/tty/serial/fsl_lpuart.c
++++ b/drivers/tty/serial/fsl_lpuart.c
+@@ -1484,6 +1484,19 @@ static int lpuart32_config_rs485(struct uart_port *port, struct ktermios *termio
+ 
+ 	unsigned long modem = lpuart32_read(&sport->port, UARTMODIR)
+ 				& ~(UARTMODIR_TXRTSPOL | UARTMODIR_TXRTSE);
++	u32 ctrl;
++
++	/* TXRTSE and TXRTSPOL only can be changed when transmitter is disabled. */
++	ctrl = lpuart32_read(&sport->port, UARTCTRL);
++	if (ctrl & UARTCTRL_TE) {
++		/* wait for the transmit engine to complete */
++		lpuart32_wait_bit_set(&sport->port, UARTSTAT, UARTSTAT_TC);
++		lpuart32_write(&sport->port, ctrl & ~UARTCTRL_TE, UARTCTRL);
++
++		while (lpuart32_read(&sport->port, UARTCTRL) & UARTCTRL_TE)
++			cpu_relax();
++	}
++
+ 	lpuart32_write(&sport->port, modem, UARTMODIR);
+ 
+ 	if (rs485->flags & SER_RS485_ENABLED) {
+@@ -1503,6 +1516,10 @@ static int lpuart32_config_rs485(struct uart_port *port, struct ktermios *termio
+ 	}
+ 
+ 	lpuart32_write(&sport->port, modem, UARTMODIR);
++
++	if (ctrl & UARTCTRL_TE)
++		lpuart32_write(&sport->port, ctrl, UARTCTRL);
++
+ 	return 0;
+ }
+ 
+diff --git a/drivers/tty/serial/stm32-usart.c b/drivers/tty/serial/stm32-usart.c
+index 1ec5d8c3aef8dd..0854ad8c90cd24 100644
+--- a/drivers/tty/serial/stm32-usart.c
++++ b/drivers/tty/serial/stm32-usart.c
+@@ -965,10 +965,8 @@ static void stm32_usart_start_tx(struct uart_port *port)
+ {
+ 	struct tty_port *tport = &port->state->port;
+ 
+-	if (kfifo_is_empty(&tport->xmit_fifo) && !port->x_char) {
+-		stm32_usart_rs485_rts_disable(port);
++	if (kfifo_is_empty(&tport->xmit_fifo) && !port->x_char)
+ 		return;
+-	}
+ 
+ 	stm32_usart_rs485_rts_enable(port);
+ 
+diff --git a/drivers/usb/host/xhci-ring.c b/drivers/usb/host/xhci-ring.c
+index 965bffce301e24..5e89e9cdcec2e9 100644
+--- a/drivers/usb/host/xhci-ring.c
++++ b/drivers/usb/host/xhci-ring.c
+@@ -2865,6 +2865,10 @@ static int handle_tx_event(struct xhci_hcd *xhci,
+ 		if (!ep_seg) {
+ 
+ 			if (ep->skip && usb_endpoint_xfer_isoc(&td->urb->ep->desc)) {
++				/* this event is unlikely to match any TD, don't skip them all */
++				if (trb_comp_code == COMP_STOPPED_LENGTH_INVALID)
++					return 0;
++
+ 				skip_isoc_td(xhci, td, ep, status);
+ 				if (!list_empty(&ep_ring->td_list))
+ 					continue;
+diff --git a/drivers/usb/host/xhci.h b/drivers/usb/host/xhci.h
+index 779b01dee068f5..59c6c1c701b9c9 100644
+--- a/drivers/usb/host/xhci.h
++++ b/drivers/usb/host/xhci.h
+@@ -1759,11 +1759,20 @@ static inline void xhci_write_64(struct xhci_hcd *xhci,
+ }
+ 
+ 
+-/* Link TRB chain should always be set on 0.95 hosts, and AMD 0.96 ISOC rings */
++/*
++ * Reportedly, some chapters of v0.95 spec said that Link TRB always has its chain bit set.
++ * Other chapters and later specs say that it should only be set if the link is inside a TD
++ * which continues from the end of one segment to the next segment.
++ *
++ * Some 0.95 hardware was found to misbehave if any link TRB doesn't have the chain bit set.
++ *
++ * 0.96 hardware from AMD and NEC was found to ignore unchained isochronous link TRBs when
++ * "resynchronizing the pipe" after a Missed Service Error.
++ */
+ static inline bool xhci_link_chain_quirk(struct xhci_hcd *xhci, enum xhci_ring_type type)
+ {
+ 	return (xhci->quirks & XHCI_LINK_TRB_QUIRK) ||
+-	       (type == TYPE_ISOC && (xhci->quirks & XHCI_AMD_0x96_HOST));
++	       (type == TYPE_ISOC && (xhci->quirks & (XHCI_AMD_0x96_HOST | XHCI_NEC_HOST)));
+ }
+ 
+ /* xHCI debugging */
+diff --git a/kernel/cgroup/rstat.c b/kernel/cgroup/rstat.c
+index aac91466279f17..3e01781aeb7bd0 100644
+--- a/kernel/cgroup/rstat.c
++++ b/kernel/cgroup/rstat.c
+@@ -612,36 +612,33 @@ static void cgroup_force_idle_show(struct seq_file *seq, struct cgroup_base_stat
+ void cgroup_base_stat_cputime_show(struct seq_file *seq)
+ {
+ 	struct cgroup *cgrp = seq_css(seq)->cgroup;
+-	u64 usage, utime, stime, ntime;
++	struct cgroup_base_stat bstat;
+ 
+ 	if (cgroup_parent(cgrp)) {
+ 		cgroup_rstat_flush_hold(cgrp);
+-		usage = cgrp->bstat.cputime.sum_exec_runtime;
++		bstat = cgrp->bstat;
+ 		cputime_adjust(&cgrp->bstat.cputime, &cgrp->prev_cputime,
+-			       &utime, &stime);
+-		ntime = cgrp->bstat.ntime;
++			       &bstat.cputime.utime, &bstat.cputime.stime);
+ 		cgroup_rstat_flush_release(cgrp);
+ 	} else {
+-		/* cgrp->bstat of root is not actually used, reuse it */
+-		root_cgroup_cputime(&cgrp->bstat);
+-		usage = cgrp->bstat.cputime.sum_exec_runtime;
+-		utime = cgrp->bstat.cputime.utime;
+-		stime = cgrp->bstat.cputime.stime;
+-		ntime = cgrp->bstat.ntime;
++		root_cgroup_cputime(&bstat);
+ 	}
+ 
+-	do_div(usage, NSEC_PER_USEC);
+-	do_div(utime, NSEC_PER_USEC);
+-	do_div(stime, NSEC_PER_USEC);
+-	do_div(ntime, NSEC_PER_USEC);
++	do_div(bstat.cputime.sum_exec_runtime, NSEC_PER_USEC);
++	do_div(bstat.cputime.utime, NSEC_PER_USEC);
++	do_div(bstat.cputime.stime, NSEC_PER_USEC);
++	do_div(bstat.ntime, NSEC_PER_USEC);
+ 
+ 	seq_printf(seq, "usage_usec %llu\n"
+ 			"user_usec %llu\n"
+ 			"system_usec %llu\n"
+ 			"nice_usec %llu\n",
+-			usage, utime, stime, ntime);
++			bstat.cputime.sum_exec_runtime,
++			bstat.cputime.utime,
++			bstat.cputime.stime,
++			bstat.ntime);
+ 
+-	cgroup_force_idle_show(seq, &cgrp->bstat);
++	cgroup_force_idle_show(seq, &bstat);
+ }
+ 
+ /* Add bpf kfuncs for cgroup_rstat_updated() and cgroup_rstat_flush() */
+diff --git a/net/atm/mpc.c b/net/atm/mpc.c
+index 324e3ab96bb393..12da0269275c54 100644
+--- a/net/atm/mpc.c
++++ b/net/atm/mpc.c
+@@ -1314,6 +1314,8 @@ static void MPOA_cache_impos_rcvd(struct k_message *msg,
+ 	holding_time = msg->content.eg_info.holding_time;
+ 	dprintk("(%s) entry = %p, holding_time = %u\n",
+ 		mpc->dev->name, entry, holding_time);
++	if (entry == NULL && !holding_time)
++		return;
+ 	if (entry == NULL && holding_time) {
+ 		entry = mpc->eg_ops->add_entry(msg, mpc);
+ 		mpc->eg_ops->put(entry);
+diff --git a/net/ipv6/netfilter/nf_socket_ipv6.c b/net/ipv6/netfilter/nf_socket_ipv6.c
+index a7690ec6232596..9ea5ef56cb2704 100644
+--- a/net/ipv6/netfilter/nf_socket_ipv6.c
++++ b/net/ipv6/netfilter/nf_socket_ipv6.c
+@@ -103,6 +103,10 @@ struct sock *nf_sk_lookup_slow_v6(struct net *net, const struct sk_buff *skb,
+ 	struct sk_buff *data_skb = NULL;
+ 	int doff = 0;
+ 	int thoff = 0, tproto;
++#if IS_ENABLED(CONFIG_NF_CONNTRACK)
++	enum ip_conntrack_info ctinfo;
++	struct nf_conn const *ct;
++#endif
+ 
+ 	tproto = ipv6_find_hdr(skb, &thoff, -1, NULL, NULL);
+ 	if (tproto < 0) {
+@@ -136,6 +140,25 @@ struct sock *nf_sk_lookup_slow_v6(struct net *net, const struct sk_buff *skb,
+ 		return NULL;
+ 	}
+ 
++#if IS_ENABLED(CONFIG_NF_CONNTRACK)
++	/* Do the lookup with the original socket address in
++	 * case this is a reply packet of an established
++	 * SNAT-ted connection.
++	 */
++	ct = nf_ct_get(skb, &ctinfo);
++	if (ct &&
++	    ((tproto != IPPROTO_ICMPV6 &&
++	      ctinfo == IP_CT_ESTABLISHED_REPLY) ||
++	     (tproto == IPPROTO_ICMPV6 &&
++	      ctinfo == IP_CT_RELATED_REPLY)) &&
++	    (ct->status & IPS_SRC_NAT_DONE)) {
++		daddr = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3.in6;
++		dport = (tproto == IPPROTO_TCP) ?
++			ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u.tcp.port :
++			ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u.udp.port;
++	}
++#endif
++
+ 	return nf_socket_get_sock_v6(net, data_skb, doff, tproto, saddr, daddr,
+ 				     sport, dport, indev);
+ }
+diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
+index a84857a3c2bfbe..78aab243c8b655 100644
+--- a/sound/pci/hda/patch_realtek.c
++++ b/sound/pci/hda/patch_realtek.c
+@@ -10519,6 +10519,7 @@ static const struct hda_quirk alc269_fixup_tbl[] = {
+ 	SND_PCI_QUIRK(0x103c, 0x8811, "HP Spectre x360 15-eb1xxx", ALC285_FIXUP_HP_SPECTRE_X360_EB1),
+ 	SND_PCI_QUIRK(0x103c, 0x8812, "HP Spectre x360 15-eb1xxx", ALC285_FIXUP_HP_SPECTRE_X360_EB1),
+ 	SND_PCI_QUIRK(0x103c, 0x881d, "HP 250 G8 Notebook PC", ALC236_FIXUP_HP_MUTE_LED_COEFBIT2),
++	SND_PCI_QUIRK(0x103c, 0x881e, "HP Laptop 15s-du3xxx", ALC236_FIXUP_HP_MUTE_LED_COEFBIT2),
+ 	SND_PCI_QUIRK(0x103c, 0x8846, "HP EliteBook 850 G8 Notebook PC", ALC285_FIXUP_HP_GPIO_LED),
+ 	SND_PCI_QUIRK(0x103c, 0x8847, "HP EliteBook x360 830 G8 Notebook PC", ALC285_FIXUP_HP_GPIO_LED),
+ 	SND_PCI_QUIRK(0x103c, 0x884b, "HP EliteBook 840 Aero G8 Notebook PC", ALC285_FIXUP_HP_GPIO_LED),
+@@ -10783,6 +10784,7 @@ static const struct hda_quirk alc269_fixup_tbl[] = {
+ 	SND_PCI_QUIRK(0x1043, 0x1d4e, "ASUS TM420", ALC256_FIXUP_ASUS_HPE),
+ 	SND_PCI_QUIRK(0x1043, 0x1da2, "ASUS UP6502ZA/ZD", ALC245_FIXUP_CS35L41_SPI_2),
+ 	SND_PCI_QUIRK(0x1043, 0x1df3, "ASUS UM5606WA", ALC294_FIXUP_BASS_SPEAKER_15),
++	SND_PCI_QUIRK(0x1043, 0x1264, "ASUS UM5606KA", ALC294_FIXUP_BASS_SPEAKER_15),
+ 	SND_PCI_QUIRK(0x1043, 0x1e02, "ASUS UX3402ZA", ALC245_FIXUP_CS35L41_SPI_2),
+ 	SND_PCI_QUIRK(0x1043, 0x1e11, "ASUS Zephyrus G15", ALC289_FIXUP_ASUS_GA502),
+ 	SND_PCI_QUIRK(0x1043, 0x1e12, "ASUS UM3402", ALC287_FIXUP_CS35L41_I2C_2),
+diff --git a/sound/usb/mixer_quirks.c b/sound/usb/mixer_quirks.c
+index ed6127b0389fff..3d36d22f8e9e6b 100644
+--- a/sound/usb/mixer_quirks.c
++++ b/sound/usb/mixer_quirks.c
+@@ -4223,6 +4223,52 @@ static void snd_dragonfly_quirk_db_scale(struct usb_mixer_interface *mixer,
+ 	}
+ }
+ 
++/*
++ * Some Plantronics headsets have control names that don't meet ALSA naming
++ * standards. This function fixes nonstandard source names. By the time
++ * this function is called the control name should look like one of these:
++ * "source names Playback Volume"
++ * "source names Playback Switch"
++ * "source names Capture Volume"
++ * "source names Capture Switch"
++ * If any of the trigger words are found in the name then the name will
++ * be changed to:
++ * "Headset Playback Volume"
++ * "Headset Playback Switch"
++ * "Headset Capture Volume"
++ * "Headset Capture Switch"
++ * depending on the current suffix.
++ */
++static void snd_fix_plt_name(struct snd_usb_audio *chip,
++			     struct snd_ctl_elem_id *id)
++{
++	/* no variant of "Sidetone" should be added to this list */
++	static const char * const trigger[] = {
++		"Earphone", "Microphone", "Receive", "Transmit"
++	};
++	static const char * const suffix[] = {
++		" Playback Volume", " Playback Switch",
++		" Capture Volume", " Capture Switch"
++	};
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(trigger); i++)
++		if (strstr(id->name, trigger[i]))
++			goto triggered;
++	usb_audio_dbg(chip, "no change in %s\n", id->name);
++	return;
++
++triggered:
++	for (i = 0; i < ARRAY_SIZE(suffix); i++)
++		if (strstr(id->name, suffix[i])) {
++			usb_audio_dbg(chip, "fixing kctl name %s\n", id->name);
++			snprintf(id->name, sizeof(id->name), "Headset%s",
++				 suffix[i]);
++			return;
++		}
++	usb_audio_dbg(chip, "something wrong in kctl name %s\n", id->name);
++}
++
+ void snd_usb_mixer_fu_apply_quirk(struct usb_mixer_interface *mixer,
+ 				  struct usb_mixer_elem_info *cval, int unitid,
+ 				  struct snd_kcontrol *kctl)
+@@ -4240,5 +4286,10 @@ void snd_usb_mixer_fu_apply_quirk(struct usb_mixer_interface *mixer,
+ 			cval->min_mute = 1;
+ 		break;
+ 	}
++
++	/* ALSA-ify some Plantronics headset control names */
++	if (USB_ID_VENDOR(mixer->chip->usb_id) == 0x047f &&
++	    (cval->control == UAC_FU_MUTE || cval->control == UAC_FU_VOLUME))
++		snd_fix_plt_name(mixer->chip, &kctl->id);
+ }
+ 
+diff --git a/tools/perf/Documentation/intel-hybrid.txt b/tools/perf/Documentation/intel-hybrid.txt
+index e7a776ad25d719..0379903673a4ac 100644
+--- a/tools/perf/Documentation/intel-hybrid.txt
++++ b/tools/perf/Documentation/intel-hybrid.txt
+@@ -8,15 +8,15 @@ Part of events are available on core cpu, part of events are available
+ on atom cpu and even part of events are available on both.
+ 
+ Kernel exports two new cpu pmus via sysfs:
+-/sys/devices/cpu_core
+-/sys/devices/cpu_atom
++/sys/bus/event_source/devices/cpu_core
++/sys/bus/event_source/devices/cpu_atom
+ 
+ The 'cpus' files are created under the directories. For example,
+ 
+-cat /sys/devices/cpu_core/cpus
++cat /sys/bus/event_source/devices/cpu_core/cpus
+ 0-15
+ 
+-cat /sys/devices/cpu_atom/cpus
++cat /sys/bus/event_source/devices/cpu_atom/cpus
+ 16-23
+ 
+ It indicates cpu0-cpu15 are core cpus and cpu16-cpu23 are atom cpus.
+@@ -60,8 +60,8 @@ can't carry pmu information. So now this type is extended to be PMU aware
+ type. The PMU type ID is stored at attr.config[63:32].
+ 
+ PMU type ID is retrieved from sysfs.
+-/sys/devices/cpu_atom/type
+-/sys/devices/cpu_core/type
++/sys/bus/event_source/devices/cpu_atom/type
++/sys/bus/event_source/devices/cpu_core/type
+ 
+ The new attr.config layout for PERF_TYPE_HARDWARE:
+ 
+diff --git a/tools/perf/Documentation/perf-list.txt b/tools/perf/Documentation/perf-list.txt
+index d0c65fad419a07..c3ffd93f94d73b 100644
+--- a/tools/perf/Documentation/perf-list.txt
++++ b/tools/perf/Documentation/perf-list.txt
+@@ -188,7 +188,7 @@ in the CPU vendor specific documentation.
+ 
+ The available PMUs and their raw parameters can be listed with
+ 
+-  ls /sys/devices/*/format
++  ls /sys/bus/event_source/devices/*/format
+ 
+ For example the raw event "LSD.UOPS" core pmu event above could
+ be specified as
+diff --git a/tools/perf/arch/x86/util/iostat.c b/tools/perf/arch/x86/util/iostat.c
+index 00f645a0c18ac9..7442a2cd87eda7 100644
+--- a/tools/perf/arch/x86/util/iostat.c
++++ b/tools/perf/arch/x86/util/iostat.c
+@@ -32,7 +32,7 @@
+ #define MAX_PATH 1024
+ #endif
+ 
+-#define UNCORE_IIO_PMU_PATH	"devices/uncore_iio_%d"
++#define UNCORE_IIO_PMU_PATH	"bus/event_source/devices/uncore_iio_%d"
+ #define SYSFS_UNCORE_PMU_PATH	"%s/"UNCORE_IIO_PMU_PATH
+ #define PLATFORM_MAPPING_PATH	UNCORE_IIO_PMU_PATH"/die%d"
+ 
+diff --git a/tools/perf/builtin-stat.c b/tools/perf/builtin-stat.c
+index 77e327d4a9a70c..68ea7589c143bd 100644
+--- a/tools/perf/builtin-stat.c
++++ b/tools/perf/builtin-stat.c
+@@ -97,7 +97,7 @@
+ #include <internal/threadmap.h>
+ 
+ #define DEFAULT_SEPARATOR	" "
+-#define FREEZE_ON_SMI_PATH	"devices/cpu/freeze_on_smi"
++#define FREEZE_ON_SMI_PATH	"bus/event_source/devices/cpu/freeze_on_smi"
+ 
+ static void print_counters(struct timespec *ts, int argc, const char **argv);
+ 
+diff --git a/tools/perf/util/mem-events.c b/tools/perf/util/mem-events.c
+index 3692e988c86e5d..0277d3e1505c52 100644
+--- a/tools/perf/util/mem-events.c
++++ b/tools/perf/util/mem-events.c
+@@ -189,7 +189,7 @@ static bool perf_pmu__mem_events_supported(const char *mnt, struct perf_pmu *pmu
+ 	if (!e->event_name)
+ 		return true;
+ 
+-	scnprintf(path, PATH_MAX, "%s/devices/%s/events/%s", mnt, pmu->name, e->event_name);
++	scnprintf(path, PATH_MAX, "%s/bus/event_source/devices/%s/events/%s", mnt, pmu->name, e->event_name);
+ 
+ 	return !stat(path, &st);
+ }
+diff --git a/tools/perf/util/pmu.c b/tools/perf/util/pmu.c
+index 6206c8fe2bf941..a8193ac8f2e7d0 100644
+--- a/tools/perf/util/pmu.c
++++ b/tools/perf/util/pmu.c
+@@ -36,12 +36,12 @@
+ #define UNIT_MAX_LEN	31 /* max length for event unit name */
+ 
+ enum event_source {
+-	/* An event loaded from /sys/devices/<pmu>/events. */
++	/* An event loaded from /sys/bus/event_source/devices/<pmu>/events. */
+ 	EVENT_SRC_SYSFS,
+ 	/* An event loaded from a CPUID matched json file. */
+ 	EVENT_SRC_CPU_JSON,
+ 	/*
+-	 * An event loaded from a /sys/devices/<pmu>/identifier matched json
++	 * An event loaded from a /sys/bus/event_source/devices/<pmu>/identifier matched json
+ 	 * file.
+ 	 */
+ 	EVENT_SRC_SYS_JSON,
 Subject: [PATCH]noir linux kernel version
 ---
  Makefile | 4 ++++
@@ -132,7 +1038,7 @@ index da2ee8d6ef1a7..354ce16d83cb5 100644
  	return ret;
  }
 diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index 6ea645939573f..1254992184d2e 100644
+index 6ea645939573f..afbd2ebe5c39d 100644
 --- a/arch/arm/kernel/traps.c
 +++ b/arch/arm/kernel/traps.c
 @@ -258,13 +258,6 @@ void show_stack(struct task_struct *tsk, unsigned long *sp, const char *loglvl)
@@ -155,8 +1061,8 @@ index 6ea645939573f..1254992184d2e 100644
  
 -	pr_emerg("Internal error: %s: %x [#%d]" S_PREEMPT S_SMP S_ISA "\n",
 -	         str, err, ++die_counter);
-+	pr_emerg("Internal error: %s: %x [#%d] %s" S_SMP S_ISA "\n",
-+		 str, err, ++die_counter, preempt_model_str());
++	pr_emerg("Internal error: %s: %x [#%d]" S_SMP S_ISA "\n",
++		 str, err, ++die_counter);
  
  	/* trap and error numbers are mostly meaningless on ARM */
  	ret = notify_die(DIE_OOPS, str, regs, err, tsk->thread.trap_no, SIGSEGV);
@@ -184,6 +1090,74 @@ index ab01b51de5590..cd030e2734e5d 100644
  	do_bad_area(addr, fsr, regs);
  	return 0;
  }
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 940343beb3d4c..ace21a07a00c7 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -41,6 +41,7 @@ config ARM64
+ 	select ARCH_HAS_NMI_SAFE_THIS_CPU_OPS
+ 	select ARCH_HAS_NON_OVERLAPPING_ADDRESS_SPACE
+ 	select ARCH_HAS_NONLEAF_PMD_YOUNG if ARM64_HAFT
++	select ARCH_HAS_PREEMPT_LAZY
+ 	select ARCH_HAS_PTE_DEVMAP
+ 	select ARCH_HAS_PTE_SPECIAL
+ 	select ARCH_HAS_HW_PTE_YOUNG
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index 1114c1c3300a1..4443ef2789758 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -59,11 +59,12 @@ void arch_setup_new_exec(void);
+ 
+ #define TIF_SIGPENDING		0	/* signal pending */
+ #define TIF_NEED_RESCHED	1	/* rescheduling necessary */
+-#define TIF_NOTIFY_RESUME	2	/* callback before returning to user */
+-#define TIF_FOREIGN_FPSTATE	3	/* CPU's FP state is not current's */
+-#define TIF_UPROBE		4	/* uprobe breakpoint or singlestep */
+-#define TIF_MTE_ASYNC_FAULT	5	/* MTE Asynchronous Tag Check Fault */
+-#define TIF_NOTIFY_SIGNAL	6	/* signal notifications exist */
++#define TIF_NEED_RESCHED_LAZY	2	/* Lazy rescheduling needed */
++#define TIF_NOTIFY_RESUME	3	/* callback before returning to user */
++#define TIF_FOREIGN_FPSTATE	4	/* CPU's FP state is not current's */
++#define TIF_UPROBE		5	/* uprobe breakpoint or singlestep */
++#define TIF_MTE_ASYNC_FAULT	6	/* MTE Asynchronous Tag Check Fault */
++#define TIF_NOTIFY_SIGNAL	7	/* signal notifications exist */
+ #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
+ #define TIF_SYSCALL_AUDIT	9	/* syscall auditing */
+ #define TIF_SYSCALL_TRACEPOINT	10	/* syscall tracepoint for ftrace */
+@@ -85,6 +86,7 @@ void arch_setup_new_exec(void);
+ 
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
++#define _TIF_NEED_RESCHED_LAZY	(1 << TIF_NEED_RESCHED_LAZY)
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+ #define _TIF_FOREIGN_FPSTATE	(1 << TIF_FOREIGN_FPSTATE)
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+@@ -100,10 +102,10 @@ void arch_setup_new_exec(void);
+ #define _TIF_NOTIFY_SIGNAL	(1 << TIF_NOTIFY_SIGNAL)
+ #define _TIF_TSC_SIGSEGV	(1 << TIF_TSC_SIGSEGV)
+ 
+-#define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
++#define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_NEED_RESCHED_LAZY | \
+ 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE | \
+ 				 _TIF_UPROBE | _TIF_MTE_ASYNC_FAULT | \
+-				 _TIF_NOTIFY_SIGNAL)
++				 _TIF_NOTIFY_SIGNAL | _TIF_SIGPENDING)
+ 
+ #define _TIF_SYSCALL_WORK	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
+ 				 _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP | \
+diff --git a/arch/arm64/kernel/entry-common.c b/arch/arm64/kernel/entry-common.c
+index b260ddc4d3e9a..7993fab0cab4c 100644
+--- a/arch/arm64/kernel/entry-common.c
++++ b/arch/arm64/kernel/entry-common.c
+@@ -132,7 +132,7 @@ static void do_notify_resume(struct pt_regs *regs, unsigned long thread_flags)
+ 	do {
+ 		local_irq_enable();
+ 
+-		if (thread_flags & _TIF_NEED_RESCHED)
++		if (thread_flags & (_TIF_NEED_RESCHED | _TIF_NEED_RESCHED_LAZY))
+ 			schedule();
+ 
+ 		if (thread_flags & _TIF_UPROBE)
 diff --git a/arch/arm64/kernel/ftrace.c b/arch/arm64/kernel/ftrace.c
 index d7c0d023dfe5e..5a890714ee2e9 100644
 --- a/arch/arm64/kernel/ftrace.c
@@ -207,7 +1181,7 @@ index d7c0d023dfe5e..5a890714ee2e9 100644
  
  	if (WARN_ON(!mod))
 diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 4e26bd356a482..0b6f92fcdb304 100644
+index 4e26bd356a482..529cff825531c 100644
 --- a/arch/arm64/kernel/traps.c
 +++ b/arch/arm64/kernel/traps.c
 @@ -172,14 +172,6 @@ static void dump_kernel_instr(const char *lvl, struct pt_regs *regs)
@@ -225,17 +1199,15 @@ index 4e26bd356a482..0b6f92fcdb304 100644
  #define S_SMP " SMP"
  
  static int __die(const char *str, long err, struct pt_regs *regs)
-@@ -187,8 +179,8 @@ static int __die(const char *str, long err, struct pt_regs *regs)
+@@ -187,7 +179,7 @@ static int __die(const char *str, long err, struct pt_regs *regs)
  	static int die_counter;
  	int ret;
  
 -	pr_emerg("Internal error: %s: %016lx [#%d]" S_PREEMPT S_SMP "\n",
--		 str, err, ++die_counter);
-+	pr_emerg("Internal error: %s: %016lx [#%d] %s" S_SMP "\n",
-+		 str, err, ++die_counter, preempt_model_str());
++	pr_emerg("Internal error: %s: %016lx [#%d] " S_SMP "\n",
+ 		 str, err, ++die_counter);
  
  	/* trap and error numbers are mostly meaningless on ARM */
- 	ret = notify_die(DIE_OOPS, str, regs, err, 0, SIGSEGV);
 diff --git a/arch/loongarch/kernel/ftrace_dyn.c b/arch/loongarch/kernel/ftrace_dyn.c
 index 25c9a4cfd5fa9..d5d81d74034c8 100644
 --- a/arch/loongarch/kernel/ftrace_dyn.c
@@ -361,19 +1333,18 @@ index ac35015f04c6a..5c6e545d1708c 100644
  		pr_err("No module loaded at addr=%lx\n", rec->ip);
  
 diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
-index edf5cabe5dfdb..d6d77d92b3358 100644
+index edf5cabe5dfdb..cb8e9357383e9 100644
 --- a/arch/powerpc/kernel/traps.c
 +++ b/arch/powerpc/kernel/traps.c
-@@ -263,10 +263,10 @@ static int __die(const char *str, struct pt_regs *regs, long err)
+@@ -263,10 +263,9 @@ static int __die(const char *str, struct pt_regs *regs, long err)
  {
  	printk("Oops: %s, sig: %ld [#%d]\n", str, err, ++die_counter);
  
 -	printk("%s PAGE_SIZE=%luK%s%s%s%s%s%s %s\n",
-+	printk("%s PAGE_SIZE=%luK%s %s %s%s%s%s %s\n",
++	printk("%s PAGE_SIZE=%luK%s %s%s%s%s %s\n",
  	       IS_ENABLED(CONFIG_CPU_LITTLE_ENDIAN) ? "LE" : "BE",
  	       PAGE_SIZE / 1024, get_mmu_str(),
 -	       IS_ENABLED(CONFIG_PREEMPT) ? " PREEMPT" : "",
-+	       preempt_model_str(),
  	       IS_ENABLED(CONFIG_SMP) ? " SMP" : "",
  	       IS_ENABLED(CONFIG_SMP) ? (" NR_CPUS=" __stringify(NR_CPUS)) : "",
  	       debug_pagealloc_enabled() ? " DEBUG_PAGEALLOC" : "",
@@ -497,7 +1468,7 @@ index ae6f7a235d8b2..ae4d8d0194aac 100644
  }
  
 diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
-index 1ecd0580561f6..7930fbab69dbb 100644
+index 1ecd0580561f6..911b95cd57e58 100644
 --- a/arch/s390/kernel/dumpstack.c
 +++ b/arch/s390/kernel/dumpstack.c
 @@ -198,13 +198,8 @@ void __noreturn die(struct pt_regs *regs, const char *str)
@@ -505,14 +1476,13 @@ index 1ecd0580561f6..7930fbab69dbb 100644
  	spin_lock_irq(&die_lock);
  	bust_spinlocks(1);
 -	printk("%s: %04x ilc:%d [#%d] ", str, regs->int_code & 0xffff,
--	       regs->int_code >> 17, ++die_counter);
++	printk("%s: %04x ilc:%d [#%d]", str, regs->int_code & 0xffff,
+ 	       regs->int_code >> 17, ++die_counter);
 -#ifdef CONFIG_PREEMPT
 -	pr_cont("PREEMPT ");
 -#elif defined(CONFIG_PREEMPT_RT)
 -	pr_cont("PREEMPT_RT ");
 -#endif
-+	printk("%s: %04x ilc:%d [#%d] %s", str, regs->int_code & 0xffff,
-+	       regs->int_code >> 17, ++die_counter, preempt_model_str());
  	pr_cont("SMP ");
  	if (debug_pagealloc_enabled())
  		pr_cont("DEBUG_PAGEALLOC");
@@ -534,7 +1504,7 @@ index 8418a892d195a..251b65f2ab216 100644
  	return ret;
  }
 diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
-index a7d562697e50e..064b23a93c6fe 100644
+index a7d562697e50e..91639d1e4ec2c 100644
 --- a/arch/x86/kernel/dumpstack.c
 +++ b/arch/x86/kernel/dumpstack.c
 @@ -395,18 +395,13 @@ NOKPROBE_SYMBOL(oops_end);
@@ -551,9 +1521,10 @@ index a7d562697e50e..064b23a93c6fe 100644
 -		pr = IS_ENABLED(CONFIG_PREEMPT_RT) ? " PREEMPT_RT" : " PREEMPT";
 -
  	printk(KERN_DEFAULT
- 	       "Oops: %s: %04lx [#%d]%s%s%s%s%s\n", str, err & 0xffff,
+-	       "Oops: %s: %04lx [#%d]%s%s%s%s%s\n", str, err & 0xffff,
 -	       ++die_counter, pr,
-+	       ++die_counter, preempt_model_str(),
++	       "Oops: %s: %04lx [#%d]%s%s%s%s\n", str, err & 0xffff,
++	       ++die_counter,
  	       IS_ENABLED(CONFIG_SMP)     ? " SMP"             : "",
  	       debug_pagealloc_enabled()  ? " DEBUG_PAGEALLOC" : "",
  	       IS_ENABLED(CONFIG_KASAN)   ? " KASAN"           : "",
@@ -586,7 +1557,7 @@ index d4705a348a804..977ee75e047c8 100644
  	return false;
  }
 diff --git a/arch/xtensa/kernel/traps.c b/arch/xtensa/kernel/traps.c
-index 38092d21acf8e..0edba7d8df8c7 100644
+index 38092d21acf8e..44c07c4e0833a 100644
 --- a/arch/xtensa/kernel/traps.c
 +++ b/arch/xtensa/kernel/traps.c
 @@ -629,15 +629,11 @@ DEFINE_SPINLOCK(die_lock);
@@ -602,7 +1573,7 @@ index 38092d21acf8e..0edba7d8df8c7 100644
  	spin_lock_irq(&die_lock);
  
 -	pr_info("%s: sig: %ld [#%d]%s\n", str, err, ++die_counter, pr);
-+	pr_info("%s: sig: %ld [#%d]%s\n", str, err, ++die_counter, preempt_model_str());
++	pr_info("%s: sig: %ld [#%d]\n", str, err, ++die_counter);
  	show_regs(regs);
  	if (!user_mode(regs))
  		show_stack(NULL, (unsigned long *)regs->areg[1], KERN_INFO);
@@ -1009,7 +1980,7 @@ index 6f676bb37ac39..3ab372b28cf3d 100644
  	.data		= &serial8250_reg,
  };
 diff --git a/drivers/tty/serial/8250/8250_port.c b/drivers/tty/serial/8250/8250_port.c
-index d7976a21cca9c..76a8d74f16e8b 100644
+index 442967a6cd52d..64430371bdc7c 100644
 --- a/drivers/tty/serial/8250/8250_port.c
 +++ b/drivers/tty/serial/8250/8250_port.c
 @@ -711,7 +711,12 @@ static void serial8250_set_sleep(struct uart_8250_port *p, int sleep)
@@ -1068,7 +2039,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  			p->ier |= UART_IER_RLSI | UART_IER_RDI;
  			serial_port_out(&p->port, UART_IER, p->ier);
  		}
-@@ -3303,7 +3323,11 @@ EXPORT_SYMBOL_GPL(serial8250_set_defaults);
+@@ -3312,7 +3332,11 @@ EXPORT_SYMBOL_GPL(serial8250_set_defaults);
  
  static void serial8250_console_putchar(struct uart_port *port, unsigned char ch)
  {
@@ -1080,7 +2051,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  }
  
  static void serial8250_console_wait_putchar(struct uart_port *port, unsigned char ch)
-@@ -3340,11 +3364,22 @@ static void serial8250_console_restore(struct uart_8250_port *up)
+@@ -3349,11 +3373,22 @@ static void serial8250_console_restore(struct uart_8250_port *up)
  	serial8250_out_MCR(up, up->mcr | UART_MCR_DTR | UART_MCR_RTS);
  }
  
@@ -1104,7 +2075,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  		if (wait_for_lsr(up, UART_LSR_THRE))
  			return;
  	}
-@@ -3357,20 +3392,29 @@ static void fifo_wait_for_lsr(struct uart_8250_port *up, unsigned int count)
+@@ -3366,20 +3401,29 @@ static void fifo_wait_for_lsr(struct uart_8250_port *up, unsigned int count)
   * to get empty.
   */
  static void serial8250_console_fifo_write(struct uart_8250_port *up,
@@ -1137,7 +2108,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  			if (*s == '\n' && !cr_sent) {
  				serial8250_console_putchar(port, '\r');
  				cr_sent = true;
-@@ -3378,6 +3422,8 @@ static void serial8250_console_fifo_write(struct uart_8250_port *up,
+@@ -3387,6 +3431,8 @@ static void serial8250_console_fifo_write(struct uart_8250_port *up,
  				serial8250_console_putchar(port, *s++);
  				cr_sent = false;
  			}
@@ -1146,7 +2117,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  		}
  		tx_count = i;
  	}
-@@ -3386,39 +3432,57 @@ static void serial8250_console_fifo_write(struct uart_8250_port *up,
+@@ -3395,39 +3441,57 @@ static void serial8250_console_fifo_write(struct uart_8250_port *up,
  	 * Allow timeout for each byte written since the caller will only wait
  	 * for UART_LSR_BOTH_EMPTY using the timeout of a single character
  	 */
@@ -1224,7 +2195,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  
  	/* check scratch reg to see if port powered off during system sleep */
  	if (up->canary && (up->canary != serial_port_in(port, UART_SCR))) {
-@@ -3432,6 +3496,18 @@ void serial8250_console_write(struct uart_8250_port *up, const char *s,
+@@ -3441,6 +3505,18 @@ void serial8250_console_write(struct uart_8250_port *up, const char *s,
  		mdelay(port->rs485.delay_rts_before_send);
  	}
  
@@ -1243,7 +2214,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  	use_fifo = (up->capabilities & UART_CAP_FIFO) &&
  		/*
  		 * BCM283x requires to check the fifo
-@@ -3452,10 +3528,23 @@ void serial8250_console_write(struct uart_8250_port *up, const char *s,
+@@ -3461,10 +3537,23 @@ void serial8250_console_write(struct uart_8250_port *up, const char *s,
  		 */
  		!(up->port.flags & UPF_CONS_FLOW);
  
@@ -1269,7 +2240,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  
  	/*
  	 *	Finally, wait for transmitter to become empty
-@@ -3478,11 +3567,18 @@ void serial8250_console_write(struct uart_8250_port *up, const char *s,
+@@ -3487,11 +3576,18 @@ void serial8250_console_write(struct uart_8250_port *up, const char *s,
  	 *	call it if we have saved something in the saved flags
  	 *	while processing with interrupts off.
  	 */
@@ -1292,7 +2263,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  }
  
  static unsigned int probe_baud(struct uart_port *port)
-@@ -3500,8 +3596,24 @@ static unsigned int probe_baud(struct uart_port *port)
+@@ -3509,8 +3605,24 @@ static unsigned int probe_baud(struct uart_port *port)
  	return (port->uartclk / 16) / quot;
  }
  
@@ -1317,7 +2288,7 @@ index d7976a21cca9c..76a8d74f16e8b 100644
  	int baud = 9600;
  	int bits = 8;
  	int parity = 'n';
-@@ -3511,6 +3623,9 @@ int serial8250_console_setup(struct uart_port *port, char *options, bool probe)
+@@ -3520,6 +3632,9 @@ int serial8250_console_setup(struct uart_port *port, char *options, bool probe)
  	if (!port->iobase && !port->membase)
  		return -ENODEV;
  
@@ -1346,10 +2317,10 @@ index 1c6a6c1704d8d..d5dd54c53ace6 100644
  	return ptr;
  }
 diff --git a/include/linux/module.h b/include/linux/module.h
-index 23792d5d7b74b..12f8a7d4fc1c1 100644
+index 30e5b19bafa98..0516f5ea9153b 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
-@@ -663,7 +663,7 @@ static inline bool within_module(unsigned long addr, const struct module *mod)
+@@ -666,7 +666,7 @@ static inline bool within_module(unsigned long addr, const struct module *mod)
  	return within_module_init(addr, mod) || within_module_core(addr, mod);
  }
  
@@ -2099,40 +3070,101 @@ index 3718a88683219..2beefeba82d94 100644
  }
  
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 165c90ba64ea9..919db12f35c20 100644
+index 042351c7afce7..f6557863e694e 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -7650,6 +7650,30 @@ static inline void preempt_dynamic_init(void) { }
+@@ -7647,10 +7647,57 @@ PREEMPT_MODEL_ACCESSOR(lazy);
+ 
+ #else /* !CONFIG_PREEMPT_DYNAMIC: */
+ 
++#define preempt_dynamic_mode -1
++
+ static inline void preempt_dynamic_init(void) { }
  
  #endif /* CONFIG_PREEMPT_DYNAMIC */
  
++const char *preempt_modes[] = {
++	"none", "voluntary", "full", "lazy", NULL,
++};
++
 +const char *preempt_model_str(void)
 +{
-+	if (IS_ENABLED(CONFIG_ARCH_HAS_PREEMPT_LAZY) && preempt_model_lazy()) {
-+		if (preempt_model_rt())
-+			return "PREEMPT_RT+LAZY";
-+		if (preempt_model_full())
-+			return "PREEMPT+LAZY";
-+		if (preempt_model_voluntary())
-+			return "VOLUNTARY+LAZY";
-+		if (preempt_model_none())
-+			return "NONE+LAZY";
-+	} else {
-+		if (preempt_model_rt())
-+			return "PREEMPT_RT";
-+		if (preempt_model_full())
-+			return "PREEMPT";
-+		if (preempt_model_voluntary())
-+			return "VOLUNTARY";
-+		if (preempt_model_none())
-+			return "NONE";
++	bool brace = IS_ENABLED(CONFIG_PREEMPT_RT) &&
++		(IS_ENABLED(CONFIG_PREEMPT_DYNAMIC) ||
++		 IS_ENABLED(CONFIG_PREEMPT_LAZY));
++	static char buf[128];
++
++	if (IS_ENABLED(CONFIG_PREEMPT_BUILD)) {
++		struct seq_buf s;
++
++		seq_buf_init(&s, buf, sizeof(buf));
++		seq_buf_puts(&s, "PREEMPT");
++
++		if (IS_ENABLED(CONFIG_PREEMPT_RT))
++			seq_buf_printf(&s, "%sRT%s",
++				       brace ? "_{" : "_",
++				       brace ? "," : "");
++
++		if (IS_ENABLED(CONFIG_PREEMPT_DYNAMIC)) {
++			seq_buf_printf(&s, "(%s)%s",
++				       preempt_dynamic_mode > 0 ?
++				       preempt_modes[preempt_dynamic_mode] : "undef",
++				       brace ? "}" : "");
++			return seq_buf_str(&s);
++		}
++
++		if (IS_ENABLED(CONFIG_PREEMPT_LAZY)) {
++			seq_buf_printf(&s, "LAZY%s",
++				       brace ? "}" : "");
++			return seq_buf_str(&s);
++		}
++
++		return seq_buf_str(&s);
 +	}
-+	return "UNKNOWN-PREEMPT";
++
++	if (IS_ENABLED(CONFIG_PREEMPT_VOLUNTARY_BUILD))
++		return "VOLUNTARY";
++
++	return "NONE";
 +}
 +
  int io_schedule_prepare(void)
  {
  	int old_iowait = current->in_iowait;
+diff --git a/kernel/sched/debug.c b/kernel/sched/debug.c
+index ef047add7f9e6..39be73969d284 100644
+--- a/kernel/sched/debug.c
++++ b/kernel/sched/debug.c
+@@ -244,11 +244,13 @@ static ssize_t sched_dynamic_write(struct file *filp, const char __user *ubuf,
+ 
+ static int sched_dynamic_show(struct seq_file *m, void *v)
+ {
+-	static const char * preempt_modes[] = {
+-		"none", "voluntary", "full", "lazy",
+-	};
+-	int j = ARRAY_SIZE(preempt_modes) - !IS_ENABLED(CONFIG_ARCH_HAS_PREEMPT_LAZY);
+ 	int i = IS_ENABLED(CONFIG_PREEMPT_RT) * 2;
++	int j;
++
++	/* Count entries in NULL terminated preempt_modes */
++	for (j = 0; preempt_modes[j]; j++)
++		;
++	j -= !IS_ENABLED(CONFIG_ARCH_HAS_PREEMPT_LAZY);
+ 
+ 	for (; i < j; i++) {
+ 		if (preempt_dynamic_mode == i)
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+index 023b844159c94..1287c5789b7ec 100644
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -3619,6 +3619,7 @@ extern int preempt_dynamic_mode;
+ extern int sched_dynamic_mode(const char *str);
+ extern void sched_dynamic_update(int mode);
+ #endif
++extern const char *preempt_modes[];
+ 
+ #ifdef CONFIG_SCHED_MM_CID
+ 
 diff --git a/kernel/static_call_inline.c b/kernel/static_call_inline.c
 index bb7d066a7c397..c2c59e6ef35d0 100644
 --- a/kernel/static_call_inline.c
@@ -2205,7 +3237,7 @@ index adc947587eb81..e6a17a60d8787 100644
  			break;
  		err = add_module(&arr, mod);
 diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index 1496a5ac33ae1..77271faab20e9 100644
+index 0e6d517e74e0f..fd3cb2b2ab829 100644
 --- a/kernel/trace/trace.c
 +++ b/kernel/trace/trace.c
 @@ -4100,12 +4100,7 @@ print_trace_header(struct seq_file *m, struct trace_iterator *iter)
@@ -2302,7 +3334,7 @@ index e0ff219899902..b1f07459c2ee3 100644
  
  	clear_once_table(__start___bug_table, __stop___bug_table);
 diff --git a/lib/dump_stack.c b/lib/dump_stack.c
-index 388da1aea14a5..c3e59f8992279 100644
+index 388da1aea14a5..b3a85fe8b673e 100644
 --- a/lib/dump_stack.c
 +++ b/lib/dump_stack.c
 @@ -54,7 +54,7 @@ void __init dump_stack_set_arch_desc(const char *fmt, ...)
@@ -2310,7 +3342,7 @@ index 388da1aea14a5..c3e59f8992279 100644
  void dump_stack_print_info(const char *log_lvl)
  {
 -	printk("%sCPU: %d UID: %u PID: %d Comm: %.20s %s%s %s %.*s" BUILD_ID_FMT "\n",
-+	printk("%sCPU: %d UID: %u PID: %d Comm: %.20s %s%s %s %.*s %s" BUILD_ID_FMT "\n",
++	printk("%sCPU: %d UID: %u PID: %d Comm: %.20s %s%s %s %.*s %s " BUILD_ID_FMT "\n",
  	       log_lvl, raw_smp_processor_id(),
  	       __kuid_val(current_real_cred()->euid),
  	       current->pid, current->comm,
@@ -2325,11 +3357,11 @@ index 388da1aea14a5..c3e59f8992279 100644
  		printk("%s%s\n", log_lvl, print_tainted_verbose());
 diff --git a/localversion-rt b/localversion-rt
 new file mode 100644
-index 0000000000000..6f206be67cd28
+index 0000000000000..1445cd65885cd
 --- /dev/null
 +++ b/localversion-rt
 @@ -0,0 +1 @@
-+-rt1
++-rt3
  Documentation/admin-guide/kernel-parameters.txt    |   12 +
  Makefile                                           |   12 +-
  arch/Kconfig                                       |    4 +-
