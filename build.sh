@@ -19,12 +19,12 @@ done
 case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
     patch)
-        rm -r patches/linux/patch-$VERSIONPOINT
+#        rm -r patches/linux/patch-$VERSIONPOINT
         cd patches/linux
-        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
-        if  [ -e patch-$VERSIONPOINT.xz ]; then
-            unxz patch-$VERSIONPOINT.xz
-        fi
+#        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
+#        if  [ -e patch-$VERSIONPOINT.xz ]; then
+#            unxz patch-$VERSIONPOINT.xz
+#        fi
         cd ../../
         rm -r patches/other/*
         cd patches/other
@@ -40,6 +40,8 @@ case $e_num in
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.14/bbr3-patches/0001-tcp-bbr3-initial-import.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.14/aufs-patches/0001-aufs-6.14-merge-v20250414.patch
         cd ../../
         truncate noir.patch --size 0
         cat patches/linux/patch-$VERSIONPOINT >> noir.patch
@@ -58,6 +60,8 @@ case $e_num in
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
+            patches/other/0001-tcp-bbr3-initial-import.patch \
+            patches/other/0001-aufs-6.14-merge-v20250414.patch \
             >> noir.patch
             case $f_num in
                 rt)
