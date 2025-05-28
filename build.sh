@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#February 5,2025
+#May 27,2025
 
 . ./config
 
@@ -20,18 +20,18 @@ case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
     patch)
 #        rm -r patches/linux/patch-$VERSIONPOINT
-        cd patches/linux
+#        cd patches/linux
 #        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
 #        if  [ -e patch-$VERSIONPOINT.xz ]; then
 #            unxz patch-$VERSIONPOINT.xz
 #        fi
-        cd ../../
+#        cd ../../
         rm -r patches/other/*
         cd patches/other
         wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
         unxz -kT0 patch-$VERSIONRT.patch.xz
         rm -r patch-$VERSIONRT.patch.xz
-        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONBASE-zen1/linux-v$VERSIONBASE-zen1.patch.zst
+#        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONBASE-zen1/linux-v$VERSIONBASE-zen1.patch.zst
         unzstd linux-v$VERSIONBASE-zen1.patch.zst
         rm -r linux-v$VERSIONBASE-zen1.patch.zst
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
@@ -40,11 +40,11 @@ case $e_num in
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
         wget https://raw.githubusercontent.com/xanmod/linux-patches/refs/heads/master/linux-6.11.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.14/bbr3-patches/0001-tcp-bbr3-initial-import.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.14/aufs-patches/0001-aufs-6.14-merge-v20250414.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-initial-import.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.15/amd-pstate-patches-all/0001-amd-pstate-patches.patch
         cd ../../
         truncate noir.patch --size 0
-        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
+#        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         case $f_num in
             rt)
                 cat patches/noir_base/noir_base.patch >> noir.patch
@@ -53,22 +53,22 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
+#            patches/other/linux-v$VERSIONBASE-zen1.patch \
         cat patches/other/patch-$VERSIONRT.patch \
-            patches/other/linux-v$VERSIONBASE-zen1.patch \
             patches/other/0002-clear-patches.patch \
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0012-XANMOD-dcache-cache_pressure-50-decreases-the-rate-a.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0008-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
-            patches/other/0001-aufs-6.14-merge-v20250414.patch \
+            patches/other/0001-amd-pstate-patches.patch \
             >> noir.patch
             case $f_num in
                 rt)
                     mv noir.patch noir_rt.patch
-                    if [ -e patches/other/patch-$VERSIONRT.patch ]; then
+                   if [ -e patches/other/patch-$VERSIONRT.patch ]; then
                         cat patches/other/patch-$VERSIONRT.patch >> noir_rt.patch
-                    fi 
+                   fi 
                 ;;
                 xenomai)
                     mv noir.patch noir_xenomai.patch
