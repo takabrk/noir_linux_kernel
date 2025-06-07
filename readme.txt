@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu_h
-May 28,2025
+June 8,2025
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -44,12 +44,12 @@ $ ./build.sh -e install_kernel -f rt (PREEMPT_RT版)
 $ ./build.sh -e install_kernel -f xenomai (Xenomai版)
 
 [PREEMPT_RT版スペック]
-- Built on the GCC 12.1.0
+- Built on the GCC 13.3.0
 - CPU scheduler -> EEVDF
 - Default I/O scheduler -> MQ-deadline
 - Processor family -> Generic X86_64
 - Preemption Model -> Fully Preemptible Kernel (Real Time) 
-- CPU Timer frequency -> 500Hz
+- CPU Timer frequency -> 700Hz
 - Kernel Compression mode -> zstd
 - RCU boost delay -> 339
 - Timer tick handling -> Full dynticks system
