@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#June 8,2025
+#June 30,2025
 
 . ./config
 
@@ -13,8 +13,6 @@ do
       f) f_num=$OPTARG
   esac
 done
-
-
 
 case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
@@ -34,13 +32,12 @@ case $e_num in
 #        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONBASE-zen1/linux-v$VERSIONPOINT-zen1.patch.zst
 #        unzstd linux-v$VERSIONBASE-zen1.patch.zst
 #        rm -r linux-v$VERSIONBASE-zen1.patch.zst
-        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONPOINT-zen1/linux-v$VERSIONPOINT-zen1.patch.zst
-        unzstd linux-v$VERSIONZEN-zen1.patch.zst
-        rm -r linux-v$VERSIONZEN-zen1.patch.zst
+#        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONPOINT-zen1/linux-v$VERSIONPOINT-zen1.patch.zst
+#        unzstd linux-v$VERSIONZEN-zen1.patch.zst
+#        rm -r linux-v$VERSIONZEN-zen1.patch.zst
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-initial-import.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/6.15/amd-pstate-patches-all/0001-amd-pstate-patches.patch
         cd ../../
         truncate noir.patch --size 0
 #        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
@@ -52,13 +49,12 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
+#            patches/other/linux-v$VERSIONZEN-zen1.patch \
 #            patches/other/linux-v$VERSIONBASE-zen1.patch \
         cat patches/other/patch-$VERSIONRT.patch \
-            patches/other/linux-v$VERSIONZEN-zen1.patch \
             patches/other/0002-clear-patches.patch \
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0001-tcp-bbr3-initial-import.patch \
-            patches/other/0001-amd-pstate-patches.patch \
             >> noir.patch
             case $f_num in
                 rt)
