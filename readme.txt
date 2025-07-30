@@ -59,8 +59,6 @@ $ ./build.sh -e install_kernel -f xenomai (Xenomai版)
 - futex support
 - BBR3 support
 - Clear Linux support
-- ACS Overdrive support
-- OpenRGB support
 
 [patches]
 https://www.kernel.org/
