@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
 #Created by takamitsu hamada
-#Augaust 4,2025
+#August 4,2025
 
 . ./config
 
@@ -29,10 +29,7 @@ case $e_num in
         wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
         unxz -kT0 patch-$VERSIONRT.patch.xz
         rm -r patch-$VERSIONRT.patch.xz
-        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONBASE-zen1/linux-v$VERSIONPOINT-zen1.patch.zst
-        unzstd linux-v$VERSIONBASE-zen1.patch.zst
-        rm -r linux-v$VERSIONBASE-zen1.patch.zst
-        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONPOINT-zen1/linux-v$VERSIONPOINT-zen1.patch.zst
+        wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONZEN-zen1/linux-v$VERSIONZEN-zen1.patch.zst
         unzstd linux-v$VERSIONZEN-zen1.patch.zst
         rm -r linux-v$VERSIONZEN-zen1.patch.zst
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
