@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel"
 Web site URL : http://vsrx.work
 Created by takamitsu_h
-August 4,2025
+August 14,2025
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
