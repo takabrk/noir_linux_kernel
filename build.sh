@@ -1,7 +1,7 @@
 #!/bin/sh
 #custom linux kernel build script
-#Created by takamitsu hamada
-#August 14,2025
+#Created by takamitsu_h
+#October 2,2025
 
 . ./config
 
@@ -17,15 +17,16 @@ done
 case $e_num in
 #build noir_rt.patch,noir_xenomai.patch
     patch)
-#        rm -r patches/linux/patch-$VERSIONPOINT
-#        cd patches/linux
-#        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
-#        if  [ -e patch-$VERSIONPOINT.xz ]; then
-#            unxz patch-$VERSIONPOINT.xz
-#        fi
-#        cd ../../
+        rm -r patches/linux/patch-$VERSIONPOINT
+        cd patches/linux
+        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
+        if  [ -e patch-$VERSIONPOINT.xz ]; then
+            unxz patch-$VERSIONPOINT.xz
+        fi
+        cd ../../
         cd patches/other
-        wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
+        rm -r *.patch
+       wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
         unxz -kT0 patch-$VERSIONRT.patch.xz
         rm -r patch-$VERSIONRT.patch.xz
         wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONZEN/linux-v$VERSIONZEN.patch.zst
@@ -35,7 +36,7 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         cd ../../
         truncate noir.patch --size 0
-#        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
+        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         case $f_num in
             rt)
                 cat patches/noir_base/noir_base.patch >> noir.patch
@@ -46,12 +47,12 @@ case $e_num in
         esac
         cat patches/other/patch-$VERSIONRT.patch \
             patches/other/linux-v$VERSIONZEN.patch \
-            patches/other/0002-clear-patches.patch \
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
+            patches/other/0002-clear-patches.patch \
             >> noir.patch
             case $f_num in
                 rt)
-                    mv noir.patch noir_rt.patch
+                   mv noir.patch noir_rt.patch
                    if [ -e patches/other/patch-$VERSIONRT.patch ]; then
                         cat patches/other/patch-$VERSIONRT.patch >> noir_rt.patch
                    fi 
@@ -97,6 +98,8 @@ case $e_num in
                    cd linux-$VERSIONPOINT-$NOIR_VERSION
                    make menuconfig
                    #make xconfig
+                   #./scripts/config --disable CONFIG_NFT_SET_PIPAPO_AVX2
+                   #make olddefconfig
                    sudo make clean
                    time sudo make -j$JOBS
                    time sudo make modules -j$JOBS
