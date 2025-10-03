@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#October 2,2025
+#October 3,2025
 
 . ./config
 
@@ -19,24 +19,27 @@ case $e_num in
     patch)
         rm -r patches/linux/patch-$VERSIONPOINT
         cd patches/linux
-        wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
-        if  [ -e patch-$VERSIONPOINT.xz ]; then
+        if  [ ${VERSIONPOINT: -2} != ".0" ]; then
+            wget https://cdn.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/patch-$VERSIONPOINT.xz
             unxz patch-$VERSIONPOINT.xz
         fi
         cd ../../
         cd patches/other
         rm -r *.patch
-       wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
-        unxz -kT0 patch-$VERSIONRT.patch.xz
-        rm -r patch-$VERSIONRT.patch.xz
+#        wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
+#        unxz -kT0 patch-$VERSIONRT.patch.xz
+#        rm -r patch-$VERSIONRT.patch.xz
         wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONZEN/linux-v$VERSIONZEN.patch.zst
         unzstd linux-v$VERSIONZEN.patch.zst
         rm -r linux-v$VERSIONZEN.patch.zst
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/rt-patches-all/0001-rt-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         cd ../../
         truncate noir.patch --size 0
-        cat patches/linux/patch-$VERSIONPOINT >> noir.patch
+        if [ -e patches/linux/patch-$VERSIONPOINT.patch ]; then
+            cat patches/linux/patch-$VERSIONPOINT >> noir.patch
+        fi
         case $f_num in
             rt)
                 cat patches/noir_base/noir_base.patch >> noir.patch
@@ -45,17 +48,15 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-        cat patches/other/patch-$VERSIONRT.patch \
-            patches/other/linux-v$VERSIONZEN.patch \
+#        cat patches/other/patch-$VERSIONRT.patch >> noir.patch
+        cat patches/other/linux-v$VERSIONZEN.patch \
+            patches/other/0001-rt-patches.patch \
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0002-clear-patches.patch \
             >> noir.patch
             case $f_num in
                 rt)
                    mv noir.patch noir_rt.patch
-                   if [ -e patches/other/patch-$VERSIONRT.patch ]; then
-                        cat patches/other/patch-$VERSIONRT.patch >> noir_rt.patch
-                   fi 
                 ;;
                 xenomai)
                     mv noir.patch noir_xenomai.patch
