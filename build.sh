@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#October 3,2025
+#October 11,2025
 
 . ./config
 
@@ -26,9 +26,6 @@ case $e_num in
         cd ../../
         cd patches/other
         rm -r *.patch
-#        wget https://www.kernel.org/pub/linux/kernel/projects/rt/$VERSIONBASE/patch-$VERSIONRT.patch.xz
-#        unxz -kT0 patch-$VERSIONRT.patch.xz
-#        rm -r patch-$VERSIONRT.patch.xz
         wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONZEN/linux-v$VERSIONZEN.patch.zst
         unzstd linux-v$VERSIONZEN.patch.zst
         rm -r linux-v$VERSIONZEN.patch.zst
@@ -37,7 +34,7 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         cd ../../
         truncate noir.patch --size 0
-        if [ -e patches/linux/patch-$VERSIONPOINT.patch ]; then
+        if [ -e patches/linux/patch-$VERSIONPOINT ]; then
             cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         fi
         case $f_num in
@@ -48,7 +45,6 @@ case $e_num in
                 cat patches/noir_base/noir_base_xenomai.patch >> noir.patch
             ;;
         esac
-#        cat patches/other/patch-$VERSIONRT.patch >> noir.patch
         cat patches/other/linux-v$VERSIONZEN.patch \
             patches/other/0001-rt-patches.patch \
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
