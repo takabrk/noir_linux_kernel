@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-October 17,2025
+October 22,2025
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -20,30 +20,30 @@ $ sudo dpkg -i *.deb
 
 
 カスタムカーネルには、様々なパッチを適用しています。
-noir_rt.patch、noir_bore.patchは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
-PREEMPT_RT版、あるいはBORE版をビルド出来ます。
+noir_zen.patch、noir_bore.patchは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
+ZEN版、あるいはBORE版をビルド出来ます。
 
 1.Noir Linux Kernelパッチの組み立て
-$ ./build.sh -e patch -f rt (PREEMPT_RT版)
+$ ./build.sh -e patch -f zen (ZEN版)
 $ ./build.sh -e patch -f xenomai (BORE版)
 
 2.バニラカーネルのソースコード取得と解凍
-$ ./build.sh -e vanilla -f rt (PREEMPT_RT版)
+$ ./build.sh -e vanilla -f zen (ZEN版)
 $ ./build.sh -e vanilla -f xenomai (BORE版)
 
 3.パッチ当て
-$ ./build.sh -e source -f rt (PREEMPT_RT版)
+$ ./build.sh -e source -f zen (ZEN版)
 $ ./build.sh -e source -f xenomai (BORE版)
 
 4.前述を行った後にカスタムカーネルのビルド
-$ ./build.sh -e build -f rt (PREEMPT_RT版)
+$ ./build.sh -e build -f zen (ZEN版)
 $ ./build.sh -e build -f xenomai (BORE版)
 
 5.カーネルのインストール
-$ ./build.sh -e install_kernel -f rt (PREEMPT_RT版)
-$ ./build.sh -e install_kernel -f xenomai (BORE版)
+$ ./build.sh -e install_kernel -f zen (ZEN版)
+$ ./build.sh -e install_kernel -f bore (BORE版)
 
-[PREEMPT_RT版スペック]
+[ZEN版スペック]
 - Built on the GCC 13.3.0
 - CPU scheduler -> EEVDF
 - Default I/O scheduler -> MQ-deadline
