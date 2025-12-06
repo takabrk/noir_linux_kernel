@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#October 22,2025
+#December 6,2025
 
 . ./config
 
@@ -29,21 +29,21 @@ case $e_num in
         wget https://github.com/zen-kernel/zen-kernel/releases/download/v$VERSIONZEN/linux-v$VERSIONZEN.patch.zst
         unzstd linux-v$VERSIONZEN.patch.zst
         rm -r linux-v$VERSIONZEN.patch.zst
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/rt-patches-all/0001-rt-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/rt-patches/0001-rt-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
-        wget https://raw.githubusercontent.com/firelzrd/bore-scheduler/refs/heads/main/patches/stable/linux-6.17-bore/0001-linux$VERSIONPOINT-bore-$VERSIONBORE.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bore-patches/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-add-BBRv3-congestion-control.patch
         wget https://github.com/zen-kernel/zen-kernel/commit/e6ee819a897b33f392a5fd0774d8cf5c7886d056.patch
         wget https://github.com/zen-kernel/zen-kernel/commit/332c0f76c995d92d920da1a7ba19825db065a713.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0015-XANMOD-mm-vmscan-Reduce-amount-of-swapping.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0017-XANMOD-cpufreq-tunes-ondemand-and-conservative-gover.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0012-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0001-XANMOD-x86-build-Add-more-CFLAGS-optimizations.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0002-XANMOD-x86-build-Add-LLVM-polyhedral-loop-optimizer-.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0003-XANMOD-kbuild-Add-SMS-based-software-pipelining-flag.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.17.y-xanmod/xanmod/0009-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0015-XANMOD-mm-vmscan-Reduce-amount-of-swapping.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0017-XANMOD-cpufreq-tunes-ondemand-and-conservative-gover.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0012-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0001-XANMOD-x86-build-Add-more-CFLAGS-optimizations.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0002-XANMOD-x86-build-Add-LLVM-polyhedral-loop-optimizer-.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0003-XANMOD-kbuild-Add-SMS-based-software-pipelining-flag.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0008-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0009-XANMOD-block-mq-deadline-Disable-front_merges-by-def.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -59,7 +59,7 @@ case $e_num in
             bore)
                 cat patches/noir_base/noir_base_bore.patch \
                     patches/other/0001-rt-patches.patch \
-                    patches/other/0001-linux$VERSIONPOINT-bore-$VERSIONBORE.patch \
+                    patches/other/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch \
                     patches/other/0001-tcp-bbr3-add-BBRv3-congestion-control.patch \
                     patches/other/e6ee819a897b33f392a5fd0774d8cf5c7886d056.patch \
                     patches/other/332c0f76c995d92d920da1a7ba19825db065a713.patch \

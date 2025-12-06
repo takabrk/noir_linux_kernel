@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-October 22,2025
+December 6,2025
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -87,6 +87,7 @@ https://github.com/sirlucjan/kernel-patches
 https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt/
 https://github.com/Frogging-Family/linux-tkg
 https://github.com/firelzrd/bore-scheduler
+https://gitlab.com/xanmod/linux-patches
 
 ◇I/Oスケジューラー確認方法
 現在使っているI/Oスケジューラーの確認方法は、端末で以下のコマンドを実行する事で出来ます。
