@@ -1,3 +1,2029 @@
+diff --git a/Documentation/devicetree/bindings/serial/renesas,rsci.yaml b/Documentation/devicetree/bindings/serial/renesas,rsci.yaml
+index f50d8e02f47643..6b1f827a335b37 100644
+--- a/Documentation/devicetree/bindings/serial/renesas,rsci.yaml
++++ b/Documentation/devicetree/bindings/serial/renesas,rsci.yaml
+@@ -54,8 +54,6 @@ properties:
+   power-domains:
+     maxItems: 1
+ 
+-  uart-has-rtscts: false
+-
+ required:
+   - compatible
+   - reg
+diff --git a/Documentation/process/2.Process.rst b/Documentation/process/2.Process.rst
+index ef3b116492df08..f4fc0da8999d90 100644
+--- a/Documentation/process/2.Process.rst
++++ b/Documentation/process/2.Process.rst
+@@ -104,8 +104,10 @@ kernels go out with a handful of known regressions though, hopefully, none
+ of them are serious.
+ 
+ Once a stable release is made, its ongoing maintenance is passed off to the
+-"stable team," currently Greg Kroah-Hartman. The stable team will release
+-occasional updates to the stable release using the 5.x.y numbering scheme.
++"stable team," currently consists of Greg Kroah-Hartman and Sasha Levin. The
++stable team will release occasional updates to the stable release using the
++5.x.y numbering scheme.
++
+ To be considered for an update release, a patch must (1) fix a significant
+ bug, and (2) already be merged into the mainline for the next development
+ kernel. Kernels will typically receive stable updates for a little more
+diff --git a/Documentation/tools/rtla/common_appendix.rst b/Documentation/tools/rtla/common_appendix.rst
+deleted file mode 100644
+index 53cae753753771..00000000000000
+--- a/Documentation/tools/rtla/common_appendix.rst
++++ /dev/null
+@@ -1,24 +0,0 @@
+-.. SPDX-License-Identifier: GPL-2.0
+-
+-EXIT STATUS
+-===========
+-
+-::
+-
+- 0  Passed: the test did not hit the stop tracing condition
+- 1  Error: invalid argument
+- 2  Failed: the test hit the stop tracing condition
+-
+-REPORTING BUGS
+-==============
+-Report bugs to <linux-kernel@vger.kernel.org>
+-and <linux-trace-devel@vger.kernel.org>
+-
+-LICENSE
+-=======
+-**rtla** is Free Software licensed under the GNU GPLv2
+-
+-COPYING
+-=======
+-Copyright \(C) 2021 Red Hat, Inc. Free use of this software is granted under
+-the terms of the GNU Public License (GPL).
+diff --git a/Documentation/tools/rtla/common_appendix.txt b/Documentation/tools/rtla/common_appendix.txt
+new file mode 100644
+index 00000000000000..53cae753753771
+--- /dev/null
++++ b/Documentation/tools/rtla/common_appendix.txt
+@@ -0,0 +1,24 @@
++.. SPDX-License-Identifier: GPL-2.0
++
++EXIT STATUS
++===========
++
++::
++
++ 0  Passed: the test did not hit the stop tracing condition
++ 1  Error: invalid argument
++ 2  Failed: the test hit the stop tracing condition
++
++REPORTING BUGS
++==============
++Report bugs to <linux-kernel@vger.kernel.org>
++and <linux-trace-devel@vger.kernel.org>
++
++LICENSE
++=======
++**rtla** is Free Software licensed under the GNU GPLv2
++
++COPYING
++=======
++Copyright \(C) 2021 Red Hat, Inc. Free use of this software is granted under
++the terms of the GNU Public License (GPL).
+diff --git a/Documentation/tools/rtla/common_hist_options.rst b/Documentation/tools/rtla/common_hist_options.rst
+deleted file mode 100644
+index df53ff835bfb66..00000000000000
+--- a/Documentation/tools/rtla/common_hist_options.rst
++++ /dev/null
+@@ -1,23 +0,0 @@
+-**-b**, **--bucket-size** *N*
+-
+-        Set the histogram bucket size (default *1*).
+-
+-**-E**, **--entries** *N*
+-
+-        Set the number of entries of the histogram (default 256).
+-
+-**--no-header**
+-
+-        Do not print header.
+-
+-**--no-summary**
+-
+-        Do not print summary.
+-
+-**--no-index**
+-
+-        Do not print index.
+-
+-**--with-zeros**
+-
+-        Print zero only entries.
+diff --git a/Documentation/tools/rtla/common_hist_options.txt b/Documentation/tools/rtla/common_hist_options.txt
+new file mode 100644
+index 00000000000000..df53ff835bfb66
+--- /dev/null
++++ b/Documentation/tools/rtla/common_hist_options.txt
+@@ -0,0 +1,23 @@
++**-b**, **--bucket-size** *N*
++
++        Set the histogram bucket size (default *1*).
++
++**-E**, **--entries** *N*
++
++        Set the number of entries of the histogram (default 256).
++
++**--no-header**
++
++        Do not print header.
++
++**--no-summary**
++
++        Do not print summary.
++
++**--no-index**
++
++        Do not print index.
++
++**--with-zeros**
++
++        Print zero only entries.
+diff --git a/Documentation/tools/rtla/common_options.rst b/Documentation/tools/rtla/common_options.rst
+deleted file mode 100644
+index 77ef35d3f83171..00000000000000
+--- a/Documentation/tools/rtla/common_options.rst
++++ /dev/null
+@@ -1,119 +0,0 @@
+-**-c**, **--cpus** *cpu-list*
+-
+-        Set the osnoise tracer to run the sample threads in the cpu-list.
+-
+-**-H**, **--house-keeping** *cpu-list*
+-
+-        Run rtla control threads only on the given cpu-list.
+-
+-**-d**, **--duration** *time[s|m|h|d]*
+-
+-        Set the duration of the session.
+-
+-**-D**, **--debug**
+-
+-        Print debug info.
+-
+-**-e**, **--event** *sys:event*
+-
+-        Enable an event in the trace (**-t**) session. The argument can be a specific event, e.g., **-e** *sched:sched_switch*, or all events of a system group, e.g., **-e** *sched*. Multiple **-e** are allowed. It is only active when **-t** or **-a** are set.
+-
+-**--filter** *<filter>*
+-
+-        Filter the previous **-e** *sys:event* event with *<filter>*. For further information about event filtering see https://www.kernel.org/doc/html/latest/trace/events.html#event-filtering.
+-
+-**--trigger** *<trigger>*
+-        Enable a trace event trigger to the previous **-e** *sys:event*.
+-        If the *hist:* trigger is activated, the output histogram will be automatically saved to a file named *system_event_hist.txt*.
+-        For example, the command:
+-
+-        rtla <command> <mode> -t -e osnoise:irq_noise --trigger="hist:key=desc,duration/1000:sort=desc,duration/1000:vals=hitcount"
+-
+-        Will automatically save the content of the histogram associated to *osnoise:irq_noise* event in *osnoise_irq_noise_hist.txt*.
+-
+-        For further information about event trigger see https://www.kernel.org/doc/html/latest/trace/events.html#event-triggers.
+-
+-**-P**, **--priority** *o:prio|r:prio|f:prio|d:runtime:period*
+-
+-        Set scheduling parameters to the osnoise tracer threads, the format to set the priority are:
+-
+-        - *o:prio* - use SCHED_OTHER with *prio*;
+-        - *r:prio* - use SCHED_RR with *prio*;
+-        - *f:prio* - use SCHED_FIFO with *prio*;
+-        - *d:runtime[us|ms|s]:period[us|ms|s]* - use SCHED_DEADLINE with *runtime* and *period* in nanoseconds.
+-
+-**-C**, **--cgroup**\[*=cgroup*]
+-
+-        Set a *cgroup* to the tracer's threads. If the **-C** option is passed without arguments, the tracer's thread will inherit **rtla**'s *cgroup*. Otherwise, the threads will be placed on the *cgroup* passed to the option.
+-
+-**--warm-up** *s*
+-
+-        After starting the workload, let it run for *s* seconds before starting collecting the data, allowing the system to warm-up. Statistical data generated during warm-up is discarded.
+-
+-**--trace-buffer-size** *kB*
+-        Set the per-cpu trace buffer size in kB for the tracing output.
+-
+-**--on-threshold** *action*
+-
+-        Defines an action to be executed when tracing is stopped on a latency threshold
+-        specified by |threshold|.
+-
+-        Multiple --on-threshold actions may be specified, and they will be executed in
+-        the order they are provided. If any action fails, subsequent actions in the list
+-        will not be executed.
+-
+-        Supported actions are:
+-
+-        - *trace[,file=<filename>]*
+-
+-          Saves trace output, optionally taking a filename. Alternative to -t/--trace.
+-          Note that nlike -t/--trace, specifying this multiple times will result in
+-          the trace being saved multiple times.
+-
+-        - *signal,num=<sig>,pid=<pid>*
+-
+-          Sends signal to process. "parent" might be specified in place of pid to target
+-          the parent process of rtla.
+-
+-        - *shell,command=<command>*
+-
+-          Execute shell command.
+-
+-        - *continue*
+-
+-          Continue tracing after actions are executed instead of stopping.
+-
+-        Example:
+-
+-        $ rtla |tool| |thresharg| 20 --on-threshold trace
+-        --on-threshold shell,command="grep ipi_send |tracer|\_trace.txt"
+-        --on-threshold signal,num=2,pid=parent
+-
+-        This will save a trace with the default filename "|tracer|\_trace.txt", print its
+-        lines that contain the text "ipi_send" on standard output, and send signal 2
+-        (SIGINT) to the parent process.
+-
+-        Performance Considerations:
+-
+-        |actionsperf|
+-
+-**--on-end** *action*
+-
+-        Defines an action to be executed at the end of tracing.
+-
+-        Multiple --on-end actions can be specified, and they will be executed in the order
+-        they are provided. If any action fails, subsequent actions in the list will not be
+-        executed.
+-
+-        See the documentation for **--on-threshold** for the list of supported actions, with
+-        the exception that *continue* has no effect.
+-
+-        Example:
+-
+-        $ rtla |tool| -d 5s --on-end trace
+-
+-        This runs rtla with the default options, and saves trace output at the end.
+-
+-**-h**, **--help**
+-
+-        Print help menu.
+diff --git a/Documentation/tools/rtla/common_options.txt b/Documentation/tools/rtla/common_options.txt
+new file mode 100644
+index 00000000000000..77ef35d3f83171
+--- /dev/null
++++ b/Documentation/tools/rtla/common_options.txt
+@@ -0,0 +1,119 @@
++**-c**, **--cpus** *cpu-list*
++
++        Set the osnoise tracer to run the sample threads in the cpu-list.
++
++**-H**, **--house-keeping** *cpu-list*
++
++        Run rtla control threads only on the given cpu-list.
++
++**-d**, **--duration** *time[s|m|h|d]*
++
++        Set the duration of the session.
++
++**-D**, **--debug**
++
++        Print debug info.
++
++**-e**, **--event** *sys:event*
++
++        Enable an event in the trace (**-t**) session. The argument can be a specific event, e.g., **-e** *sched:sched_switch*, or all events of a system group, e.g., **-e** *sched*. Multiple **-e** are allowed. It is only active when **-t** or **-a** are set.
++
++**--filter** *<filter>*
++
++        Filter the previous **-e** *sys:event* event with *<filter>*. For further information about event filtering see https://www.kernel.org/doc/html/latest/trace/events.html#event-filtering.
++
++**--trigger** *<trigger>*
++        Enable a trace event trigger to the previous **-e** *sys:event*.
++        If the *hist:* trigger is activated, the output histogram will be automatically saved to a file named *system_event_hist.txt*.
++        For example, the command:
++
++        rtla <command> <mode> -t -e osnoise:irq_noise --trigger="hist:key=desc,duration/1000:sort=desc,duration/1000:vals=hitcount"
++
++        Will automatically save the content of the histogram associated to *osnoise:irq_noise* event in *osnoise_irq_noise_hist.txt*.
++
++        For further information about event trigger see https://www.kernel.org/doc/html/latest/trace/events.html#event-triggers.
++
++**-P**, **--priority** *o:prio|r:prio|f:prio|d:runtime:period*
++
++        Set scheduling parameters to the osnoise tracer threads, the format to set the priority are:
++
++        - *o:prio* - use SCHED_OTHER with *prio*;
++        - *r:prio* - use SCHED_RR with *prio*;
++        - *f:prio* - use SCHED_FIFO with *prio*;
++        - *d:runtime[us|ms|s]:period[us|ms|s]* - use SCHED_DEADLINE with *runtime* and *period* in nanoseconds.
++
++**-C**, **--cgroup**\[*=cgroup*]
++
++        Set a *cgroup* to the tracer's threads. If the **-C** option is passed without arguments, the tracer's thread will inherit **rtla**'s *cgroup*. Otherwise, the threads will be placed on the *cgroup* passed to the option.
++
++**--warm-up** *s*
++
++        After starting the workload, let it run for *s* seconds before starting collecting the data, allowing the system to warm-up. Statistical data generated during warm-up is discarded.
++
++**--trace-buffer-size** *kB*
++        Set the per-cpu trace buffer size in kB for the tracing output.
++
++**--on-threshold** *action*
++
++        Defines an action to be executed when tracing is stopped on a latency threshold
++        specified by |threshold|.
++
++        Multiple --on-threshold actions may be specified, and they will be executed in
++        the order they are provided. If any action fails, subsequent actions in the list
++        will not be executed.
++
++        Supported actions are:
++
++        - *trace[,file=<filename>]*
++
++          Saves trace output, optionally taking a filename. Alternative to -t/--trace.
++          Note that nlike -t/--trace, specifying this multiple times will result in
++          the trace being saved multiple times.
++
++        - *signal,num=<sig>,pid=<pid>*
++
++          Sends signal to process. "parent" might be specified in place of pid to target
++          the parent process of rtla.
++
++        - *shell,command=<command>*
++
++          Execute shell command.
++
++        - *continue*
++
++          Continue tracing after actions are executed instead of stopping.
++
++        Example:
++
++        $ rtla |tool| |thresharg| 20 --on-threshold trace
++        --on-threshold shell,command="grep ipi_send |tracer|\_trace.txt"
++        --on-threshold signal,num=2,pid=parent
++
++        This will save a trace with the default filename "|tracer|\_trace.txt", print its
++        lines that contain the text "ipi_send" on standard output, and send signal 2
++        (SIGINT) to the parent process.
++
++        Performance Considerations:
++
++        |actionsperf|
++
++**--on-end** *action*
++
++        Defines an action to be executed at the end of tracing.
++
++        Multiple --on-end actions can be specified, and they will be executed in the order
++        they are provided. If any action fails, subsequent actions in the list will not be
++        executed.
++
++        See the documentation for **--on-threshold** for the list of supported actions, with
++        the exception that *continue* has no effect.
++
++        Example:
++
++        $ rtla |tool| -d 5s --on-end trace
++
++        This runs rtla with the default options, and saves trace output at the end.
++
++**-h**, **--help**
++
++        Print help menu.
+diff --git a/Documentation/tools/rtla/common_osnoise_description.rst b/Documentation/tools/rtla/common_osnoise_description.rst
+deleted file mode 100644
+index d5d61615b96709..00000000000000
+--- a/Documentation/tools/rtla/common_osnoise_description.rst
++++ /dev/null
+@@ -1,8 +0,0 @@
+-The **rtla osnoise** tool is an interface for the *osnoise* tracer. The
+-*osnoise* tracer dispatches a kernel thread per-cpu. These threads read the
+-time in a loop while with preemption, softirq and IRQs enabled, thus
+-allowing all the sources of operating system noise during its execution.
+-The *osnoise*'s tracer threads take note of the delta between each time
+-read, along with an interference counter of all sources of interference.
+-At the end of each period, the *osnoise* tracer displays a summary of
+-the results.
+diff --git a/Documentation/tools/rtla/common_osnoise_description.txt b/Documentation/tools/rtla/common_osnoise_description.txt
+new file mode 100644
+index 00000000000000..d5d61615b96709
+--- /dev/null
++++ b/Documentation/tools/rtla/common_osnoise_description.txt
+@@ -0,0 +1,8 @@
++The **rtla osnoise** tool is an interface for the *osnoise* tracer. The
++*osnoise* tracer dispatches a kernel thread per-cpu. These threads read the
++time in a loop while with preemption, softirq and IRQs enabled, thus
++allowing all the sources of operating system noise during its execution.
++The *osnoise*'s tracer threads take note of the delta between each time
++read, along with an interference counter of all sources of interference.
++At the end of each period, the *osnoise* tracer displays a summary of
++the results.
+diff --git a/Documentation/tools/rtla/common_osnoise_options.rst b/Documentation/tools/rtla/common_osnoise_options.rst
+deleted file mode 100644
+index bd3c4f49919395..00000000000000
+--- a/Documentation/tools/rtla/common_osnoise_options.rst
++++ /dev/null
+@@ -1,39 +0,0 @@
+-.. |threshold|  replace:: **-a/--auto**, **-s/--stop**, or **-S/--stop-total**
+-.. |thresharg|  replace:: -s
+-.. |tracer|     replace:: osnoise
+-
+-.. |actionsperf| replace::
+-        Due to implementational limitations, actions might be delayed
+-        up to one second after tracing is stopped.
+-
+-**-a**, **--auto** *us*
+-
+-        Set the automatic trace mode. This mode sets some commonly used options
+-        while debugging the system. It is equivalent to use **-s** *us* **-T 1 -t**.
+-
+-**-p**, **--period** *us*
+-
+-        Set the *osnoise* tracer period in microseconds.
+-
+-**-r**, **--runtime** *us*
+-
+-        Set the *osnoise* tracer runtime in microseconds.
+-
+-**-s**, **--stop** *us*
+-
+-        Stop the trace if a single sample is higher than the argument in microseconds.
+-        If **-T** is set, it will also save the trace to the output.
+-
+-**-S**, **--stop-total** *us*
+-
+-        Stop the trace if the total sample is higher than the argument in microseconds.
+-        If **-T** is set, it will also save the trace to the output.
+-
+-**-T**, **--threshold** *us*
+-
+-        Specify the minimum delta between two time reads to be considered noise.
+-        The default threshold is *5 us*.
+-
+-**-t**, **--trace** \[*file*]
+-
+-        Save the stopped trace to [*file|osnoise_trace.txt*].
+diff --git a/Documentation/tools/rtla/common_osnoise_options.txt b/Documentation/tools/rtla/common_osnoise_options.txt
+new file mode 100644
+index 00000000000000..bd3c4f49919395
+--- /dev/null
++++ b/Documentation/tools/rtla/common_osnoise_options.txt
+@@ -0,0 +1,39 @@
++.. |threshold|  replace:: **-a/--auto**, **-s/--stop**, or **-S/--stop-total**
++.. |thresharg|  replace:: -s
++.. |tracer|     replace:: osnoise
++
++.. |actionsperf| replace::
++        Due to implementational limitations, actions might be delayed
++        up to one second after tracing is stopped.
++
++**-a**, **--auto** *us*
++
++        Set the automatic trace mode. This mode sets some commonly used options
++        while debugging the system. It is equivalent to use **-s** *us* **-T 1 -t**.
++
++**-p**, **--period** *us*
++
++        Set the *osnoise* tracer period in microseconds.
++
++**-r**, **--runtime** *us*
++
++        Set the *osnoise* tracer runtime in microseconds.
++
++**-s**, **--stop** *us*
++
++        Stop the trace if a single sample is higher than the argument in microseconds.
++        If **-T** is set, it will also save the trace to the output.
++
++**-S**, **--stop-total** *us*
++
++        Stop the trace if the total sample is higher than the argument in microseconds.
++        If **-T** is set, it will also save the trace to the output.
++
++**-T**, **--threshold** *us*
++
++        Specify the minimum delta between two time reads to be considered noise.
++        The default threshold is *5 us*.
++
++**-t**, **--trace** \[*file*]
++
++        Save the stopped trace to [*file|osnoise_trace.txt*].
+diff --git a/Documentation/tools/rtla/common_timerlat_aa.rst b/Documentation/tools/rtla/common_timerlat_aa.rst
+deleted file mode 100644
+index 077029e6b289ee..00000000000000
+--- a/Documentation/tools/rtla/common_timerlat_aa.rst
++++ /dev/null
+@@ -1,7 +0,0 @@
+-**--dump-tasks**
+-
+-        prints the task running on all CPUs if stop conditions are met (depends on !--no-aa)
+-
+-**--no-aa**
+-
+-        disable auto-analysis, reducing rtla timerlat cpu usage
+diff --git a/Documentation/tools/rtla/common_timerlat_aa.txt b/Documentation/tools/rtla/common_timerlat_aa.txt
+new file mode 100644
+index 00000000000000..077029e6b289ee
+--- /dev/null
++++ b/Documentation/tools/rtla/common_timerlat_aa.txt
+@@ -0,0 +1,7 @@
++**--dump-tasks**
++
++        prints the task running on all CPUs if stop conditions are met (depends on !--no-aa)
++
++**--no-aa**
++
++        disable auto-analysis, reducing rtla timerlat cpu usage
+diff --git a/Documentation/tools/rtla/common_timerlat_description.rst b/Documentation/tools/rtla/common_timerlat_description.rst
+deleted file mode 100644
+index 49fcae3ffdec18..00000000000000
+--- a/Documentation/tools/rtla/common_timerlat_description.rst
++++ /dev/null
+@@ -1,18 +0,0 @@
+-The **rtla timerlat** tool is an interface for the *timerlat* tracer. The
+-*timerlat* tracer dispatches a kernel thread per-cpu. These threads
+-set a periodic timer to wake themselves up and go back to sleep. After
+-the wakeup, they collect and generate useful information for the
+-debugging of operating system timer latency.
+-
+-The *timerlat* tracer outputs information in two ways. It periodically
+-prints the timer latency at the timer *IRQ* handler and the *Thread*
+-handler. It also enables the trace of the most relevant information via
+-**osnoise:** tracepoints.
+-
+-The **rtla timerlat** tool sets the options of the *timerlat* tracer
+-and collects and displays a summary of the results. By default,
+-the collection is done synchronously in kernel space using a dedicated
+-BPF program attached to the *timerlat* tracer. If either BPF or
+-the **osnoise:timerlat_sample** tracepoint it attaches to is
+-unavailable, the **rtla timerlat** tool falls back to using tracefs to
+-process the data asynchronously in user space.
+diff --git a/Documentation/tools/rtla/common_timerlat_description.txt b/Documentation/tools/rtla/common_timerlat_description.txt
+new file mode 100644
+index 00000000000000..49fcae3ffdec18
+--- /dev/null
++++ b/Documentation/tools/rtla/common_timerlat_description.txt
+@@ -0,0 +1,18 @@
++The **rtla timerlat** tool is an interface for the *timerlat* tracer. The
++*timerlat* tracer dispatches a kernel thread per-cpu. These threads
++set a periodic timer to wake themselves up and go back to sleep. After
++the wakeup, they collect and generate useful information for the
++debugging of operating system timer latency.
++
++The *timerlat* tracer outputs information in two ways. It periodically
++prints the timer latency at the timer *IRQ* handler and the *Thread*
++handler. It also enables the trace of the most relevant information via
++**osnoise:** tracepoints.
++
++The **rtla timerlat** tool sets the options of the *timerlat* tracer
++and collects and displays a summary of the results. By default,
++the collection is done synchronously in kernel space using a dedicated
++BPF program attached to the *timerlat* tracer. If either BPF or
++the **osnoise:timerlat_sample** tracepoint it attaches to is
++unavailable, the **rtla timerlat** tool falls back to using tracefs to
++process the data asynchronously in user space.
+diff --git a/Documentation/tools/rtla/common_timerlat_options.rst b/Documentation/tools/rtla/common_timerlat_options.rst
+deleted file mode 100644
+index 1f5d024b53aa03..00000000000000
+--- a/Documentation/tools/rtla/common_timerlat_options.rst
++++ /dev/null
+@@ -1,67 +0,0 @@
+-.. |threshold|  replace:: **-a/--auto**, **-i/--irq**, or **-T/--thread**
+-.. |thresharg|  replace:: -T
+-.. |tracer|     replace:: timerlat
+-
+-.. |actionsperf| replace::
+-        For time-sensitive actions, it is recommended to run **rtla timerlat** with BPF
+-        support and RT priority. Note that due to implementational limitations, actions
+-        might be delayed up to one second after tracing is stopped if BPF mode is not
+-        available or disabled.
+-
+-**-a**, **--auto** *us*
+-
+-        Set the automatic trace mode. This mode sets some commonly used options
+-        while debugging the system. It is equivalent to use **-T** *us* **-s** *us*
+-        **-t**. By default, *timerlat* tracer uses FIFO:95 for *timerlat* threads,
+-        thus equilavent to **-P** *f:95*.
+-
+-**-p**, **--period** *us*
+-
+-        Set the *timerlat* tracer period in microseconds.
+-
+-**-i**, **--irq** *us*
+-
+-        Stop trace if the *IRQ* latency is higher than the argument in us.
+-
+-**-T**, **--thread** *us*
+-
+-        Stop trace if the *Thread* latency is higher than the argument in us.
+-
+-**-s**, **--stack** *us*
+-
+-        Save the stack trace at the *IRQ* if a *Thread* latency is higher than the
+-        argument in us.
+-
+-**-t**, **--trace** \[*file*]
+-
+-        Save the stopped trace to [*file|timerlat_trace.txt*].
+-
+-**--dma-latency** *us*
+-        Set the /dev/cpu_dma_latency to *us*, aiming to bound exit from idle latencies.
+-        *cyclictest* sets this value to *0* by default, use **--dma-latency** *0* to have
+-        similar results.
+-
+-**--deepest-idle-state** *n*
+-        Disable idle states higher than *n* for cpus that are running timerlat threads to
+-        reduce exit from idle latencies. If *n* is -1, all idle states are disabled.
+-        On exit from timerlat, the idle state setting is restored to its original state
+-        before running timerlat.
+-
+-        Requires rtla to be built with libcpupower.
+-
+-**-k**, **--kernel-threads**
+-
+-        Use timerlat kernel-space threads, in contrast of **-u**.
+-
+-**-u**, **--user-threads**
+-
+-        Set timerlat to run without a workload, and then dispatches user-space workloads
+-        to wait on the timerlat_fd. Once the workload is awakes, it goes to sleep again
+-        adding so the measurement for the kernel-to-user and user-to-kernel to the tracer
+-        output. **--user-threads** will be used unless the user specify **-k**.
+-
+-**-U**, **--user-load**
+-
+-        Set timerlat to run without workload, waiting for the user to dispatch a per-cpu
+-        task that waits for a new period on the tracing/osnoise/per_cpu/cpu$ID/timerlat_fd.
+-        See linux/tools/rtla/sample/timerlat_load.py for an example of user-load code.
+diff --git a/Documentation/tools/rtla/common_timerlat_options.txt b/Documentation/tools/rtla/common_timerlat_options.txt
+new file mode 100644
+index 00000000000000..1f5d024b53aa03
+--- /dev/null
++++ b/Documentation/tools/rtla/common_timerlat_options.txt
+@@ -0,0 +1,67 @@
++.. |threshold|  replace:: **-a/--auto**, **-i/--irq**, or **-T/--thread**
++.. |thresharg|  replace:: -T
++.. |tracer|     replace:: timerlat
++
++.. |actionsperf| replace::
++        For time-sensitive actions, it is recommended to run **rtla timerlat** with BPF
++        support and RT priority. Note that due to implementational limitations, actions
++        might be delayed up to one second after tracing is stopped if BPF mode is not
++        available or disabled.
++
++**-a**, **--auto** *us*
++
++        Set the automatic trace mode. This mode sets some commonly used options
++        while debugging the system. It is equivalent to use **-T** *us* **-s** *us*
++        **-t**. By default, *timerlat* tracer uses FIFO:95 for *timerlat* threads,
++        thus equilavent to **-P** *f:95*.
++
++**-p**, **--period** *us*
++
++        Set the *timerlat* tracer period in microseconds.
++
++**-i**, **--irq** *us*
++
++        Stop trace if the *IRQ* latency is higher than the argument in us.
++
++**-T**, **--thread** *us*
++
++        Stop trace if the *Thread* latency is higher than the argument in us.
++
++**-s**, **--stack** *us*
++
++        Save the stack trace at the *IRQ* if a *Thread* latency is higher than the
++        argument in us.
++
++**-t**, **--trace** \[*file*]
++
++        Save the stopped trace to [*file|timerlat_trace.txt*].
++
++**--dma-latency** *us*
++        Set the /dev/cpu_dma_latency to *us*, aiming to bound exit from idle latencies.
++        *cyclictest* sets this value to *0* by default, use **--dma-latency** *0* to have
++        similar results.
++
++**--deepest-idle-state** *n*
++        Disable idle states higher than *n* for cpus that are running timerlat threads to
++        reduce exit from idle latencies. If *n* is -1, all idle states are disabled.
++        On exit from timerlat, the idle state setting is restored to its original state
++        before running timerlat.
++
++        Requires rtla to be built with libcpupower.
++
++**-k**, **--kernel-threads**
++
++        Use timerlat kernel-space threads, in contrast of **-u**.
++
++**-u**, **--user-threads**
++
++        Set timerlat to run without a workload, and then dispatches user-space workloads
++        to wait on the timerlat_fd. Once the workload is awakes, it goes to sleep again
++        adding so the measurement for the kernel-to-user and user-to-kernel to the tracer
++        output. **--user-threads** will be used unless the user specify **-k**.
++
++**-U**, **--user-load**
++
++        Set timerlat to run without workload, waiting for the user to dispatch a per-cpu
++        task that waits for a new period on the tracing/osnoise/per_cpu/cpu$ID/timerlat_fd.
++        See linux/tools/rtla/sample/timerlat_load.py for an example of user-load code.
+diff --git a/Documentation/tools/rtla/common_top_options.rst b/Documentation/tools/rtla/common_top_options.rst
+deleted file mode 100644
+index f48878938f842c..00000000000000
+--- a/Documentation/tools/rtla/common_top_options.rst
++++ /dev/null
+@@ -1,3 +0,0 @@
+-**-q**, **--quiet**
+-
+-        Print only a summary at the end of the session.
+diff --git a/Documentation/tools/rtla/common_top_options.txt b/Documentation/tools/rtla/common_top_options.txt
+new file mode 100644
+index 00000000000000..f48878938f842c
+--- /dev/null
++++ b/Documentation/tools/rtla/common_top_options.txt
+@@ -0,0 +1,3 @@
++**-q**, **--quiet**
++
++        Print only a summary at the end of the session.
+diff --git a/Documentation/tools/rtla/rtla-hwnoise.rst b/Documentation/tools/rtla/rtla-hwnoise.rst
+index 3a7163c02ac8e8..26512b15fe7ba5 100644
+--- a/Documentation/tools/rtla/rtla-hwnoise.rst
++++ b/Documentation/tools/rtla/rtla-hwnoise.rst
+@@ -29,11 +29,11 @@ collection of the tracer output.
+ 
+ OPTIONS
+ =======
+-.. include:: common_osnoise_options.rst
++.. include:: common_osnoise_options.txt
+ 
+-.. include:: common_top_options.rst
++.. include:: common_top_options.txt
+ 
+-.. include:: common_options.rst
++.. include:: common_options.txt
+ 
+ EXAMPLE
+ =======
+@@ -106,4 +106,4 @@ AUTHOR
+ ======
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla-osnoise-hist.rst b/Documentation/tools/rtla/rtla-osnoise-hist.rst
+index 1fc60ef2610677..007521c865d97e 100644
+--- a/Documentation/tools/rtla/rtla-osnoise-hist.rst
++++ b/Documentation/tools/rtla/rtla-osnoise-hist.rst
+@@ -15,7 +15,7 @@ SYNOPSIS
+ 
+ DESCRIPTION
+ ===========
+-.. include:: common_osnoise_description.rst
++.. include:: common_osnoise_description.txt
+ 
+ The **rtla osnoise hist** tool collects all **osnoise:sample_threshold**
+ occurrence in a histogram, displaying the results in a user-friendly way.
+@@ -24,11 +24,11 @@ collection of the tracer output.
+ 
+ OPTIONS
+ =======
+-.. include:: common_osnoise_options.rst
++.. include:: common_osnoise_options.txt
+ 
+-.. include:: common_hist_options.rst
++.. include:: common_hist_options.txt
+ 
+-.. include:: common_options.rst
++.. include:: common_options.txt
+ 
+ EXAMPLE
+ =======
+@@ -65,4 +65,4 @@ AUTHOR
+ ======
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla-osnoise-top.rst b/Documentation/tools/rtla/rtla-osnoise-top.rst
+index b1cbd7bcd4aed2..6ccadae3894570 100644
+--- a/Documentation/tools/rtla/rtla-osnoise-top.rst
++++ b/Documentation/tools/rtla/rtla-osnoise-top.rst
+@@ -15,7 +15,7 @@ SYNOPSIS
+ 
+ DESCRIPTION
+ ===========
+-.. include:: common_osnoise_description.rst
++.. include:: common_osnoise_description.txt
+ 
+ **rtla osnoise top** collects the periodic summary from the *osnoise* tracer,
+ including the counters of the occurrence of the interference source,
+@@ -26,11 +26,11 @@ collection of the tracer output.
+ 
+ OPTIONS
+ =======
+-.. include:: common_osnoise_options.rst
++.. include:: common_osnoise_options.txt
+ 
+-.. include:: common_top_options.rst
++.. include:: common_top_options.txt
+ 
+-.. include:: common_options.rst
++.. include:: common_options.txt
+ 
+ EXAMPLE
+ =======
+@@ -60,4 +60,4 @@ AUTHOR
+ ======
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla-osnoise.rst b/Documentation/tools/rtla/rtla-osnoise.rst
+index c129b206ce3484..540d2bf6c15247 100644
+--- a/Documentation/tools/rtla/rtla-osnoise.rst
++++ b/Documentation/tools/rtla/rtla-osnoise.rst
+@@ -14,7 +14,7 @@ SYNOPSIS
+ DESCRIPTION
+ ===========
+ 
+-.. include:: common_osnoise_description.rst
++.. include:: common_osnoise_description.txt
+ 
+ The *osnoise* tracer outputs information in two ways. It periodically prints
+ a summary of the noise of the operating system, including the counters of
+@@ -56,4 +56,4 @@ AUTHOR
+ ======
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla-timerlat-hist.rst b/Documentation/tools/rtla/rtla-timerlat-hist.rst
+index 4923a362129bbd..f56fe546411bd4 100644
+--- a/Documentation/tools/rtla/rtla-timerlat-hist.rst
++++ b/Documentation/tools/rtla/rtla-timerlat-hist.rst
+@@ -16,7 +16,7 @@ SYNOPSIS
+ DESCRIPTION
+ ===========
+ 
+-.. include:: common_timerlat_description.rst
++.. include:: common_timerlat_description.txt
+ 
+ The **rtla timerlat hist** displays a histogram of each tracer event
+ occurrence. This tool uses the periodic information, and the
+@@ -25,13 +25,13 @@ occurrence. This tool uses the periodic information, and the
+ OPTIONS
+ =======
+ 
+-.. include:: common_timerlat_options.rst
++.. include:: common_timerlat_options.txt
+ 
+-.. include:: common_hist_options.rst
++.. include:: common_hist_options.txt
+ 
+-.. include:: common_options.rst
++.. include:: common_options.txt
+ 
+-.. include:: common_timerlat_aa.rst
++.. include:: common_timerlat_aa.txt
+ 
+ EXAMPLE
+ =======
+@@ -110,4 +110,4 @@ AUTHOR
+ ======
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla-timerlat-top.rst b/Documentation/tools/rtla/rtla-timerlat-top.rst
+index 50968cdd2095a1..7dbe625d0c4243 100644
+--- a/Documentation/tools/rtla/rtla-timerlat-top.rst
++++ b/Documentation/tools/rtla/rtla-timerlat-top.rst
+@@ -16,7 +16,7 @@ SYNOPSIS
+ DESCRIPTION
+ ===========
+ 
+-.. include:: common_timerlat_description.rst
++.. include:: common_timerlat_description.txt
+ 
+ The **rtla timerlat top** displays a summary of the periodic output
+ from the *timerlat* tracer. It also provides information for each
+@@ -26,13 +26,13 @@ seem with the option **-T**.
+ OPTIONS
+ =======
+ 
+-.. include:: common_timerlat_options.rst
++.. include:: common_timerlat_options.txt
+ 
+-.. include:: common_top_options.rst
++.. include:: common_top_options.txt
+ 
+-.. include:: common_options.rst
++.. include:: common_options.txt
+ 
+-.. include:: common_timerlat_aa.rst
++.. include:: common_timerlat_aa.txt
+ 
+ **--aa-only** *us*
+ 
+@@ -133,4 +133,4 @@ AUTHOR
+ ------
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla-timerlat.rst b/Documentation/tools/rtla/rtla-timerlat.rst
+index 20e2d259467fd0..ce9f57e038c37f 100644
+--- a/Documentation/tools/rtla/rtla-timerlat.rst
++++ b/Documentation/tools/rtla/rtla-timerlat.rst
+@@ -14,7 +14,7 @@ SYNOPSIS
+ DESCRIPTION
+ ===========
+ 
+-.. include:: common_timerlat_description.rst
++.. include:: common_timerlat_description.txt
+ 
+ The **rtla timerlat top** mode displays a summary of the periodic output
+ from the *timerlat* tracer. The **rtla timerlat hist** mode displays
+@@ -51,4 +51,4 @@ AUTHOR
+ ======
+ Written by Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Documentation/tools/rtla/rtla.rst b/Documentation/tools/rtla/rtla.rst
+index fc0d233efcd5df..2a5fb7004ad448 100644
+--- a/Documentation/tools/rtla/rtla.rst
++++ b/Documentation/tools/rtla/rtla.rst
+@@ -45,4 +45,4 @@ AUTHOR
+ ======
+ Daniel Bristot de Oliveira <bristot@kernel.org>
+ 
+-.. include:: common_appendix.rst
++.. include:: common_appendix.txt
+diff --git a/Makefile b/Makefile
+index a082a1d7c7d9b4..23cc6c39819b11 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ VERSION = 6
+ PATCHLEVEL = 18
+-SUBLEVEL = 0
++SUBLEVEL = 1
+ EXTRAVERSION =
+ NAME = Baby Opossum Posse
+ 
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 48598d017d6f3f..974d64bf0a4d2c 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -2143,6 +2143,11 @@ u64 vcpu_tsc_khz(struct kvm_vcpu *vcpu);
+  *			     the gfn, i.e. retrying the instruction will hit a
+  *			     !PRESENT fault, which results in a new shadow page
+  *			     and sends KVM back to square one.
++ *
++ * EMULTYPE_SKIP_SOFT_INT - Set in combination with EMULTYPE_SKIP to only skip
++ *                          an instruction if it could generate a given software
++ *                          interrupt, which must be encoded via
++ *                          EMULTYPE_SET_SOFT_INT_VECTOR().
+  */
+ #define EMULTYPE_NO_DECODE	    (1 << 0)
+ #define EMULTYPE_TRAP_UD	    (1 << 1)
+@@ -2153,6 +2158,10 @@ u64 vcpu_tsc_khz(struct kvm_vcpu *vcpu);
+ #define EMULTYPE_PF		    (1 << 6)
+ #define EMULTYPE_COMPLETE_USER_EXIT (1 << 7)
+ #define EMULTYPE_WRITE_PF_TO_SP	    (1 << 8)
++#define EMULTYPE_SKIP_SOFT_INT	    (1 << 9)
++
++#define EMULTYPE_SET_SOFT_INT_VECTOR(v)	((u32)((v) & 0xff) << 16)
++#define EMULTYPE_GET_SOFT_INT_VECTOR(e)	(((e) >> 16) & 0xff)
+ 
+ static inline bool kvm_can_emulate_event_vectoring(int emul_type)
+ {
+diff --git a/arch/x86/kvm/svm/svm.c b/arch/x86/kvm/svm/svm.c
+index 9d29b2e7e855d6..f2fa69dd5cc72c 100644
+--- a/arch/x86/kvm/svm/svm.c
++++ b/arch/x86/kvm/svm/svm.c
+@@ -272,6 +272,7 @@ static void svm_set_interrupt_shadow(struct kvm_vcpu *vcpu, int mask)
+ }
+ 
+ static int __svm_skip_emulated_instruction(struct kvm_vcpu *vcpu,
++					   int emul_type,
+ 					   bool commit_side_effects)
+ {
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+@@ -293,7 +294,7 @@ static int __svm_skip_emulated_instruction(struct kvm_vcpu *vcpu,
+ 		if (unlikely(!commit_side_effects))
+ 			old_rflags = svm->vmcb->save.rflags;
+ 
+-		if (!kvm_emulate_instruction(vcpu, EMULTYPE_SKIP))
++		if (!kvm_emulate_instruction(vcpu, emul_type))
+ 			return 0;
+ 
+ 		if (unlikely(!commit_side_effects))
+@@ -311,11 +312,13 @@ done:
+ 
+ static int svm_skip_emulated_instruction(struct kvm_vcpu *vcpu)
+ {
+-	return __svm_skip_emulated_instruction(vcpu, true);
++	return __svm_skip_emulated_instruction(vcpu, EMULTYPE_SKIP, true);
+ }
+ 
+-static int svm_update_soft_interrupt_rip(struct kvm_vcpu *vcpu)
++static int svm_update_soft_interrupt_rip(struct kvm_vcpu *vcpu, u8 vector)
+ {
++	const int emul_type = EMULTYPE_SKIP | EMULTYPE_SKIP_SOFT_INT |
++			      EMULTYPE_SET_SOFT_INT_VECTOR(vector);
+ 	unsigned long rip, old_rip = kvm_rip_read(vcpu);
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 
+@@ -331,7 +334,7 @@ static int svm_update_soft_interrupt_rip(struct kvm_vcpu *vcpu)
+ 	 * in use, the skip must not commit any side effects such as clearing
+ 	 * the interrupt shadow or RFLAGS.RF.
+ 	 */
+-	if (!__svm_skip_emulated_instruction(vcpu, !nrips))
++	if (!__svm_skip_emulated_instruction(vcpu, emul_type, !nrips))
+ 		return -EIO;
+ 
+ 	rip = kvm_rip_read(vcpu);
+@@ -367,7 +370,7 @@ static void svm_inject_exception(struct kvm_vcpu *vcpu)
+ 	kvm_deliver_exception_payload(vcpu, ex);
+ 
+ 	if (kvm_exception_is_soft(ex->vector) &&
+-	    svm_update_soft_interrupt_rip(vcpu))
++	    svm_update_soft_interrupt_rip(vcpu, ex->vector))
+ 		return;
+ 
+ 	svm->vmcb->control.event_inj = ex->vector
+@@ -3633,11 +3636,12 @@ static bool svm_set_vnmi_pending(struct kvm_vcpu *vcpu)
+ 
+ static void svm_inject_irq(struct kvm_vcpu *vcpu, bool reinjected)
+ {
++	struct kvm_queued_interrupt *intr = &vcpu->arch.interrupt;
+ 	struct vcpu_svm *svm = to_svm(vcpu);
+ 	u32 type;
+ 
+-	if (vcpu->arch.interrupt.soft) {
+-		if (svm_update_soft_interrupt_rip(vcpu))
++	if (intr->soft) {
++		if (svm_update_soft_interrupt_rip(vcpu, intr->nr))
+ 			return;
+ 
+ 		type = SVM_EVTINJ_TYPE_SOFT;
+@@ -3645,12 +3649,10 @@ static void svm_inject_irq(struct kvm_vcpu *vcpu, bool reinjected)
+ 		type = SVM_EVTINJ_TYPE_INTR;
+ 	}
+ 
+-	trace_kvm_inj_virq(vcpu->arch.interrupt.nr,
+-			   vcpu->arch.interrupt.soft, reinjected);
++	trace_kvm_inj_virq(intr->nr, intr->soft, reinjected);
+ 	++vcpu->stat.irq_injections;
+ 
+-	svm->vmcb->control.event_inj = vcpu->arch.interrupt.nr |
+-				       SVM_EVTINJ_VALID | type;
++	svm->vmcb->control.event_inj = intr->nr | SVM_EVTINJ_VALID | type;
+ }
+ 
+ void svm_complete_interrupt_delivery(struct kvm_vcpu *vcpu, int delivery_mode,
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index c9c2aa6f4705e1..e6f2e34ec97d10 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -9337,6 +9337,23 @@ static bool is_vmware_backdoor_opcode(struct x86_emulate_ctxt *ctxt)
+ 	return false;
+ }
+ 
++static bool is_soft_int_instruction(struct x86_emulate_ctxt *ctxt,
++				    int emulation_type)
++{
++	u8 vector = EMULTYPE_GET_SOFT_INT_VECTOR(emulation_type);
++
++	switch (ctxt->b) {
++	case 0xcc:
++		return vector == BP_VECTOR;
++	case 0xcd:
++		return vector == ctxt->src.val;
++	case 0xce:
++		return vector == OF_VECTOR;
++	default:
++		return false;
++	}
++}
++
+ /*
+  * Decode an instruction for emulation.  The caller is responsible for handling
+  * code breakpoints.  Note, manually detecting code breakpoints is unnecessary
+@@ -9447,6 +9464,10 @@ int x86_emulate_instruction(struct kvm_vcpu *vcpu, gpa_t cr2_or_gpa,
+ 	 * injecting single-step #DBs.
+ 	 */
+ 	if (emulation_type & EMULTYPE_SKIP) {
++		if (emulation_type & EMULTYPE_SKIP_SOFT_INT &&
++		    !is_soft_int_instruction(ctxt, emulation_type))
++			return 0;
++
+ 		if (ctxt->mode != X86EMUL_MODE_PROT64)
+ 			ctxt->eip = (u32)ctxt->_eip;
+ 		else
+diff --git a/crypto/zstd.c b/crypto/zstd.c
+index ac318d333b6847..32a339b74f34cf 100644
+--- a/crypto/zstd.c
++++ b/crypto/zstd.c
+@@ -75,11 +75,6 @@ static int zstd_init(struct crypto_acomp *acomp_tfm)
+ 	return ret;
+ }
+ 
+-static void zstd_exit(struct crypto_acomp *acomp_tfm)
+-{
+-	crypto_acomp_free_streams(&zstd_streams);
+-}
+-
+ static int zstd_compress_one(struct acomp_req *req, struct zstd_ctx *ctx,
+ 			     const void *src, void *dst, unsigned int *dlen)
+ {
+@@ -297,7 +292,6 @@ static struct acomp_alg zstd_acomp = {
+ 		.cra_module = THIS_MODULE,
+ 	},
+ 	.init = zstd_init,
+-	.exit = zstd_exit,
+ 	.compress = zstd_compress,
+ 	.decompress = zstd_decompress,
+ };
+@@ -310,6 +304,7 @@ static int __init zstd_mod_init(void)
+ static void __exit zstd_mod_fini(void)
+ {
+ 	crypto_unregister_acomp(&zstd_acomp);
++	crypto_acomp_free_streams(&zstd_streams);
+ }
+ 
+ module_init(zstd_mod_init);
+diff --git a/drivers/android/binder/node.rs b/drivers/android/binder/node.rs
+index 08d362deaf61e5..c26d113ede9668 100644
+--- a/drivers/android/binder/node.rs
++++ b/drivers/android/binder/node.rs
+@@ -541,10 +541,10 @@ impl Node {
+             guard = self.owner.inner.lock();
+         }
+ 
+-        let death_list = core::mem::take(&mut self.inner.access_mut(&mut guard).death_list);
+-        drop(guard);
+-        for death in death_list {
++        while let Some(death) = self.inner.access_mut(&mut guard).death_list.pop_front() {
++            drop(guard);
+             death.into_arc().set_dead();
++            guard = self.owner.inner.lock();
+         }
+     }
+ 
+diff --git a/drivers/comedi/comedi_fops.c b/drivers/comedi/comedi_fops.c
+index 7e2f2b1a1c362e..b2e62e04afd994 100644
+--- a/drivers/comedi/comedi_fops.c
++++ b/drivers/comedi/comedi_fops.c
+@@ -3023,7 +3023,12 @@ static int compat_chaninfo(struct file *file, unsigned long arg)
+ 	chaninfo.rangelist = compat_ptr(chaninfo32.rangelist);
+ 
+ 	mutex_lock(&dev->mutex);
+-	err = do_chaninfo_ioctl(dev, &chaninfo);
++	if (!dev->attached) {
++		dev_dbg(dev->class_dev, "no driver attached\n");
++		err = -ENODEV;
++	} else {
++		err = do_chaninfo_ioctl(dev, &chaninfo);
++	}
+ 	mutex_unlock(&dev->mutex);
+ 	return err;
+ }
+@@ -3044,7 +3049,12 @@ static int compat_rangeinfo(struct file *file, unsigned long arg)
+ 	rangeinfo.range_ptr = compat_ptr(rangeinfo32.range_ptr);
+ 
+ 	mutex_lock(&dev->mutex);
+-	err = do_rangeinfo_ioctl(dev, &rangeinfo);
++	if (!dev->attached) {
++		dev_dbg(dev->class_dev, "no driver attached\n");
++		err = -ENODEV;
++	} else {
++		err = do_rangeinfo_ioctl(dev, &rangeinfo);
++	}
+ 	mutex_unlock(&dev->mutex);
+ 	return err;
+ }
+@@ -3120,7 +3130,12 @@ static int compat_cmd(struct file *file, unsigned long arg)
+ 		return rc;
+ 
+ 	mutex_lock(&dev->mutex);
+-	rc = do_cmd_ioctl(dev, &cmd, &copy, file);
++	if (!dev->attached) {
++		dev_dbg(dev->class_dev, "no driver attached\n");
++		rc = -ENODEV;
++	} else {
++		rc = do_cmd_ioctl(dev, &cmd, &copy, file);
++	}
+ 	mutex_unlock(&dev->mutex);
+ 	if (copy) {
+ 		/* Special case: copy cmd back to user. */
+@@ -3145,7 +3160,12 @@ static int compat_cmdtest(struct file *file, unsigned long arg)
+ 		return rc;
+ 
+ 	mutex_lock(&dev->mutex);
+-	rc = do_cmdtest_ioctl(dev, &cmd, &copy, file);
++	if (!dev->attached) {
++		dev_dbg(dev->class_dev, "no driver attached\n");
++		rc = -ENODEV;
++	} else {
++		rc = do_cmdtest_ioctl(dev, &cmd, &copy, file);
++	}
+ 	mutex_unlock(&dev->mutex);
+ 	if (copy) {
+ 		err = put_compat_cmd(compat_ptr(arg), &cmd);
+@@ -3205,7 +3225,12 @@ static int compat_insnlist(struct file *file, unsigned long arg)
+ 	}
+ 
+ 	mutex_lock(&dev->mutex);
+-	rc = do_insnlist_ioctl(dev, insns, insnlist32.n_insns, file);
++	if (!dev->attached) {
++		dev_dbg(dev->class_dev, "no driver attached\n");
++		rc = -ENODEV;
++	} else {
++		rc = do_insnlist_ioctl(dev, insns, insnlist32.n_insns, file);
++	}
+ 	mutex_unlock(&dev->mutex);
+ 	kfree(insns);
+ 	return rc;
+@@ -3224,7 +3249,12 @@ static int compat_insn(struct file *file, unsigned long arg)
+ 		return rc;
+ 
+ 	mutex_lock(&dev->mutex);
+-	rc = do_insn_ioctl(dev, &insn, file);
++	if (!dev->attached) {
++		dev_dbg(dev->class_dev, "no driver attached\n");
++		rc = -ENODEV;
++	} else {
++		rc = do_insn_ioctl(dev, &insn, file);
++	}
+ 	mutex_unlock(&dev->mutex);
+ 	return rc;
+ }
+diff --git a/drivers/comedi/drivers/c6xdigio.c b/drivers/comedi/drivers/c6xdigio.c
+index 14b90d1c64dc1c..8a38d97d463b2e 100644
+--- a/drivers/comedi/drivers/c6xdigio.c
++++ b/drivers/comedi/drivers/c6xdigio.c
+@@ -249,9 +249,6 @@ static int c6xdigio_attach(struct comedi_device *dev,
+ 	if (ret)
+ 		return ret;
+ 
+-	/*  Make sure that PnP ports get activated */
+-	pnp_register_driver(&c6xdigio_pnp_driver);
+-
+ 	s = &dev->subdevices[0];
+ 	/* pwm output subdevice */
+ 	s->type		= COMEDI_SUBD_PWM;
+@@ -278,19 +275,46 @@ static int c6xdigio_attach(struct comedi_device *dev,
+ 	return 0;
+ }
+ 
+-static void c6xdigio_detach(struct comedi_device *dev)
+-{
+-	comedi_legacy_detach(dev);
+-	pnp_unregister_driver(&c6xdigio_pnp_driver);
+-}
+-
+ static struct comedi_driver c6xdigio_driver = {
+ 	.driver_name	= "c6xdigio",
+ 	.module		= THIS_MODULE,
+ 	.attach		= c6xdigio_attach,
+-	.detach		= c6xdigio_detach,
++	.detach		= comedi_legacy_detach,
+ };
+-module_comedi_driver(c6xdigio_driver);
++
++static bool c6xdigio_pnp_registered = false;
++
++static int __init c6xdigio_module_init(void)
++{
++	int ret;
++
++	ret = comedi_driver_register(&c6xdigio_driver);
++	if (ret)
++		return ret;
++
++	if (IS_ENABLED(CONFIG_PNP)) {
++		/*  Try to activate the PnP ports */
++		ret = pnp_register_driver(&c6xdigio_pnp_driver);
++		if (ret) {
++			pr_warn("failed to register pnp driver - err %d\n",
++				ret);
++			ret = 0;	/* ignore the error. */
++		} else {
++			c6xdigio_pnp_registered = true;
++		}
++	}
++
++	return 0;
++}
++module_init(c6xdigio_module_init);
++
++static void __exit c6xdigio_module_exit(void)
++{
++	if (c6xdigio_pnp_registered)
++		pnp_unregister_driver(&c6xdigio_pnp_driver);
++	comedi_driver_unregister(&c6xdigio_driver);
++}
++module_exit(c6xdigio_module_exit);
+ 
+ MODULE_AUTHOR("Comedi https://www.comedi.org");
+ MODULE_DESCRIPTION("Comedi driver for the C6x_DIGIO DSP daughter card");
+diff --git a/drivers/comedi/drivers/multiq3.c b/drivers/comedi/drivers/multiq3.c
+index 07ff5383da9976..ac369e9a262d72 100644
+--- a/drivers/comedi/drivers/multiq3.c
++++ b/drivers/comedi/drivers/multiq3.c
+@@ -67,6 +67,11 @@
+ #define MULTIQ3_TRSFRCNTR_OL		0x10	/* xfer CNTR to OL (x and y) */
+ #define MULTIQ3_EFLAG_RESET		0x06	/* reset E bit of flag reg */
+ 
++/*
++ * Limit on the number of optional encoder channels
++ */
++#define MULTIQ3_MAX_ENC_CHANS		8
++
+ static void multiq3_set_ctrl(struct comedi_device *dev, unsigned int bits)
+ {
+ 	/*
+@@ -312,6 +317,10 @@ static int multiq3_attach(struct comedi_device *dev,
+ 	s->insn_read	= multiq3_encoder_insn_read;
+ 	s->insn_config	= multiq3_encoder_insn_config;
+ 
++	/* sanity check for number of encoder channels */
++	if (s->n_chan > MULTIQ3_MAX_ENC_CHANS)
++		s->n_chan = MULTIQ3_MAX_ENC_CHANS;
++
+ 	for (i = 0; i < s->n_chan; i++)
+ 		multiq3_encoder_reset(dev, i);
+ 
+diff --git a/drivers/comedi/drivers/pcl818.c b/drivers/comedi/drivers/pcl818.c
+index 4127adcfb22955..06fe06396f23ab 100644
+--- a/drivers/comedi/drivers/pcl818.c
++++ b/drivers/comedi/drivers/pcl818.c
+@@ -1111,10 +1111,9 @@ static void pcl818_detach(struct comedi_device *dev)
+ {
+ 	struct pcl818_private *devpriv = dev->private;
+ 
+-	if (devpriv) {
+-		pcl818_ai_cancel(dev, dev->read_subdev);
++	if (devpriv)
+ 		pcl818_reset(dev);
+-	}
++
+ 	pcl818_free_dma(dev);
+ 	comedi_legacy_detach(dev);
+ }
+diff --git a/drivers/iio/adc/ad4080.c b/drivers/iio/adc/ad4080.c
+index 6e61787ed3213f..e15310fcd21a36 100644
+--- a/drivers/iio/adc/ad4080.c
++++ b/drivers/iio/adc/ad4080.c
+@@ -125,7 +125,7 @@
+ 
+ /* Miscellaneous Definitions */
+ #define AD4080_SPI_READ						BIT(7)
+-#define AD4080_CHIP_ID						GENMASK(2, 0)
++#define AD4080_CHIP_ID						0x0050
+ 
+ #define AD4080_LVDS_CNV_CLK_CNT_MAX				7
+ 
+@@ -445,7 +445,8 @@ static int ad4080_setup(struct iio_dev *indio_dev)
+ {
+ 	struct ad4080_state *st = iio_priv(indio_dev);
+ 	struct device *dev = regmap_get_device(st->regmap);
+-	unsigned int id;
++	__le16 id_le;
++	u16 id;
+ 	int ret;
+ 
+ 	ret = regmap_write(st->regmap, AD4080_REG_INTERFACE_CONFIG_A,
+@@ -458,10 +459,12 @@ static int ad4080_setup(struct iio_dev *indio_dev)
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = regmap_read(st->regmap, AD4080_REG_CHIP_TYPE, &id);
++	ret = regmap_bulk_read(st->regmap, AD4080_REG_PRODUCT_ID_L, &id_le,
++			       sizeof(id_le));
+ 	if (ret)
+ 		return ret;
+ 
++	id = le16_to_cpu(id_le);
+ 	if (id != AD4080_CHIP_ID)
+ 		dev_info(dev, "Unrecognized CHIP_ID 0x%X\n", id);
+ 
+diff --git a/drivers/net/wireless/realtek/rtl8xxxu/core.c b/drivers/net/wireless/realtek/rtl8xxxu/core.c
+index 3ded5952729fc6..be39463bd6c464 100644
+--- a/drivers/net/wireless/realtek/rtl8xxxu/core.c
++++ b/drivers/net/wireless/realtek/rtl8xxxu/core.c
+@@ -8136,6 +8136,9 @@ static const struct usb_device_id dev_table[] = {
+ /* TP-Link TL-WN823N V2 */
+ {USB_DEVICE_AND_INTERFACE_INFO(0x2357, 0x0135, 0xff, 0xff, 0xff),
+ 	.driver_info = (unsigned long)&rtl8192fu_fops},
++/* D-Link AN3U rev. A1 */
++{USB_DEVICE_AND_INTERFACE_INFO(0x2001, 0x3328, 0xff, 0xff, 0xff),
++	.driver_info = (unsigned long)&rtl8192fu_fops},
+ #ifdef CONFIG_RTL8XXXU_UNTESTED
+ /* Still supported by rtlwifi */
+ {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_REALTEK, 0x8176, 0xff, 0xff, 0xff),
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8822cu.c b/drivers/net/wireless/realtek/rtw88/rtw8822cu.c
+index 324fd5c8bfd440..755f76840b1210 100644
+--- a/drivers/net/wireless/realtek/rtw88/rtw8822cu.c
++++ b/drivers/net/wireless/realtek/rtw88/rtw8822cu.c
+@@ -21,6 +21,8 @@ static const struct usb_device_id rtw_8822cu_id_table[] = {
+ 	  .driver_info = (kernel_ulong_t)&(rtw8822c_hw_spec) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(0x13b1, 0x0043, 0xff, 0xff, 0xff),
+ 	  .driver_info = (kernel_ulong_t)&(rtw8822c_hw_spec) }, /* Alpha - Alpha */
++	{ USB_DEVICE_AND_INTERFACE_INFO(0x2001, 0x3329, 0xff, 0xff, 0xff),
++	  .driver_info = (kernel_ulong_t)&(rtw8822c_hw_spec) }, /* D-Link AC13U rev. A1 */
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(usb, rtw_8822cu_id_table);
+diff --git a/drivers/staging/rtl8723bs/core/rtw_ieee80211.c b/drivers/staging/rtl8723bs/core/rtw_ieee80211.c
+index 53d4c113b19c8c..df35c616e71ff0 100644
+--- a/drivers/staging/rtl8723bs/core/rtw_ieee80211.c
++++ b/drivers/staging/rtl8723bs/core/rtw_ieee80211.c
+@@ -140,22 +140,24 @@ u8 *rtw_get_ie(u8 *pbuf, signed int index, signed int *len, signed int limit)
+ 	signed int tmp, i;
+ 	u8 *p;
+ 
+-	if (limit < 1)
++	if (limit < 2)
+ 		return NULL;
+ 
+ 	p = pbuf;
+ 	i = 0;
+ 	*len = 0;
+-	while (1) {
++	while (i + 2 <= limit) {
++		tmp = *(p + 1);
++		if (i + 2 + tmp > limit)
++			break;
++
+ 		if (*p == index) {
+-			*len = *(p + 1);
++			*len = tmp;
+ 			return p;
+ 		}
+-		tmp = *(p + 1);
++
+ 		p += (tmp + 2);
+ 		i += (tmp + 2);
+-		if (i >= limit)
+-			break;
+ 	}
+ 	return NULL;
+ }
+diff --git a/drivers/staging/rtl8723bs/core/rtw_mlme_ext.c b/drivers/staging/rtl8723bs/core/rtw_mlme_ext.c
+index a897c433d2b061..72eb48d554a35b 100644
+--- a/drivers/staging/rtl8723bs/core/rtw_mlme_ext.c
++++ b/drivers/staging/rtl8723bs/core/rtw_mlme_ext.c
+@@ -588,9 +588,11 @@ unsigned int OnBeacon(struct adapter *padapter, union recv_frame *precv_frame)
+ 
+ 	p = rtw_get_ie(pframe + sizeof(struct ieee80211_hdr_3addr) + _BEACON_IE_OFFSET_, WLAN_EID_EXT_SUPP_RATES, &ielen, precv_frame->u.hdr.len - sizeof(struct ieee80211_hdr_3addr) - _BEACON_IE_OFFSET_);
+ 	if (p && ielen > 0) {
+-		if ((*(p + 1 + ielen) == 0x2D) && (*(p + 2 + ielen) != 0x2D))
+-			/* Invalid value 0x2D is detected in Extended Supported Rates (ESR) IE. Try to fix the IE length to avoid failed Beacon parsing. */
+-			*(p + 1) = ielen - 1;
++		if (p + 2 + ielen < pframe + len) {
++			if ((*(p + 1 + ielen) == 0x2D) && (*(p + 2 + ielen) != 0x2D))
++				/* Invalid value 0x2D is detected in Extended Supported Rates (ESR) IE. Try to fix the IE length to avoid failed Beacon parsing. */
++				*(p + 1) = ielen - 1;
++		}
+ 	}
+ 
+ 	if (pmlmeext->sitesurvey_res.state == SCAN_PROCESS) {
+@@ -1042,6 +1044,9 @@ unsigned int OnAssocReq(struct adapter *padapter, union recv_frame *precv_frame)
+ 		status = WLAN_STATUS_CHALLENGE_FAIL;
+ 		goto OnAssocReqFail;
+ 	} else {
++		if (ie_len > sizeof(supportRate))
++			ie_len = sizeof(supportRate);
++
+ 		memcpy(supportRate, p+2, ie_len);
+ 		supportRateNum = ie_len;
+ 
+@@ -1049,7 +1054,7 @@ unsigned int OnAssocReq(struct adapter *padapter, union recv_frame *precv_frame)
+ 				pkt_len - WLAN_HDR_A3_LEN - ie_offset);
+ 		if (p) {
+ 
+-			if (supportRateNum <= sizeof(supportRate)) {
++			if (supportRateNum + ie_len <= sizeof(supportRate)) {
+ 				memcpy(supportRate+supportRateNum, p+2, ie_len);
+ 				supportRateNum += ie_len;
+ 			}
+diff --git a/drivers/tty/serial/8250/8250_pci.c b/drivers/tty/serial/8250/8250_pci.c
+index 152f914c599dc5..12e8ceffab65f2 100644
+--- a/drivers/tty/serial/8250/8250_pci.c
++++ b/drivers/tty/serial/8250/8250_pci.c
+@@ -95,6 +95,11 @@
+ #define PCI_DEVICE_ID_MOXA_CP138E_A	0x1381
+ #define PCI_DEVICE_ID_MOXA_CP168EL_A	0x1683
+ 
++#define PCI_DEVICE_ID_ADDIDATA_CPCI7500        0x7003
++#define PCI_DEVICE_ID_ADDIDATA_CPCI7500_NG     0x7024
++#define PCI_DEVICE_ID_ADDIDATA_CPCI7420_NG     0x7025
++#define PCI_DEVICE_ID_ADDIDATA_CPCI7300_NG     0x7026
++
+ /* Unknown vendors/cards - this should not be in linux/pci_ids.h */
+ #define PCI_SUBDEVICE_ID_UNKNOWN_0x1584	0x1584
+ #define PCI_SUBDEVICE_ID_UNKNOWN_0x1588	0x1588
+@@ -5996,6 +6001,38 @@ static const struct pci_device_id serial_pci_tbl[] = {
+ 		0,
+ 		pbn_ADDIDATA_PCIe_8_3906250 },
+ 
++	{	PCI_VENDOR_ID_ADDIDATA,
++		PCI_DEVICE_ID_ADDIDATA_CPCI7500,
++		PCI_ANY_ID,
++		PCI_ANY_ID,
++		0,
++		0,
++		pbn_b0_4_115200 },
++
++	{	PCI_VENDOR_ID_ADDIDATA,
++		PCI_DEVICE_ID_ADDIDATA_CPCI7500_NG,
++		PCI_ANY_ID,
++		PCI_ANY_ID,
++		0,
++		0,
++		pbn_b0_4_115200 },
++
++	{	PCI_VENDOR_ID_ADDIDATA,
++		PCI_DEVICE_ID_ADDIDATA_CPCI7420_NG,
++		PCI_ANY_ID,
++		PCI_ANY_ID,
++		0,
++		0,
++		pbn_b0_2_115200 },
++
++	{	PCI_VENDOR_ID_ADDIDATA,
++		PCI_DEVICE_ID_ADDIDATA_CPCI7300_NG,
++		PCI_ANY_ID,
++		PCI_ANY_ID,
++		0,
++		0,
++		pbn_b0_1_115200 },
++
+ 	{	PCI_VENDOR_ID_NETMOS, PCI_DEVICE_ID_NETMOS_9835,
+ 		PCI_VENDOR_ID_IBM, 0x0299,
+ 		0, 0, pbn_b0_bt_2_115200 },
+diff --git a/drivers/tty/serial/sh-sci.c b/drivers/tty/serial/sh-sci.c
+index 62bb62b82cbe58..1db4af6fe59096 100644
+--- a/drivers/tty/serial/sh-sci.c
++++ b/drivers/tty/serial/sh-sci.c
+@@ -1024,8 +1024,16 @@ static int sci_handle_fifo_overrun(struct uart_port *port)
+ 
+ 	status = s->ops->read_reg(port, s->params->overrun_reg);
+ 	if (status & s->params->overrun_mask) {
+-		status &= ~s->params->overrun_mask;
+-		s->ops->write_reg(port, s->params->overrun_reg, status);
++		if (s->type == SCI_PORT_RSCI) {
++			/*
++			 * All of the CFCLR_*C clearing bits match the corresponding
++			 * CSR_*status bits. So, reuse the overrun mask for clearing.
++			 */
++			s->ops->clear_SCxSR(port, s->params->overrun_mask);
++		} else {
++			status &= ~s->params->overrun_mask;
++			s->ops->write_reg(port, s->params->overrun_reg, status);
++		}
+ 
+ 		port->icount.overrun++;
+ 
+diff --git a/drivers/usb/serial/belkin_sa.c b/drivers/usb/serial/belkin_sa.c
+index 44f5b58beec922..aa6b4c4ad5ecbe 100644
+--- a/drivers/usb/serial/belkin_sa.c
++++ b/drivers/usb/serial/belkin_sa.c
+@@ -435,7 +435,7 @@ static int belkin_sa_tiocmset(struct tty_struct *tty,
+ 	struct belkin_sa_private *priv = usb_get_serial_port_data(port);
+ 	unsigned long control_state;
+ 	unsigned long flags;
+-	int retval;
++	int retval = 0;
+ 	int rts = 0;
+ 	int dtr = 0;
+ 
+@@ -452,26 +452,32 @@ static int belkin_sa_tiocmset(struct tty_struct *tty,
+ 	}
+ 	if (clear & TIOCM_RTS) {
+ 		control_state &= ~TIOCM_RTS;
+-		rts = 0;
++		rts = 1;
+ 	}
+ 	if (clear & TIOCM_DTR) {
+ 		control_state &= ~TIOCM_DTR;
+-		dtr = 0;
++		dtr = 1;
+ 	}
+ 
+ 	priv->control_state = control_state;
+ 	spin_unlock_irqrestore(&priv->lock, flags);
+ 
+-	retval = BSA_USB_CMD(BELKIN_SA_SET_RTS_REQUEST, rts);
+-	if (retval < 0) {
+-		dev_err(&port->dev, "Set RTS error %d\n", retval);
+-		goto exit;
++	if (rts) {
++		retval = BSA_USB_CMD(BELKIN_SA_SET_RTS_REQUEST,
++					!!(control_state & TIOCM_RTS));
++		if (retval < 0) {
++			dev_err(&port->dev, "Set RTS error %d\n", retval);
++			goto exit;
++		}
+ 	}
+ 
+-	retval = BSA_USB_CMD(BELKIN_SA_SET_DTR_REQUEST, dtr);
+-	if (retval < 0) {
+-		dev_err(&port->dev, "Set DTR error %d\n", retval);
+-		goto exit;
++	if (dtr) {
++		retval = BSA_USB_CMD(BELKIN_SA_SET_DTR_REQUEST,
++					!!(control_state & TIOCM_DTR));
++		if (retval < 0) {
++			dev_err(&port->dev, "Set DTR error %d\n", retval);
++			goto exit;
++		}
+ 	}
+ exit:
+ 	return retval;
+diff --git a/drivers/usb/serial/ftdi_sio.c b/drivers/usb/serial/ftdi_sio.c
+index b37fa31f56943d..9993a5123344e3 100644
+--- a/drivers/usb/serial/ftdi_sio.c
++++ b/drivers/usb/serial/ftdi_sio.c
+@@ -628,10 +628,8 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(FTDI_VID, FTDI_IBS_PEDO_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_IBS_PROD_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_TAVIR_STK500_PID) },
+-	{ USB_DEVICE(FTDI_VID, FTDI_TIAO_UMPA_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, FTDI_NT_ORIONLXM_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_TIAO_UMPA_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_NT_ORIONLXM_PID, 1) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_NT_ORIONLX_PLUS_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_NT_ORION_IO_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_NT_ORIONMX_PID) },
+@@ -842,24 +840,17 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(FTDI_VID, FTDI_ELSTER_UNICOM_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_PROPOX_JTAGCABLEII_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_PROPOX_ISPCABLEIII_PID) },
+-	{ USB_DEVICE(FTDI_VID, CYBER_CORTEX_AV_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, CYBER_CORTEX_AV_PID, 1) },
+ 	{ USB_DEVICE_INTERFACE_NUMBER(OLIMEX_VID, OLIMEX_ARM_USB_OCD_PID, 1) },
+ 	{ USB_DEVICE_INTERFACE_NUMBER(OLIMEX_VID, OLIMEX_ARM_USB_OCD_H_PID, 1) },
+ 	{ USB_DEVICE_INTERFACE_NUMBER(OLIMEX_VID, OLIMEX_ARM_USB_TINY_PID, 1) },
+ 	{ USB_DEVICE_INTERFACE_NUMBER(OLIMEX_VID, OLIMEX_ARM_USB_TINY_H_PID, 1) },
+-	{ USB_DEVICE(FIC_VID, FIC_NEO1973_DEBUG_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, FTDI_OOCDLINK_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, LMI_LM3S_DEVEL_BOARD_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, LMI_LM3S_EVAL_BOARD_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, LMI_LM3S_ICDI_BOARD_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, FTDI_TURTELIZER_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FIC_VID, FIC_NEO1973_DEBUG_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_OOCDLINK_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, LMI_LM3S_DEVEL_BOARD_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, LMI_LM3S_EVAL_BOARD_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, LMI_LM3S_ICDI_BOARD_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_TURTELIZER_PID, 1) },
+ 	{ USB_DEVICE(RATOC_VENDOR_ID, RATOC_PRODUCT_ID_USB60F) },
+ 	{ USB_DEVICE(RATOC_VENDOR_ID, RATOC_PRODUCT_ID_SCU18) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_REU_TINY_PID) },
+@@ -901,17 +892,14 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(ATMEL_VID, STK541_PID) },
+ 	{ USB_DEVICE(DE_VID, STB_PID) },
+ 	{ USB_DEVICE(DE_VID, WHT_PID) },
+-	{ USB_DEVICE(ADI_VID, ADI_GNICE_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(ADI_VID, ADI_GNICEPLUS_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(ADI_VID, ADI_GNICE_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(ADI_VID, ADI_GNICEPLUS_PID, 1) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(MICROCHIP_VID, MICROCHIP_USB_BOARD_PID,
+ 					USB_CLASS_VENDOR_SPEC,
+ 					USB_SUBCLASS_VENDOR_SPEC, 0x00) },
+ 	{ USB_DEVICE_INTERFACE_NUMBER(ACTEL_VID, MICROSEMI_ARROW_SF2PLUS_BOARD_PID, 2) },
+ 	{ USB_DEVICE(JETI_VID, JETI_SPC1201_PID) },
+-	{ USB_DEVICE(MARVELL_VID, MARVELL_SHEEVAPLUG_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(MARVELL_VID, MARVELL_SHEEVAPLUG_PID, 1) },
+ 	{ USB_DEVICE(LARSENBRUSGAARD_VID, LB_ALTITRACK_PID) },
+ 	{ USB_DEVICE(GN_OTOMETRICS_VID, AURICAL_USB_PID) },
+ 	{ USB_DEVICE(FTDI_VID, PI_C865_PID) },
+@@ -934,10 +922,8 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(PI_VID, PI_1016_PID) },
+ 	{ USB_DEVICE(KONDO_VID, KONDO_USB_SERIAL_PID) },
+ 	{ USB_DEVICE(BAYER_VID, BAYER_CONTOUR_CABLE_PID) },
+-	{ USB_DEVICE(FTDI_VID, MARVELL_OPENRD_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, TI_XDS100V2_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, MARVELL_OPENRD_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, TI_XDS100V2_PID, 1) },
+ 	{ USB_DEVICE(FTDI_VID, HAMEG_HO820_PID) },
+ 	{ USB_DEVICE(FTDI_VID, HAMEG_HO720_PID) },
+ 	{ USB_DEVICE(FTDI_VID, HAMEG_HO730_PID) },
+@@ -946,18 +932,14 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(FTDI_VID, MJSG_SR_RADIO_PID) },
+ 	{ USB_DEVICE(FTDI_VID, MJSG_HD_RADIO_PID) },
+ 	{ USB_DEVICE(FTDI_VID, MJSG_XM_RADIO_PID) },
+-	{ USB_DEVICE(FTDI_VID, XVERVE_SIGNALYZER_ST_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, XVERVE_SIGNALYZER_SLITE_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, XVERVE_SIGNALYZER_SH2_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, XVERVE_SIGNALYZER_ST_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, XVERVE_SIGNALYZER_SLITE_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, XVERVE_SIGNALYZER_SH2_PID, 1) },
+ 	{ USB_DEVICE(FTDI_VID, XVERVE_SIGNALYZER_SH4_PID),
+ 		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+ 	{ USB_DEVICE(FTDI_VID, SEGWAY_RMP200_PID) },
+ 	{ USB_DEVICE(FTDI_VID, ACCESIO_COM4SM_PID) },
+-	{ USB_DEVICE(IONICS_VID, IONICS_PLUGCOMPUTER_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(IONICS_VID, IONICS_PLUGCOMPUTER_PID, 1) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_CHAMSYS_24_MASTER_WING_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_CHAMSYS_PC_WING_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_CHAMSYS_USB_DMX_PID) },
+@@ -972,15 +954,12 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(FTDI_VID, FTDI_CINTERION_MC55I_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_FHE_PID) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_DOTEC_PID) },
+-	{ USB_DEVICE(QIHARDWARE_VID, MILKYMISTONE_JTAGSERIAL_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(ST_VID, ST_STMCLT_2232_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(QIHARDWARE_VID, MILKYMISTONE_JTAGSERIAL_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(ST_VID, ST_STMCLT_2232_PID, 1) },
+ 	{ USB_DEVICE(ST_VID, ST_STMCLT_4232_PID),
+ 		.driver_info = (kernel_ulong_t)&ftdi_stmclite_quirk },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_RF_R106) },
+-	{ USB_DEVICE(FTDI_VID, FTDI_DISTORTEC_JTAG_LOCK_PICK_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_DISTORTEC_JTAG_LOCK_PICK_PID, 1) },
+ 	{ USB_DEVICE(FTDI_VID, FTDI_LUMEL_PD12_PID) },
+ 	/* Crucible Devices */
+ 	{ USB_DEVICE(FTDI_VID, FTDI_CT_COMET_PID) },
+@@ -1055,8 +1034,7 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(ICPDAS_VID, ICPDAS_I7561U_PID) },
+ 	{ USB_DEVICE(ICPDAS_VID, ICPDAS_I7563U_PID) },
+ 	{ USB_DEVICE(WICED_VID, WICED_USB20706V2_PID) },
+-	{ USB_DEVICE(TI_VID, TI_CC3200_LAUNCHPAD_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(TI_VID, TI_CC3200_LAUNCHPAD_PID, 1) },
+ 	{ USB_DEVICE(CYPRESS_VID, CYPRESS_WICED_BT_USB_PID) },
+ 	{ USB_DEVICE(CYPRESS_VID, CYPRESS_WICED_WL_USB_PID) },
+ 	{ USB_DEVICE(AIRBUS_DS_VID, AIRBUS_DS_P8GR) },
+@@ -1076,10 +1054,8 @@ static const struct usb_device_id id_table_combined[] = {
+ 	{ USB_DEVICE(UBLOX_VID, UBLOX_C099F9P_ODIN_PID) },
+ 	{ USB_DEVICE_INTERFACE_NUMBER(UBLOX_VID, UBLOX_EVK_M101_PID, 2) },
+ 	/* FreeCalypso USB adapters */
+-	{ USB_DEVICE(FTDI_VID, FTDI_FALCONIA_JTAG_BUF_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
+-	{ USB_DEVICE(FTDI_VID, FTDI_FALCONIA_JTAG_UNBUF_PID),
+-		.driver_info = (kernel_ulong_t)&ftdi_jtag_quirk },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_FALCONIA_JTAG_BUF_PID, 1) },
++	{ USB_DEVICE_INTERFACE_NUMBER(FTDI_VID, FTDI_FALCONIA_JTAG_UNBUF_PID, 1) },
+ 	/* GMC devices */
+ 	{ USB_DEVICE(GMC_VID, GMC_Z216C_PID) },
+ 	/* Altera USB Blaster 3 */
+diff --git a/drivers/usb/serial/kobil_sct.c b/drivers/usb/serial/kobil_sct.c
+index 464433be203443..96ea571c436a71 100644
+--- a/drivers/usb/serial/kobil_sct.c
++++ b/drivers/usb/serial/kobil_sct.c
+@@ -418,7 +418,7 @@ static int kobil_tiocmset(struct tty_struct *tty,
+ 	struct usb_serial_port *port = tty->driver_data;
+ 	struct device *dev = &port->dev;
+ 	struct kobil_private *priv;
+-	int result;
++	int result = 0;
+ 	int dtr = 0;
+ 	int rts = 0;
+ 
+@@ -435,12 +435,12 @@ static int kobil_tiocmset(struct tty_struct *tty,
+ 	if (set & TIOCM_DTR)
+ 		dtr = 1;
+ 	if (clear & TIOCM_RTS)
+-		rts = 0;
++		rts = 1;
+ 	if (clear & TIOCM_DTR)
+-		dtr = 0;
++		dtr = 1;
+ 
+-	if (priv->device_type == KOBIL_ADAPTER_B_PRODUCT_ID) {
+-		if (dtr != 0)
++	if (dtr && priv->device_type == KOBIL_ADAPTER_B_PRODUCT_ID) {
++		if (set & TIOCM_DTR)
+ 			dev_dbg(dev, "%s - Setting DTR\n", __func__);
+ 		else
+ 			dev_dbg(dev, "%s - Clearing DTR\n", __func__);
+@@ -448,13 +448,13 @@ static int kobil_tiocmset(struct tty_struct *tty,
+ 			  usb_sndctrlpipe(port->serial->dev, 0),
+ 			  SUSBCRequest_SetStatusLinesOrQueues,
+ 			  USB_TYPE_VENDOR | USB_RECIP_ENDPOINT | USB_DIR_OUT,
+-			  ((dtr != 0) ? SUSBCR_SSL_SETDTR : SUSBCR_SSL_CLRDTR),
++			  ((set & TIOCM_DTR) ? SUSBCR_SSL_SETDTR : SUSBCR_SSL_CLRDTR),
+ 			  0,
+ 			  NULL,
+ 			  0,
+ 			  KOBIL_TIMEOUT);
+-	} else {
+-		if (rts != 0)
++	} else if (rts) {
++		if (set & TIOCM_RTS)
+ 			dev_dbg(dev, "%s - Setting RTS\n", __func__);
+ 		else
+ 			dev_dbg(dev, "%s - Clearing RTS\n", __func__);
+@@ -462,7 +462,7 @@ static int kobil_tiocmset(struct tty_struct *tty,
+ 			usb_sndctrlpipe(port->serial->dev, 0),
+ 			SUSBCRequest_SetStatusLinesOrQueues,
+ 			USB_TYPE_VENDOR | USB_RECIP_ENDPOINT | USB_DIR_OUT,
+-			((rts != 0) ? SUSBCR_SSL_SETRTS : SUSBCR_SSL_CLRRTS),
++			((set & TIOCM_RTS) ? SUSBCR_SSL_SETRTS : SUSBCR_SSL_CLRRTS),
+ 			0,
+ 			NULL,
+ 			0,
+diff --git a/drivers/usb/serial/option.c b/drivers/usb/serial/option.c
+index e9400727ad36eb..4c0e5a3ab557b2 100644
+--- a/drivers/usb/serial/option.c
++++ b/drivers/usb/serial/option.c
+@@ -1433,17 +1433,31 @@ static const struct usb_device_id option_ids[] = {
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10b3, 0xff, 0xff, 0x60) },
+ 	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c0, 0xff),	/* Telit FE910C04 (rmnet) */
+ 	  .driver_info = RSVD(0) | NCTRL(3) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c1, 0xff),	/* Telit FE910C04 (RNDIS) */
++	  .driver_info = NCTRL(4) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c2, 0xff),	/* Telit FE910C04 (MBIM) */
++	  .driver_info = NCTRL(4) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c3, 0xff),	/* Telit FE910C04 (ECM) */
++	  .driver_info = NCTRL(4) },
+ 	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c4, 0xff),	/* Telit FE910C04 (rmnet) */
+ 	  .driver_info = RSVD(0) | NCTRL(3) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c5, 0xff),	/* Telit FE910C04 (RNDIS) */
++	  .driver_info = NCTRL(4) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c6, 0xff),	/* Telit FE910C04 (MBIM) */
++	  .driver_info = NCTRL(4) },
++	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10c7, 0xff, 0xff, 0x30),	/* Telit FE910C04 (ECM) */
++	  .driver_info = NCTRL(4) },
++	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10c7, 0xff, 0xff, 0x40) },
+ 	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c8, 0xff),	/* Telit FE910C04 (rmnet) */
+ 	  .driver_info = RSVD(0) | NCTRL(2) | RSVD(3) | RSVD(4) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10c9, 0xff),	/* Telit FE910C04 (MBIM) */
++	  .driver_info = NCTRL(3) | RSVD(4) | RSVD(5) },
++	{ USB_DEVICE_INTERFACE_CLASS(TELIT_VENDOR_ID, 0x10cb, 0xff),	/* Telit FE910C04 (RNDIS) */
++	  .driver_info = NCTRL(3) | RSVD(4) | RSVD(5) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10d0, 0xff, 0xff, 0x30),	/* Telit FN990B (rmnet) */
+ 	  .driver_info = NCTRL(5) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10d0, 0xff, 0xff, 0x40) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10d0, 0xff, 0xff, 0x60) },
+-	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10c7, 0xff, 0xff, 0x30),	/* Telit FE910C04 (ECM) */
+-	  .driver_info = NCTRL(4) },
+-	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10c7, 0xff, 0xff, 0x40) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10d1, 0xff, 0xff, 0x30),	/* Telit FN990B (MBIM) */
+ 	  .driver_info = NCTRL(6) },
+ 	{ USB_DEVICE_AND_INTERFACE_INFO(TELIT_VENDOR_ID, 0x10d1, 0xff, 0xff, 0x40) },
+@@ -2376,6 +2390,8 @@ static const struct usb_device_id option_ids[] = {
+ 	  .driver_info = RSVD(3) },
+ 	{ USB_DEVICE_INTERFACE_CLASS(0x0489, 0xe0f0, 0xff),			/* Foxconn T99W373 MBIM */
+ 	  .driver_info = RSVD(3) },
++	{ USB_DEVICE_INTERFACE_CLASS(0x0489, 0xe123, 0xff),			/* Foxconn T99W760 MBIM */
++	  .driver_info = RSVD(3) },
+ 	{ USB_DEVICE_INTERFACE_CLASS(0x0489, 0xe145, 0xff),			/* Foxconn T99W651 RNDIS */
+ 	  .driver_info = RSVD(5) | RSVD(6) },
+ 	{ USB_DEVICE_INTERFACE_CLASS(0x0489, 0xe15f, 0xff),                     /* Foxconn T99W709 */
+diff --git a/fs/ext4/inline.c b/fs/ext4/inline.c
+index 1b094a4f386632..1f6bc05593df16 100644
+--- a/fs/ext4/inline.c
++++ b/fs/ext4/inline.c
+@@ -418,7 +418,12 @@ static int ext4_prepare_inline_data(handle_t *handle, struct inode *inode,
+ 		return -ENOSPC;
+ 
+ 	ext4_write_lock_xattr(inode, &no_expand);
+-
++	/*
++	 * ei->i_inline_size may have changed since the initial check
++	 * if other xattrs were added. Recalculate to ensure
++	 * ext4_update_inline_data() validates against current capacity.
++	 */
++	(void) ext4_find_inline_data_nolock(inode);
+ 	if (ei->i_inline_off)
+ 		ret = ext4_update_inline_data(handle, inode, len);
+ 	else
+@@ -446,9 +451,13 @@ static int ext4_destroy_inline_data_nolock(handle_t *handle,
+ 	if (!ei->i_inline_off)
+ 		return 0;
+ 
++	down_write(&ei->i_data_sem);
++
+ 	error = ext4_get_inode_loc(inode, &is.iloc);
+-	if (error)
++	if (error) {
++		up_write(&ei->i_data_sem);
+ 		return error;
++	}
+ 
+ 	error = ext4_xattr_ibody_find(inode, &i, &is);
+ 	if (error)
+@@ -487,6 +496,7 @@ out:
+ 	brelse(is.iloc.bh);
+ 	if (error == -ENODATA)
+ 		error = 0;
++	up_write(&ei->i_data_sem);
+ 	return error;
+ }
+ 
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index 3e510564de6ee8..9ce626ac947e30 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -1284,14 +1284,23 @@ int jbd2_journal_get_create_access(handle_t *handle, struct buffer_head *bh)
+ 	 * committing transaction's lists, but it HAS to be in Forget state in
+ 	 * that case: the transaction must have deleted the buffer for it to be
+ 	 * reused here.
++	 * In the case of file system data inconsistency, for example, if the
++	 * block bitmap of a referenced block is not set, it can lead to the
++	 * situation where a block being committed is allocated and used again.
++	 * As a result, the following condition will not be satisfied, so here
++	 * we directly trigger a JBD abort instead of immediately invoking
++	 * bugon.
+ 	 */
+ 	spin_lock(&jh->b_state_lock);
+-	J_ASSERT_JH(jh, (jh->b_transaction == transaction ||
+-		jh->b_transaction == NULL ||
+-		(jh->b_transaction == journal->j_committing_transaction &&
+-			  jh->b_jlist == BJ_Forget)));
++	if (!(jh->b_transaction == transaction || jh->b_transaction == NULL ||
++	      (jh->b_transaction == journal->j_committing_transaction &&
++	       jh->b_jlist == BJ_Forget)) || jh->b_next_transaction != NULL) {
++		err = -EROFS;
++		spin_unlock(&jh->b_state_lock);
++		jbd2_journal_abort(journal, err);
++		goto out;
++	}
+ 
+-	J_ASSERT_JH(jh, jh->b_next_transaction == NULL);
+ 	J_ASSERT_JH(jh, buffer_locked(jh2bh(jh)));
+ 
+ 	if (jh->b_transaction == NULL) {
+diff --git a/fs/smb/server/transport_ipc.c b/fs/smb/server/transport_ipc.c
+index 2c08cccfa6809f..2dbabe2d800554 100644
+--- a/fs/smb/server/transport_ipc.c
++++ b/fs/smb/server/transport_ipc.c
+@@ -553,12 +553,16 @@ static void *ipc_msg_send_request(struct ksmbd_ipc_msg *msg, unsigned int handle
+ 	up_write(&ipc_msg_table_lock);
+ 
+ 	ret = ipc_msg_send(msg);
+-	if (ret)
++	if (ret) {
++		down_write(&ipc_msg_table_lock);
+ 		goto out;
++	}
+ 
+ 	ret = wait_event_interruptible_timeout(entry.wait,
+ 					       entry.response != NULL,
+ 					       IPC_WAIT_TIMEOUT);
++
++	down_write(&ipc_msg_table_lock);
+ 	if (entry.response) {
+ 		ret = ipc_validate_msg(&entry);
+ 		if (ret) {
+@@ -567,7 +571,6 @@ static void *ipc_msg_send_request(struct ksmbd_ipc_msg *msg, unsigned int handle
+ 		}
+ 	}
+ out:
+-	down_write(&ipc_msg_table_lock);
+ 	hash_del(&entry.ipc_table_hlist);
+ 	up_write(&ipc_msg_table_lock);
+ 	return entry.response;
+diff --git a/kernel/locking/spinlock_debug.c b/kernel/locking/spinlock_debug.c
+index 87b03d2e41dbbe..2338b3adfb55ff 100644
+--- a/kernel/locking/spinlock_debug.c
++++ b/kernel/locking/spinlock_debug.c
+@@ -184,8 +184,8 @@ void do_raw_read_unlock(rwlock_t *lock)
+ static inline void debug_write_lock_before(rwlock_t *lock)
+ {
+ 	RWLOCK_BUG_ON(lock->magic != RWLOCK_MAGIC, lock, "bad magic");
+-	RWLOCK_BUG_ON(lock->owner == current, lock, "recursion");
+-	RWLOCK_BUG_ON(lock->owner_cpu == raw_smp_processor_id(),
++	RWLOCK_BUG_ON(READ_ONCE(lock->owner) == current, lock, "recursion");
++	RWLOCK_BUG_ON(READ_ONCE(lock->owner_cpu) == raw_smp_processor_id(),
+ 							lock, "cpu recursion");
+ }
+ 
 Subject: [PATCH]noir linux kernel version
 ---
  Makefile | 4 ++++
