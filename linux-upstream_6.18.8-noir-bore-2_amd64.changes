@@ -1,0 +1,34 @@
+Format: 1.8
+Date: Sat, 31 Jan 2026 10:53:12 +0900
+Source: linux-upstream
+Binary: linux-headers-6.18.8-noir-bore linux-image-6.18.8-noir-bore linux-libc-dev
+Built-For-Profiles: noudeb
+Architecture: amd64
+Version: 6.18.8-noir-bore-2
+Distribution: noble
+Urgency: low
+Maintainer: root <root@valkyrie-desktop>
+Changed-By: root <root@valkyrie-desktop>
+Description:
+ linux-headers-6.18.8-noir-bore - Linux kernel headers for 6.18.8-noir-bore on amd64
+ linux-image-6.18.8-noir-bore - Linux kernel, version 6.18.8-noir-bore
+ linux-libc-dev - Linux support headers for userspace development
+Changes:
+ linux-upstream (6.18.8-noir-bore-2) noble; urgency=low
+ .
+   * Custom built Linux kernel.
+Checksums-Sha1:
+ 6d29e7acec6b9621b2200ae89e57895c2bbbde11 10009706 linux-headers-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 854d23f259d0a54e27c117c580f387d57568ce41 71135714 linux-image-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ cc8136ce03004677dd5966edf65d2dba9faf157b 1512522 linux-libc-dev_6.18.8-noir-bore-2_amd64.deb
+ 3db756df8713d90c32b67083d12930e64e4caf60 8199 linux-upstream_6.18.8-noir-bore-2_amd64.buildinfo
+Checksums-Sha256:
+ a0653aab875e6b3f4731040717c28bb49356f52abb959be0290521b7f76b0dc0 10009706 linux-headers-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 670b9e24dac5dac8bf431ccebd1d6e13947a978e104f63f7de904867513b4d58 71135714 linux-image-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 2b09cca2806818bf18a7288a18d1427f63677d67343aaaa22508469b8e9889a8 1512522 linux-libc-dev_6.18.8-noir-bore-2_amd64.deb
+ 4c480a2957c33b6bd731ba392c45442b7269186e25f4a42b1083c1fbf09c8b19 8199 linux-upstream_6.18.8-noir-bore-2_amd64.buildinfo
+Files:
+ cc9dfa944a7b6b8a21840d8ec15e3533 10009706 kernel optional linux-headers-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 0b778532927bd7fc9ab73848e7f9bf95 71135714 kernel optional linux-image-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ a8e22b1894336390d0346f0c3a6b2648 1512522 devel optional linux-libc-dev_6.18.8-noir-bore-2_amd64.deb
+ d5b4771399f3696a690aac0a73f14a74 8199 kernel optional linux-upstream_6.18.8-noir-bore-2_amd64.buildinfo

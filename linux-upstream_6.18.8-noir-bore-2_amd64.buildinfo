@@ -1,0 +1,232 @@
+Format: 1.0
+Source: linux-upstream
+Binary: linux-headers-6.18.8-noir-bore linux-image-6.18.8-noir-bore linux-libc-dev
+Architecture: amd64
+Version: 6.18.8-noir-bore-2
+Checksums-Md5:
+ cc9dfa944a7b6b8a21840d8ec15e3533 10009706 linux-headers-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 0b778532927bd7fc9ab73848e7f9bf95 71135714 linux-image-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ a8e22b1894336390d0346f0c3a6b2648 1512522 linux-libc-dev_6.18.8-noir-bore-2_amd64.deb
+Checksums-Sha1:
+ 6d29e7acec6b9621b2200ae89e57895c2bbbde11 10009706 linux-headers-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 854d23f259d0a54e27c117c580f387d57568ce41 71135714 linux-image-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ cc8136ce03004677dd5966edf65d2dba9faf157b 1512522 linux-libc-dev_6.18.8-noir-bore-2_amd64.deb
+Checksums-Sha256:
+ a0653aab875e6b3f4731040717c28bb49356f52abb959be0290521b7f76b0dc0 10009706 linux-headers-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 670b9e24dac5dac8bf431ccebd1d6e13947a978e104f63f7de904867513b4d58 71135714 linux-image-6.18.8-noir-bore_6.18.8-noir-bore-2_amd64.deb
+ 2b09cca2806818bf18a7288a18d1427f63677d67343aaaa22508469b8e9889a8 1512522 linux-libc-dev_6.18.8-noir-bore-2_amd64.deb
+Build-Origin: Ubuntu
+Build-Architecture: amd64
+Build-Date: Sat, 31 Jan 2026 10:57:52 +0900
+Build-Tainted-By:
+ merged-usr-via-aliased-dirs
+ usr-local-has-configs
+ usr-local-has-includes
+ usr-local-has-libraries
+ usr-local-has-programs
+Installed-Build-Depends:
+ autoconf (= 2.71-3),
+ automake (= 1:1.16.5-1.3ubuntu1),
+ autopoint (= 0.21-14ubuntu2),
+ autotools-dev (= 20220109.1),
+ base-files (= 13ubuntu10.3),
+ base-passwd (= 3.6.3build1),
+ bash (= 5.2.21-2ubuntu4),
+ bc (= 1.07.1-3ubuntu4),
+ binutils (= 2.42-4ubuntu2.8),
+ binutils-common (= 2.42-4ubuntu2.8),
+ binutils-x86-64-linux-gnu (= 2.42-4ubuntu2.8),
+ bison (= 2:3.8.2+dfsg-1build2),
+ bsdextrautils (= 2.39.3-9ubuntu6.4),
+ bsdmainutils (= 12.1.8),
+ bsdutils (= 1:2.39.3-9ubuntu6.4),
+ build-essential (= 12.10ubuntu1),
+ bzip2 (= 1.0.8-5.1build0.1),
+ coreutils (= 9.4-3ubuntu6.1),
+ cpp (= 4:13.2.0-7ubuntu1),
+ cpp-13 (= 13.3.0-6ubuntu2~24.04),
+ cpp-13-x86-64-linux-gnu (= 13.3.0-6ubuntu2~24.04),
+ cpp-x86-64-linux-gnu (= 4:13.2.0-7ubuntu1),
+ dash (= 0.5.12-6ubuntu5),
+ debconf (= 1.5.86ubuntu1),
+ debhelper (= 13.14.1ubuntu5),
+ debianutils (= 5.17build1),
+ debugedit (= 1:5.0-5build2),
+ dh-autoreconf (= 20),
+ dh-strip-nondeterminism (= 1.13.1-1),
+ diffutils (= 1:3.10-1build1),
+ dpkg (= 1.22.6ubuntu6.5),
+ dpkg-dev (= 1.22.6ubuntu6.5),
+ dwz (= 0.15-1build6),
+ file (= 1:5.45-3build1),
+ findutils (= 4.9.0-5build1),
+ flex (= 2.6.4-8.2build1),
+ g++ (= 4:13.2.0-7ubuntu1),
+ g++-13 (= 13.3.0-6ubuntu2~24.04),
+ g++-13-x86-64-linux-gnu (= 13.3.0-6ubuntu2~24.04),
+ g++-x86-64-linux-gnu (= 4:13.2.0-7ubuntu1),
+ gawk (= 1:5.2.1-2build3),
+ gcc (= 4:13.2.0-7ubuntu1),
+ gcc-13 (= 13.3.0-6ubuntu2~24.04),
+ gcc-13-base (= 13.3.0-6ubuntu2~24.04),
+ gcc-13-x86-64-linux-gnu (= 13.3.0-6ubuntu2~24.04),
+ gcc-14-base (= 14.2.0-4ubuntu2~24.04),
+ gcc-x86-64-linux-gnu (= 4:13.2.0-7ubuntu1),
+ gettext (= 0.21-14ubuntu2),
+ gettext-base (= 0.21-14ubuntu2),
+ grep (= 3.11-4build1),
+ groff-base (= 1.23.0-3build2),
+ gzip (= 1.12-1ubuntu3.1),
+ hostname (= 3.23+nmu2ubuntu2),
+ init-system-helpers (= 1.66ubuntu1),
+ install-info (= 7.1-3build2),
+ intltool-debian (= 0.35.0+20060710.6),
+ kmod (= 31+20240202-2ubuntu7.1),
+ libacl1 (= 2.3.2-1build1.1),
+ libarchive-zip-perl (= 1.68-1),
+ libasan8 (= 14.2.0-4ubuntu2~24.04),
+ libatomic1 (= 14.2.0-4ubuntu2~24.04),
+ libattr1 (= 1:2.5.2-1build1.1),
+ libaudit-common (= 1:3.1.2-2.1build1.1),
+ libaudit1 (= 1:3.1.2-2.1build1.1),
+ libbinutils (= 2.42-4ubuntu2.8),
+ libblkid1 (= 2.39.3-9ubuntu6.4),
+ libbz2-1.0 (= 1.0.8-5.1build0.1),
+ libc-bin (= 2.39-0ubuntu8.6),
+ libc-dev-bin (= 2.39-0ubuntu8.6),
+ libc6 (= 2.39-0ubuntu8.6),
+ libc6-dev (= 2.39-0ubuntu8.6),
+ libcap-ng0 (= 0.8.4-2build2),
+ libcap2 (= 1:2.66-5ubuntu2.2),
+ libcc1-0 (= 14.2.0-4ubuntu2~24.04),
+ libcrypt-dev (= 1:4.4.36-4build1),
+ libcrypt1 (= 1:4.4.36-4build1),
+ libctf-nobfd0 (= 2.42-4ubuntu2.8),
+ libctf0 (= 2.42-4ubuntu2.8),
+ libdb5.3t64 (= 5.3.28+dfsg2-7),
+ libdebconfclient0 (= 0.271ubuntu3),
+ libdebhelper-perl (= 13.14.1ubuntu5),
+ libdpkg-perl (= 1.22.6ubuntu6.5),
+ libdw-dev (= 0.190-1.1ubuntu0.1),
+ libdw1t64 (= 0.190-1.1ubuntu0.1),
+ libelf-dev (= 0.190-1.1ubuntu0.1),
+ libelf1t64 (= 0.190-1.1ubuntu0.1),
+ libexpat1 (= 2.6.1-2ubuntu0.3),
+ libffi8 (= 3.4.6-1build1),
+ libfile-stripnondeterminism-perl (= 1.13.1-1),
+ libgcc-13-dev (= 13.3.0-6ubuntu2~24.04),
+ libgcc-s1 (= 14.2.0-4ubuntu2~24.04),
+ libgcrypt20 (= 1.10.3-2build1),
+ libgdbm-compat4t64 (= 1.23-5.1build1),
+ libgdbm6t64 (= 1.23-5.1build1),
+ libgmp10 (= 2:6.3.0+dfsg-2ubuntu6.1),
+ libgomp1 (= 14.2.0-4ubuntu2~24.04),
+ libgpg-error0 (= 1.47-3build2.1),
+ libgprofng0 (= 2.42-4ubuntu2.8),
+ libhwasan0 (= 14.2.0-4ubuntu2~24.04),
+ libicu74 (= 74.2-1ubuntu3.1),
+ libisl23 (= 0.26-3build1.1),
+ libitm1 (= 14.2.0-4ubuntu2~24.04),
+ libjansson4 (= 2.14-2build2),
+ libkmod2 (= 31+20240202-2ubuntu7.1),
+ liblsan0 (= 14.2.0-4ubuntu2~24.04),
+ liblz4-1 (= 1.9.4-1build1.1),
+ liblzma-dev (= 5.6.1+really5.4.5-1ubuntu0.2),
+ liblzma5 (= 5.6.1+really5.4.5-1ubuntu0.2),
+ libmagic-mgc (= 1:5.45-3build1),
+ libmagic1t64 (= 1:5.45-3build1),
+ libmd0 (= 1.1.0-2build1.1),
+ libmount1 (= 2.39.3-9ubuntu6.4),
+ libmpc3 (= 1.3.1-1build1.1),
+ libmpfr6 (= 4.2.1-1build1.1),
+ libncursesw6 (= 6.4+20240113-1ubuntu2),
+ libpam-modules (= 1.5.3-5ubuntu5.5),
+ libpam-modules-bin (= 1.5.3-5ubuntu5.5),
+ libpam-runtime (= 1.5.3-5ubuntu5.5),
+ libpam0g (= 1.5.3-5ubuntu5.5),
+ libpcre2-8-0 (= 10.42-4ubuntu2.1),
+ libperl5.38t64 (= 5.38.2-3.2ubuntu0.2),
+ libpipeline1 (= 1.5.7-2),
+ libpopt0 (= 1.19+dfsg-1build1),
+ libpython3-stdlib (= 3.12.3-0ubuntu2.1),
+ libpython3.12-minimal (= 3.12.3-1ubuntu0.10),
+ libpython3.12-stdlib (= 3.12.3-1ubuntu0.10),
+ libquadmath0 (= 14.2.0-4ubuntu2~24.04),
+ libreadline8t64 (= 8.2-4build1),
+ libseccomp2 (= 2.5.5-1ubuntu3.1),
+ libselinux1 (= 3.5-2ubuntu2.1),
+ libsframe1 (= 2.42-4ubuntu2.8),
+ libsigsegv2 (= 2.14-1ubuntu2),
+ libsmartcols1 (= 2.39.3-9ubuntu6.4),
+ libsqlite3-0 (= 3.45.1-1ubuntu2.5),
+ libssl-dev (= 3.0.13-0ubuntu3.6),
+ libssl3t64 (= 3.0.13-0ubuntu3.6),
+ libstdc++-13-dev (= 13.3.0-6ubuntu2~24.04),
+ libstdc++6 (= 14.2.0-4ubuntu2~24.04),
+ libsub-override-perl (= 0.10-1),
+ libsystemd0 (= 255.4-1ubuntu8.12),
+ libtinfo6 (= 6.4+20240113-1ubuntu2),
+ libtool (= 2.4.7-7build1),
+ libtsan2 (= 14.2.0-4ubuntu2~24.04),
+ libubsan1 (= 14.2.0-4ubuntu2~24.04),
+ libuchardet0 (= 0.0.8-1build1),
+ libudev1 (= 255.4-1ubuntu8.12),
+ libunistring5 (= 1.1-2build1.1),
+ libuuid1 (= 2.39.3-9ubuntu6.4),
+ libxml2 (= 2.9.14+dfsg-1.3ubuntu3.7),
+ libxxhash0 (= 0.8.2-2build1),
+ libzstd-dev (= 1.5.5+dfsg2-2build1.1),
+ libzstd1 (= 1.5.5+dfsg2-2build1.1),
+ linux-libc-dev (= 6.18.7-noir-bore-2),
+ login (= 1:4.13+dfsg1-4ubuntu3.2),
+ lsb-base (= 11.6),
+ lto-disabled-list (= 47),
+ m4 (= 1.4.19-4build1),
+ mailcap (= 3.70+nmu1ubuntu1),
+ make (= 4.3-4.1build2),
+ man-db (= 2.12.0-4build2),
+ mawk (= 1.3.4.20240123-1build1),
+ media-types (= 10.1.0),
+ mime-support (= 3.66),
+ ncal (= 12.1.8),
+ ncurses-base (= 6.4+20240113-1ubuntu2),
+ ncurses-bin (= 6.4+20240113-1ubuntu2),
+ netbase (= 6.4),
+ patch (= 2.7.6-7build3),
+ perl (= 5.38.2-3.2ubuntu0.2),
+ perl-base (= 5.38.2-3.2ubuntu0.2),
+ perl-modules-5.38 (= 5.38.2-3.2ubuntu0.2),
+ po-debconf (= 1.0.21+nmu1),
+ python3 (= 3.12.3-0ubuntu2.1),
+ python3-minimal (= 3.12.3-0ubuntu2.1),
+ python3.12 (= 3.12.3-1ubuntu0.10),
+ python3.12-minimal (= 3.12.3-1ubuntu0.10),
+ readline-common (= 8.2-4build1),
+ rpcsvc-proto (= 1.4.2-0ubuntu7),
+ rsync (= 3.2.7-1ubuntu1.2),
+ sed (= 4.9-2build1),
+ sensible-utils (= 0.0.22),
+ sysvinit-utils (= 3.08-6ubuntu3),
+ tar (= 1.35+dfsg-3build1),
+ tzdata (= 2025b-0ubuntu0.24.04.1),
+ util-linux (= 2.39.3-9ubuntu6.4),
+ xz-utils (= 5.6.1+really5.4.5-1ubuntu0.2),
+ zlib1g (= 1:1.3.dfsg-3.1ubuntu2.1),
+ zlib1g-dev (= 1:1.3.dfsg-3.1ubuntu2.1)
+Environment:
+ AR="ar"
+ AWK="awk"
+ CC="gcc"
+ CPP="gcc -E"
+ DEB_BUILD_OPTIONS="parallel=1"
+ DEB_BUILD_PROFILES="noudeb"
+ LANG="ja_JP.UTF-8"
+ LC_COLLATE="C"
+ LC_CTYPE="en_US.UTF-8"
+ LC_NUMERIC="C"
+ LD="ld"
+ LEX="flex"
+ MAKE="make"
+ MAKEFLAGS="rR --no-print-directory"
+ SOURCE_DATE_EPOCH="1769824392"
+ YACC="bison"
