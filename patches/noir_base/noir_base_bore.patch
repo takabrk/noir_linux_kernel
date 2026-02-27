@@ -32,3 +32,4 @@ diff --git a/kernel/rcu/Kconfig b/kernel/rcu/Kconfig
  	help
  	  This option specifies the time to wait after the beginning of
  	  a given grace period before priority-boosting preempted RCU
+ 	  

@@ -1,0 +1,13 @@
+diff --git a/block/elevator.c b/block/elevator.c
+index xxxx..yyyy 100644
+--- elevator.c	2026-02-23 11:40:30.262960495 +0900
++++ elevator.c2	2026-02-23 11:39:51.944178144 +0900
+@@ -728,7 +728,7 @@ void elv_update_nr_hw_queues(struct requ
+ void elevator_set_default(struct request_queue *q)
+ {
+ 	struct elv_change_ctx ctx = {
+-		.name = "mq-deadline",
++		.name = "kyber",
+ 		.no_uevent = true,
+ 	};
+ 	int err;

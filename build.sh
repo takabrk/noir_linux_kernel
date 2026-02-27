@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#February 16,2026
+#February 23,2026
 
 . ./config
 
@@ -30,7 +30,9 @@ case $e_num in
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bore-patches/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-add-BBRv3-congestion-control.patch
+        wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0013-optimize_harder_O3.patch
+        wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0006-add-acs-overrides_iommu.patch
+        wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0014-OpenRGB.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -41,12 +43,15 @@ case $e_num in
                 cat patches/noir_base/noir_base_bore.patch \
                     patches/other/0001-rt-patches.patch \
                     patches/other/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch \
-                    patches/other/0001-tcp-bbr3-add-BBRv3-congestion-control.patch \
                     >> noir.patch
             ;;
         esac
         cat patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
             patches/other/0002-clear-patches.patch \
+            patches/other/0013-optimize_harder_O3.patch \
+            patches/other/0006-add-acs-overrides_iommu.patch \
+            patches/other/0014-OpenRGB.patch \
+            patches/noir_base/default_kyber.patch \
             >> noir.patch
             case $f_num in
                 bore)
