@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#February 23,2026
+#March 2,2026
 
 . ./config
 
@@ -33,6 +33,10 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0013-optimize_harder_O3.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0006-add-acs-overrides_iommu.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0014-OpenRGB.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/dbc40c577cbb482c1d5c92d97724a026113e4526.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/64164f0372696265baef02378f2ce21a82a6c8ab.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/eb68d2d67da641462df6344a9de5231a5db8956d.patch
+        wget github.com/zen-kernel/zen-kernel/commit/f8c0b5e54aa1437257286553b6ebedf839703cb2.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -52,6 +56,10 @@ case $e_num in
             patches/other/0006-add-acs-overrides_iommu.patch \
             patches/other/0014-OpenRGB.patch \
             patches/noir_base/default_kyber.patch \
+            patches/other/dbc40c577cbb482c1d5c92d97724a026113e4526.patch \
+            patches/other/64164f0372696265baef02378f2ce21a82a6c8ab.patch \
+            patches/other/eb68d2d67da641462df6344a9de5231a5db8956d.patch \
+            patches/other/f8c0b5e54aa1437257286553b6ebedf839703cb2.patch \
             >> noir.patch
             case $f_num in
                 bore)
