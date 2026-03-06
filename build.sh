@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#March 2,2026
+#March 6,2026
 
 . ./config
 
@@ -37,6 +37,8 @@ case $e_num in
         wget https://github.com/zen-kernel/zen-kernel/commit/64164f0372696265baef02378f2ce21a82a6c8ab.patch
         wget https://github.com/zen-kernel/zen-kernel/commit/eb68d2d67da641462df6344a9de5231a5db8956d.patch
         wget github.com/zen-kernel/zen-kernel/commit/f8c0b5e54aa1437257286553b6ebedf839703cb2.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.19.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.19.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -60,6 +62,8 @@ case $e_num in
             patches/other/64164f0372696265baef02378f2ce21a82a6c8ab.patch \
             patches/other/eb68d2d67da641462df6344a9de5231a5db8956d.patch \
             patches/other/f8c0b5e54aa1437257286553b6ebedf839703cb2.patch \
+            patches/other/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch \
+            patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
             >> noir.patch
             case $f_num in
                 bore)
