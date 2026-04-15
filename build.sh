@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#March 6,2026
+#April 15,2026
 
 . ./config
 
@@ -27,18 +27,15 @@ case $e_num in
         cd patches/other
         rm -r *.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/rt-patches/0001-rt-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-add-BBRv3-congestion-control.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bore-patches/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0013-optimize_harder_O3.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0006-add-acs-overrides_iommu.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0014-OpenRGB.patch
-        wget https://github.com/zen-kernel/zen-kernel/commit/dbc40c577cbb482c1d5c92d97724a026113e4526.patch
-        wget https://github.com/zen-kernel/zen-kernel/commit/64164f0372696265baef02378f2ce21a82a6c8ab.patch
-        wget https://github.com/zen-kernel/zen-kernel/commit/eb68d2d67da641462df6344a9de5231a5db8956d.patch
-        wget github.com/zen-kernel/zen-kernel/commit/f8c0b5e54aa1437257286553b6ebedf839703cb2.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.19.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-6.19.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -52,16 +49,10 @@ case $e_num in
                     >> noir.patch
             ;;
         esac
-        cat patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-o.patch \
+        cat patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0002-clear-patches.patch \
-            patches/other/0013-optimize_harder_O3.patch \
-            patches/other/0006-add-acs-overrides_iommu.patch \
-            patches/other/0014-OpenRGB.patch \
+            patches/other/0001-tcp-bbr3-add-BBRv3-congestion-control.patch \
             patches/noir_base/default_kyber.patch \
-            patches/other/dbc40c577cbb482c1d5c92d97724a026113e4526.patch \
-            patches/other/64164f0372696265baef02378f2ce21a82a6c8ab.patch \
-            patches/other/eb68d2d67da641462df6344a9de5231a5db8956d.patch \
-            patches/other/f8c0b5e54aa1437257286553b6ebedf839703cb2.patch \
             patches/other/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch \
             patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
             >> noir.patch

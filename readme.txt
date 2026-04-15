@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-March 7,2026
+April 15,2026
 
 このカスタムカーネルは、Ubuntu向けです。
 リアルタイム性能・レスポンス性能の向上を図ります。
@@ -53,8 +53,7 @@ $ ./build.sh -e install_kernel -f bore
 - Core scheduling for SMT ON
 - futex support
 - Clear Linux support
-- Open RGB support
-- VHBA driver support
+- BBR3 sipport
 
 [patches]
 https://www.kernel.org/
