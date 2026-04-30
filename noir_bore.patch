@@ -29,7 +29,7 @@ index 8eba3da8dcee0a..1d68db2aa27ea1 100644
  -------
  
 diff --git a/Makefile b/Makefile
-index 36d0a32fbe49be..edd04bdf3a39e7 100644
+index 36d0a32fbe49be..61f8019efd5af5 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,7 +1,7 @@
@@ -37,7 +37,7 @@ index 36d0a32fbe49be..edd04bdf3a39e7 100644
  VERSION = 7
  PATCHLEVEL = 0
 -SUBLEVEL = 0
-+SUBLEVEL = 1
++SUBLEVEL = 3
  EXTRAVERSION =
  NAME = Baby Opossum Posse
  
@@ -728,6 +728,294 @@ index 654280aaa3e9e0..c47d8cd0e243b1 100644
  	 * of the transfer, but we need to manually flush if the
  	 * transfer is unaligned. A cached memory copy is used when
  	 * destination or size is not naturally aligned. That is:
+diff --git a/crypto/authencesn.c b/crypto/authencesn.c
+index c0a01d738d9bc3..af3d584e584fbc 100644
+--- a/crypto/authencesn.c
++++ b/crypto/authencesn.c
+@@ -228,9 +228,11 @@ static int crypto_authenc_esn_decrypt_tail(struct aead_request *req,
+ 
+ decrypt:
+ 
+-	if (src != dst)
+-		src = scatterwalk_ffwd(areq_ctx->src, src, assoclen);
+ 	dst = scatterwalk_ffwd(areq_ctx->dst, dst, assoclen);
++	if (req->src == req->dst)
++		src = dst;
++	else
++		src = scatterwalk_ffwd(areq_ctx->src, src, assoclen);
+ 
+ 	skcipher_request_set_tfm(skreq, ctx->enc);
+ 	skcipher_request_set_callback(skreq, flags,
+diff --git a/crypto/krb5enc.c b/crypto/krb5enc.c
+index a1de55994d922b..fefa8d2c753225 100644
+--- a/crypto/krb5enc.c
++++ b/crypto/krb5enc.c
+@@ -39,12 +39,6 @@ struct krb5enc_request_ctx {
+ 	char tail[];
+ };
+ 
+-static void krb5enc_request_complete(struct aead_request *req, int err)
+-{
+-	if (err != -EINPROGRESS)
+-		aead_request_complete(req, err);
+-}
+-
+ /**
+  * crypto_krb5enc_extractkeys - Extract Ke and Ki keys from the key blob.
+  * @keys: Where to put the key sizes and pointers
+@@ -127,7 +121,7 @@ static void krb5enc_encrypt_done(void *data, int err)
+ {
+ 	struct aead_request *req = data;
+ 
+-	krb5enc_request_complete(req, err);
++	aead_request_complete(req, err);
+ }
+ 
+ /*
+@@ -154,7 +148,7 @@ static int krb5enc_dispatch_encrypt(struct aead_request *req,
+ 		dst = scatterwalk_ffwd(areq_ctx->dst, req->dst, req->assoclen);
+ 
+ 	skcipher_request_set_tfm(skreq, enc);
+-	skcipher_request_set_callback(skreq, aead_request_flags(req),
++	skcipher_request_set_callback(skreq, flags,
+ 				      krb5enc_encrypt_done, req);
+ 	skcipher_request_set_crypt(skreq, src, dst, req->cryptlen, req->iv);
+ 
+@@ -188,13 +182,16 @@ static void krb5enc_encrypt_ahash_done(void *data, int err)
+ 	struct ahash_request *ahreq = (void *)(areq_ctx->tail + ictx->reqoff);
+ 
+ 	if (err)
+-		return krb5enc_request_complete(req, err);
++		goto out;
+ 
+ 	krb5enc_insert_checksum(req, ahreq->result);
+ 
+ 	err = krb5enc_dispatch_encrypt(req, 0);
+-	if (err != -EINPROGRESS)
+-		aead_request_complete(req, err);
++	if (err == -EINPROGRESS)
++		return;
++
++out:
++	aead_request_complete(req, err);
+ }
+ 
+ /*
+@@ -264,17 +261,16 @@ static void krb5enc_decrypt_hash_done(void *data, int err)
+ {
+ 	struct aead_request *req = data;
+ 
+-	if (err)
+-		return krb5enc_request_complete(req, err);
+-
+-	err = krb5enc_verify_hash(req);
+-	krb5enc_request_complete(req, err);
++	if (!err)
++		err = krb5enc_verify_hash(req);
++	aead_request_complete(req, err);
+ }
+ 
+ /*
+  * Dispatch the hashing of the plaintext after we've done the decryption.
+  */
+-static int krb5enc_dispatch_decrypt_hash(struct aead_request *req)
++static int krb5enc_dispatch_decrypt_hash(struct aead_request *req,
++					 unsigned int flags)
+ {
+ 	struct crypto_aead *krb5enc = crypto_aead_reqtfm(req);
+ 	struct aead_instance *inst = aead_alg_instance(krb5enc);
+@@ -290,7 +286,7 @@ static int krb5enc_dispatch_decrypt_hash(struct aead_request *req)
+ 	ahash_request_set_tfm(ahreq, auth);
+ 	ahash_request_set_crypt(ahreq, req->dst, hash,
+ 				req->assoclen + req->cryptlen - authsize);
+-	ahash_request_set_callback(ahreq, aead_request_flags(req),
++	ahash_request_set_callback(ahreq, flags,
+ 				   krb5enc_decrypt_hash_done, req);
+ 
+ 	err = crypto_ahash_digest(ahreq);
+@@ -300,6 +296,21 @@ static int krb5enc_dispatch_decrypt_hash(struct aead_request *req)
+ 	return krb5enc_verify_hash(req);
+ }
+ 
++static void krb5enc_decrypt_done(void *data, int err)
++{
++	struct aead_request *req = data;
++
++	if (err)
++		goto out;
++
++	err = krb5enc_dispatch_decrypt_hash(req, 0);
++	if (err == -EINPROGRESS)
++		return;
++
++out:
++	aead_request_complete(req, err);
++}
++
+ /*
+  * Dispatch the decryption of the ciphertext.
+  */
+@@ -323,7 +334,7 @@ static int krb5enc_dispatch_decrypt(struct aead_request *req)
+ 
+ 	skcipher_request_set_tfm(skreq, ctx->enc);
+ 	skcipher_request_set_callback(skreq, aead_request_flags(req),
+-				      req->base.complete, req->base.data);
++				      krb5enc_decrypt_done, req);
+ 	skcipher_request_set_crypt(skreq, src, dst,
+ 				   req->cryptlen - authsize, req->iv);
+ 
+@@ -338,7 +349,7 @@ static int krb5enc_decrypt(struct aead_request *req)
+ 	if (err < 0)
+ 		return err;
+ 
+-	return krb5enc_dispatch_decrypt_hash(req);
++	return krb5enc_dispatch_decrypt_hash(req, aead_request_flags(req));
+ }
+ 
+ static int krb5enc_init_tfm(struct crypto_aead *tfm)
+diff --git a/drivers/crypto/ccp/sev-dev.c b/drivers/crypto/ccp/sev-dev.c
+index aebf4dad545e2c..c16bb7d7067bea 100644
+--- a/drivers/crypto/ccp/sev-dev.c
++++ b/drivers/crypto/ccp/sev-dev.c
+@@ -1860,7 +1860,10 @@ cmd:
+ 
+ 	ret = __sev_do_cmd_locked(SEV_CMD_PEK_CSR, &data, &argp->error);
+ 
+-	 /* If we query the CSR length, FW responded with expected data. */
++	/*
++	 * Firmware will returns the length of the CSR blob (either the minimum
++	 * required length or the actual length written), return it to the user.
++	 */
+ 	input.length = data.len;
+ 
+ 	if (copy_to_user((void __user *)argp->data, &input, sizeof(input))) {
+@@ -1868,6 +1871,9 @@ cmd:
+ 		goto e_free_blob;
+ 	}
+ 
++	if (ret || WARN_ON_ONCE(argp->error))
++		goto e_free_blob;
++
+ 	if (blob) {
+ 		if (copy_to_user(input_address, blob, input.length))
+ 			ret = -EFAULT;
+@@ -2218,6 +2224,9 @@ static int sev_ioctl_do_get_id2(struct sev_issue_cmd *argp)
+ 		goto e_free;
+ 	}
+ 
++	if (ret || WARN_ON_ONCE(argp->error))
++		goto e_free;
++
+ 	if (id_blob) {
+ 		if (copy_to_user(input_address, id_blob, data.len)) {
+ 			ret = -EFAULT;
+@@ -2334,7 +2343,10 @@ cmd:
+ 
+ 	ret = __sev_do_cmd_locked(SEV_CMD_PDH_CERT_EXPORT, &data, &argp->error);
+ 
+-	/* If we query the length, FW responded with expected data. */
++	/*
++	 * Firmware will return the length of the blobs (either the minimum
++	 * required length or the actual length written), return 'em to the user.
++	 */
+ 	input.cert_chain_len = data.cert_chain_len;
+ 	input.pdh_cert_len = data.pdh_cert_len;
+ 
+@@ -2343,6 +2355,9 @@ cmd:
+ 		goto e_free_cert;
+ 	}
+ 
++	if (ret || WARN_ON_ONCE(argp->error))
++		goto e_free_cert;
++
+ 	if (pdh_blob) {
+ 		if (copy_to_user(input_pdh_cert_address,
+ 				 pdh_blob, input.pdh_cert_len)) {
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ids.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_ids.c
+index 569c5a89ff10b6..124fb38eb46532 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ids.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ids.c
+@@ -22,7 +22,7 @@
+  */
+ #include "amdgpu_ids.h"
+ 
+-#include <linux/idr.h>
++#include <linux/xarray.h>
+ #include <linux/dma-fence-array.h>
+ 
+ 
+@@ -40,8 +40,8 @@
+  * VMs are looked up from the PASID per amdgpu_device.
+  */
+ 
+-static DEFINE_IDR(amdgpu_pasid_idr);
+-static DEFINE_SPINLOCK(amdgpu_pasid_idr_lock);
++static DEFINE_XARRAY_FLAGS(amdgpu_pasid_xa, XA_FLAGS_LOCK_IRQ | XA_FLAGS_ALLOC1);
++static u32 amdgpu_pasid_xa_next;
+ 
+ /* Helper to free pasid from a fence callback */
+ struct amdgpu_pasid_cb {
+@@ -62,36 +62,37 @@ struct amdgpu_pasid_cb {
+  */
+ int amdgpu_pasid_alloc(unsigned int bits)
+ {
+-	int pasid;
++	u32 pasid;
++	int r;
+ 
+ 	if (bits == 0)
+ 		return -EINVAL;
+ 
+-	spin_lock(&amdgpu_pasid_idr_lock);
+-	/* TODO: Need to replace the idr with an xarry, and then
+-	 * handle the internal locking with ATOMIC safe paths.
+-	 */
+-	pasid = idr_alloc_cyclic(&amdgpu_pasid_idr, NULL, 1,
+-				 1U << bits, GFP_ATOMIC);
+-	spin_unlock(&amdgpu_pasid_idr_lock);
+-
+-	if (pasid >= 0)
+-		trace_amdgpu_pasid_allocated(pasid);
++	r = xa_alloc_cyclic_irq(&amdgpu_pasid_xa, &pasid, xa_mk_value(0),
++			    XA_LIMIT(1, (1U << bits) - 1),
++			    &amdgpu_pasid_xa_next, GFP_KERNEL);
++	if (r < 0)
++		return r;
+ 
++	trace_amdgpu_pasid_allocated(pasid);
+ 	return pasid;
+ }
+ 
+ /**
+  * amdgpu_pasid_free - Free a PASID
+  * @pasid: PASID to free
++ *
++ * Called in IRQ context.
+  */
+ void amdgpu_pasid_free(u32 pasid)
+ {
++	unsigned long flags;
++
+ 	trace_amdgpu_pasid_freed(pasid);
+ 
+-	spin_lock(&amdgpu_pasid_idr_lock);
+-	idr_remove(&amdgpu_pasid_idr, pasid);
+-	spin_unlock(&amdgpu_pasid_idr_lock);
++	xa_lock_irqsave(&amdgpu_pasid_xa, flags);
++	__xa_erase(&amdgpu_pasid_xa, pasid);
++	xa_unlock_irqrestore(&amdgpu_pasid_xa, flags);
+ }
+ 
+ static void amdgpu_pasid_free_cb(struct dma_fence *fence,
+@@ -634,7 +635,5 @@ void amdgpu_vmid_mgr_fini(struct amdgpu_device *adev)
+  */
+ void amdgpu_pasid_mgr_cleanup(void)
+ {
+-	spin_lock(&amdgpu_pasid_idr_lock);
+-	idr_destroy(&amdgpu_pasid_idr);
+-	spin_unlock(&amdgpu_pasid_idr_lock);
++	xa_destroy(&amdgpu_pasid_xa);
+ }
 diff --git a/drivers/gpu/drm/i915/i915_gem.c b/drivers/gpu/drm/i915/i915_gem.c
 index 160733619a4ace..3cfa1344b1b2ac 100644
 --- a/drivers/gpu/drm/i915/i915_gem.c
@@ -814,6 +1102,51 @@ index 833df14ef68f15..868c65684aa82c 100644
  	a = value >> (n - 1);
  	if (a && a != -1)
  		return value < 0 ? 1 << (n - 1) : (1 << (n - 1)) - 1;
+diff --git a/drivers/hv/mshv_vtl_main.c b/drivers/hv/mshv_vtl_main.c
+index 5856975f32e128..c1940070146783 100644
+--- a/drivers/hv/mshv_vtl_main.c
++++ b/drivers/hv/mshv_vtl_main.c
+@@ -386,7 +386,6 @@ static int mshv_vtl_ioctl_add_vtl0_mem(struct mshv_vtl *vtl, void __user *arg)
+ 
+ 	if (copy_from_user(&vtl0_mem, arg, sizeof(vtl0_mem)))
+ 		return -EFAULT;
+-	/* vtl0_mem.last_pfn is excluded in the pagemap range for VTL0 as per design */
+ 	if (vtl0_mem.last_pfn <= vtl0_mem.start_pfn) {
+ 		dev_err(vtl->module_dev, "range start pfn (%llx) > end pfn (%llx)\n",
+ 			vtl0_mem.start_pfn, vtl0_mem.last_pfn);
+@@ -397,6 +396,10 @@ static int mshv_vtl_ioctl_add_vtl0_mem(struct mshv_vtl *vtl, void __user *arg)
+ 	if (!pgmap)
+ 		return -ENOMEM;
+ 
++	/*
++	 * vtl0_mem.last_pfn is excluded in the pagemap range for VTL0 as per design.
++	 * last_pfn is not reserved or wasted, and reflects 'start_pfn + size' of pagemap range.
++	 */
+ 	pgmap->ranges[0].start = PFN_PHYS(vtl0_mem.start_pfn);
+ 	pgmap->ranges[0].end = PFN_PHYS(vtl0_mem.last_pfn) - 1;
+ 	pgmap->nr_range = 1;
+@@ -405,8 +408,11 @@ static int mshv_vtl_ioctl_add_vtl0_mem(struct mshv_vtl *vtl, void __user *arg)
+ 	/*
+ 	 * Determine the highest page order that can be used for the given memory range.
+ 	 * This works best when the range is aligned; i.e. both the start and the length.
++	 * Clamp to MAX_FOLIO_ORDER to avoid a WARN in memremap_pages() when the range
++	 * alignment exceeds the maximum supported folio order for this kernel config.
+ 	 */
+-	pgmap->vmemmap_shift = count_trailing_zeros(vtl0_mem.start_pfn | vtl0_mem.last_pfn);
++	pgmap->vmemmap_shift = min(count_trailing_zeros(vtl0_mem.start_pfn | vtl0_mem.last_pfn),
++				   MAX_FOLIO_ORDER);
+ 	dev_dbg(vtl->module_dev,
+ 		"Add VTL0 memory: start: 0x%llx, end_pfn: 0x%llx, page order: %lu\n",
+ 		vtl0_mem.start_pfn, vtl0_mem.last_pfn, pgmap->vmemmap_shift);
+@@ -415,7 +421,7 @@ static int mshv_vtl_ioctl_add_vtl0_mem(struct mshv_vtl *vtl, void __user *arg)
+ 	if (IS_ERR(addr)) {
+ 		dev_err(vtl->module_dev, "devm_memremap_pages error: %ld\n", PTR_ERR(addr));
+ 		kfree(pgmap);
+-		return -EFAULT;
++		return PTR_ERR(addr);
+ 	}
+ 
+ 	/* Don't free pgmap, since it has to stick around until the memory
 diff --git a/drivers/hwmon/powerz.c b/drivers/hwmon/powerz.c
 index 4e663d5b4e330b..a75b941bd6e2fc 100644
 --- a/drivers/hwmon/powerz.c
@@ -1351,6 +1684,22 @@ index 20a400e8343927..65f5bbf28480de 100644
  
  	pci_unregister_driver(&vntb_pci_driver);
  }
+diff --git a/drivers/pwm/pwm_th1520.rs b/drivers/pwm/pwm_th1520.rs
+index b0e24ee724e450..36567fc17dcc8c 100644
+--- a/drivers/pwm/pwm_th1520.rs
++++ b/drivers/pwm/pwm_th1520.rs
+@@ -64,10 +64,7 @@ const TH1520_PWM_REG_SIZE: usize = 0xB0;
+ fn ns_to_cycles(ns: u64, rate_hz: u64) -> u64 {
+     const NSEC_PER_SEC_U64: u64 = time::NSEC_PER_SEC as u64;
+ 
+-    (match ns.checked_mul(rate_hz) {
+-        Some(product) => product,
+-        None => u64::MAX,
+-    }) / NSEC_PER_SEC_U64
++    ns.saturating_mul(rate_hz) / NSEC_PER_SEC_U64
+ }
+ 
+ fn cycles_to_ns(cycles: u64, rate_hz: u64) -> u64 {
 diff --git a/drivers/staging/rtl8723bs/core/rtw_security.c b/drivers/staging/rtl8723bs/core/rtw_security.c
 index b489babe743248..c3f5fc4abd170e 100644
 --- a/drivers/staging/rtl8723bs/core/rtw_security.c
@@ -1787,6 +2136,57 @@ index 3c6a9b5758d955..c341d76bc5646b 100644
  	/* set device-specific elements of var unrelated to mode */
  	dlfb_var_color_format(var);
  
+diff --git a/drivers/xen/privcmd.c b/drivers/xen/privcmd.c
+index 15ba592236e845..725a49a0eee72e 100644
+--- a/drivers/xen/privcmd.c
++++ b/drivers/xen/privcmd.c
+@@ -1620,6 +1620,12 @@ static void privcmd_close(struct vm_area_struct *vma)
+ 	kvfree(pages);
+ }
+ 
++static int privcmd_may_split(struct vm_area_struct *area, unsigned long addr)
++{
++	/* Forbid splitting, avoids double free via privcmd_close(). */
++	return -EINVAL;
++}
++
+ static vm_fault_t privcmd_fault(struct vm_fault *vmf)
+ {
+ 	printk(KERN_DEBUG "privcmd_fault: vma=%p %lx-%lx, pgoff=%lx, uv=%p\n",
+@@ -1631,6 +1637,7 @@ static vm_fault_t privcmd_fault(struct vm_fault *vmf)
+ 
+ static const struct vm_operations_struct privcmd_vm_ops = {
+ 	.close = privcmd_close,
++	.may_split = privcmd_may_split,
+ 	.fault = privcmd_fault
+ };
+ 
+diff --git a/drivers/xen/sys-hypervisor.c b/drivers/xen/sys-hypervisor.c
+index b1bb01ba82f880..91923242a5ae71 100644
+--- a/drivers/xen/sys-hypervisor.c
++++ b/drivers/xen/sys-hypervisor.c
+@@ -366,6 +366,8 @@ static ssize_t buildid_show(struct hyp_sysfs_attr *attr, char *buffer)
+ 			ret = sprintf(buffer, "<denied>");
+ 		return ret;
+ 	}
++	if (ret > PAGE_SIZE)
++		return -ENOSPC;
+ 
+ 	buildid = kmalloc(sizeof(*buildid) + ret, GFP_KERNEL);
+ 	if (!buildid)
+@@ -373,8 +375,10 @@ static ssize_t buildid_show(struct hyp_sysfs_attr *attr, char *buffer)
+ 
+ 	buildid->len = ret;
+ 	ret = HYPERVISOR_xen_version(XENVER_build_id, buildid);
+-	if (ret > 0)
+-		ret = sprintf(buffer, "%s", buildid->buf);
++	if (ret > 0) {
++		/* Build id is binary, not a string. */
++		memcpy(buffer, buildid->buf, ret);
++	}
+ 	kfree(buildid);
+ 
+ 	return ret;
 diff --git a/fs/dcache.c b/fs/dcache.c
 index 7ba1801d813299..24f4f3acaa8cff 100644
 --- a/fs/dcache.c
@@ -1809,6 +2209,348 @@ index 7ba1801d813299..24f4f3acaa8cff 100644
  					0);
  	d_hash_shift = 32 - d_hash_shift;
  
+diff --git a/fs/f2fs/compress.c b/fs/f2fs/compress.c
+index 8c76400ba6317d..aa8ba4cdfe34e1 100644
+--- a/fs/f2fs/compress.c
++++ b/fs/f2fs/compress.c
+@@ -1491,10 +1491,10 @@ void f2fs_compress_write_end_io(struct bio *bio, struct folio *folio)
+ 
+ 	f2fs_compress_free_page(page);
+ 
+-	dec_page_count(sbi, type);
+-
+-	if (atomic_dec_return(&cic->pending_pages))
++	if (atomic_dec_return(&cic->pending_pages)) {
++		dec_page_count(sbi, type);
+ 		return;
++	}
+ 
+ 	for (i = 0; i < cic->nr_rpages; i++) {
+ 		WARN_ON(!cic->rpages[i]);
+@@ -1504,6 +1504,14 @@ void f2fs_compress_write_end_io(struct bio *bio, struct folio *folio)
+ 
+ 	page_array_free(sbi, cic->rpages, cic->nr_rpages);
+ 	kmem_cache_free(cic_entry_slab, cic);
++
++	/*
++	 * Make sure dec_page_count() is the last access to sbi.
++	 * Once it drops the F2FS_WB_CP_DATA counter to zero, the
++	 * unmount thread can proceed to destroy sbi and
++	 * sbi->page_array_slab.
++	 */
++	dec_page_count(sbi, type);
+ }
+ 
+ static int f2fs_write_raw_pages(struct compress_ctx *cc,
+diff --git a/fs/f2fs/data.c b/fs/f2fs/data.c
+index 338df7a2aea6be..adc8befe119ab0 100644
+--- a/fs/f2fs/data.c
++++ b/fs/f2fs/data.c
+@@ -173,7 +173,8 @@ static void f2fs_finish_read_bio(struct bio *bio, bool in_task)
+ 		while (nr_pages--)
+ 			dec_page_count(F2FS_F_SB(folio), __read_io_type(folio));
+ 
+-		if (F2FS_F_SB(folio)->node_inode && is_node_folio(folio) &&
++		if (bio->bi_status == BLK_STS_OK &&
++			F2FS_F_SB(folio)->node_inode && is_node_folio(folio) &&
+ 			f2fs_sanity_check_node_footer(F2FS_F_SB(folio),
+ 				folio, folio->index, NODE_TYPE_REGULAR, true))
+ 			bio->bi_status = BLK_STS_IOERR;
+@@ -386,6 +387,8 @@ static void f2fs_write_end_io(struct bio *bio)
+ 				folio->index, NODE_TYPE_REGULAR, true);
+ 			f2fs_bug_on(sbi, folio->index != nid_of_node(folio));
+ 		}
++		if (f2fs_in_warm_node_list(sbi, folio))
++			f2fs_del_fsync_node_entry(sbi, folio);
+ 
+ 		dec_page_count(sbi, type);
+ 
+@@ -397,8 +400,6 @@ static void f2fs_write_end_io(struct bio *bio)
+ 				wq_has_sleeper(&sbi->cp_wait))
+ 			wake_up(&sbi->cp_wait);
+ 
+-		if (f2fs_in_warm_node_list(sbi, folio))
+-			f2fs_del_fsync_node_entry(sbi, folio);
+ 		folio_clear_f2fs_gcing(folio);
+ 		folio_end_writeback(folio);
+ 	}
+diff --git a/fs/f2fs/f2fs.h b/fs/f2fs/f2fs.h
+index bb34e864d0efc7..65c0d20df3a490 100644
+--- a/fs/f2fs/f2fs.h
++++ b/fs/f2fs/f2fs.h
+@@ -3989,7 +3989,7 @@ bool f2fs_is_checkpointed_data(struct f2fs_sb_info *sbi, block_t blkaddr);
+ int f2fs_start_discard_thread(struct f2fs_sb_info *sbi);
+ void f2fs_drop_discard_cmd(struct f2fs_sb_info *sbi);
+ void f2fs_stop_discard_thread(struct f2fs_sb_info *sbi);
+-bool f2fs_issue_discard_timeout(struct f2fs_sb_info *sbi);
++bool f2fs_issue_discard_timeout(struct f2fs_sb_info *sbi, bool need_check);
+ void f2fs_clear_prefree_segments(struct f2fs_sb_info *sbi,
+ 					struct cp_control *cpc);
+ void f2fs_dirty_to_prefree(struct f2fs_sb_info *sbi);
+diff --git a/fs/f2fs/namei.c b/fs/f2fs/namei.c
+index e360f08a9586ab..6ef21deeef1c8a 100644
+--- a/fs/f2fs/namei.c
++++ b/fs/f2fs/namei.c
+@@ -964,6 +964,7 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
+ 			return err;
+ 
+ 		err = f2fs_create_whiteout(idmap, old_dir, &whiteout, &fname);
++		f2fs_free_filename(&fname);
+ 		if (err)
+ 			return err;
+ 	}
+diff --git a/fs/f2fs/segment.c b/fs/f2fs/segment.c
+index 6a97fe76712b57..8390994a8826cd 100644
+--- a/fs/f2fs/segment.c
++++ b/fs/f2fs/segment.c
+@@ -1880,7 +1880,7 @@ void f2fs_stop_discard_thread(struct f2fs_sb_info *sbi)
+  *
+  * Return true if issued all discard cmd or no discard cmd need issue, otherwise return false.
+  */
+-bool f2fs_issue_discard_timeout(struct f2fs_sb_info *sbi)
++bool f2fs_issue_discard_timeout(struct f2fs_sb_info *sbi, bool need_check)
+ {
+ 	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
+ 	struct discard_policy dpolicy;
+@@ -1897,7 +1897,7 @@ bool f2fs_issue_discard_timeout(struct f2fs_sb_info *sbi)
+ 	/* just to make sure there is no pending discard commands */
+ 	__wait_all_discard_cmd(sbi, NULL);
+ 
+-	f2fs_bug_on(sbi, atomic_read(&dcc->discard_cmd_cnt));
++	f2fs_bug_on(sbi, need_check && atomic_read(&dcc->discard_cmd_cnt));
+ 	return !dropped;
+ }
+ 
+@@ -2367,7 +2367,7 @@ static void destroy_discard_cmd_control(struct f2fs_sb_info *sbi)
+ 	 * Recovery can cache discard commands, so in error path of
+ 	 * fill_super(), it needs to give a chance to handle them.
+ 	 */
+-	f2fs_issue_discard_timeout(sbi);
++	f2fs_issue_discard_timeout(sbi, true);
+ 
+ 	kfree(dcc);
+ 	SM_I(sbi)->dcc_info = NULL;
+diff --git a/fs/f2fs/super.c b/fs/f2fs/super.c
+index 8774c60b4be44e..40079fd7886b8b 100644
+--- a/fs/f2fs/super.c
++++ b/fs/f2fs/super.c
+@@ -2009,7 +2009,7 @@ static void f2fs_put_super(struct super_block *sb)
+ 	}
+ 
+ 	/* be sure to wait for any on-going discard commands */
+-	done = f2fs_issue_discard_timeout(sbi);
++	done = f2fs_issue_discard_timeout(sbi, true);
+ 	if (f2fs_realtime_discard_enable(sbi) && !sbi->discard_blks && done) {
+ 		struct cp_control cpc = {
+ 			.reason = CP_UMOUNT | CP_TRIMMED,
+@@ -2152,7 +2152,7 @@ static int f2fs_unfreeze(struct super_block *sb)
+ 	 * will recover after removal of snapshot.
+ 	 */
+ 	if (test_opt(sbi, DISCARD) && !f2fs_hw_support_discard(sbi))
+-		f2fs_issue_discard_timeout(sbi);
++		f2fs_issue_discard_timeout(sbi, true);
+ 
+ 	clear_sbi_flag(F2FS_SB(sb), SBI_IS_FREEZING);
+ 	return 0;
+@@ -2957,7 +2957,12 @@ static int __f2fs_remount(struct fs_context *fc, struct super_block *sb)
+ 			need_stop_discard = true;
+ 		} else {
+ 			f2fs_stop_discard_thread(sbi);
+-			f2fs_issue_discard_timeout(sbi);
++			/*
++			 * f2fs_ioc_fitrim() won't race w/ "remount ro"
++			 * so it's safe to check discard_cmd_cnt in
++			 * f2fs_issue_discard_timeout().
++			 */
++			f2fs_issue_discard_timeout(sbi, flags & SB_RDONLY);
+ 			need_restart_discard = true;
+ 		}
+ 	}
+diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
+index 3c75ee025bdaf9..d63baa1b6fecf7 100644
+--- a/fs/fs-writeback.c
++++ b/fs/fs-writeback.c
+@@ -570,28 +570,30 @@ void inode_switch_wbs_work_fn(struct work_struct *work)
+ 	struct inode_switch_wbs_context *isw, *next_isw;
+ 	struct llist_node *list;
+ 
++	list = llist_del_all(&new_wb->switch_wbs_ctxs);
+ 	/*
+-	 * Grab out reference to wb so that it cannot get freed under us
++	 * Nothing to do? That would be a problem as references held by isw
++	 * items protect wb from freeing...
++	 */
++	if (WARN_ON_ONCE(!list))
++		return;
++
++	/*
++	 * Grab our reference to wb so that it cannot get freed under us
+ 	 * after we process all the isw items.
+ 	 */
+ 	wb_get(new_wb);
+-	while (1) {
+-		list = llist_del_all(&new_wb->switch_wbs_ctxs);
+-		/* Nothing to do? */
+-		if (!list)
+-			break;
+-		/*
+-		 * In addition to synchronizing among switchers, I_WB_SWITCH
+-		 * tells the RCU protected stat update paths to grab the i_page
+-		 * lock so that stat transfer can synchronize against them.
+-		 * Let's continue after I_WB_SWITCH is guaranteed to be
+-		 * visible.
+-		 */
+-		synchronize_rcu();
++	/*
++	 * In addition to synchronizing among switchers, I_WB_SWITCH
++	 * tells the RCU protected stat update paths to grab the i_page
++	 * lock so that stat transfer can synchronize against them.
++	 * Let's continue after I_WB_SWITCH is guaranteed to be
++	 * visible.
++	 */
++	synchronize_rcu();
+ 
+-		llist_for_each_entry_safe(isw, next_isw, list, list)
+-			process_inode_switch_wbs(new_wb, isw);
+-	}
++	llist_for_each_entry_safe(isw, next_isw, list, list)
++		process_inode_switch_wbs(new_wb, isw);
+ 	wb_put(new_wb);
+ }
+ 
+diff --git a/fs/fuse/control.c b/fs/fuse/control.c
+index 140bd5730d9984..f902a7fb4630cc 100644
+--- a/fs/fuse/control.c
++++ b/fs/fuse/control.c
+@@ -121,7 +121,7 @@ static ssize_t fuse_conn_max_background_write(struct file *file,
+ 					      const char __user *buf,
+ 					      size_t count, loff_t *ppos)
+ {
+-	unsigned val;
++	unsigned int val = 0;
+ 	ssize_t ret;
+ 
+ 	ret = fuse_conn_limit_write(file, buf, count, ppos, &val,
+@@ -163,7 +163,7 @@ static ssize_t fuse_conn_congestion_threshold_write(struct file *file,
+ 						    const char __user *buf,
+ 						    size_t count, loff_t *ppos)
+ {
+-	unsigned val;
++	unsigned int val = 0;
+ 	struct fuse_conn *fc;
+ 	ssize_t ret;
+ 
+diff --git a/fs/fuse/dev.c b/fs/fuse/dev.c
+index 0b0241f47170d4..24ee9e87026379 100644
+--- a/fs/fuse/dev.c
++++ b/fs/fuse/dev.c
+@@ -570,6 +570,11 @@ static void request_wait_answer(struct fuse_req *req)
+ 		if (!err)
+ 			return;
+ 
++		if (req->args->abort_on_kill) {
++			fuse_abort_conn(fc);
++			return;
++		}
++
+ 		if (test_bit(FR_URING, &req->flags))
+ 			removed = fuse_uring_remove_pending_req(req);
+ 		else
+@@ -676,7 +681,8 @@ ssize_t __fuse_simple_request(struct mnt_idmap *idmap,
+ 			fuse_force_creds(req);
+ 
+ 		__set_bit(FR_WAITING, &req->flags);
+-		__set_bit(FR_FORCE, &req->flags);
++		if (!args->abort_on_kill)
++			__set_bit(FR_FORCE, &req->flags);
+ 	} else {
+ 		WARN_ON(args->nocreds);
+ 		req = fuse_get_req(idmap, fm, false);
+@@ -1011,6 +1017,9 @@ static int fuse_try_move_folio(struct fuse_copy_state *cs, struct folio **foliop
+ 	folio_clear_uptodate(newfolio);
+ 	folio_clear_mappedtodisk(newfolio);
+ 
++	if (folio_test_large(newfolio))
++		goto out_fallback_unlock;
++
+ 	if (fuse_check_folio(newfolio) != 0)
+ 		goto out_fallback_unlock;
+ 
+@@ -2590,9 +2599,8 @@ static int fuse_device_clone(struct fuse_conn *fc, struct file *new)
+ 
+ static long fuse_dev_ioctl_clone(struct file *file, __u32 __user *argp)
+ {
+-	int res;
+ 	int oldfd;
+-	struct fuse_dev *fud = NULL;
++	struct fuse_dev *fud;
+ 
+ 	if (get_user(oldfd, argp))
+ 		return -EFAULT;
+@@ -2605,17 +2613,15 @@ static long fuse_dev_ioctl_clone(struct file *file, __u32 __user *argp)
+ 	 * Check against file->f_op because CUSE
+ 	 * uses the same ioctl handler.
+ 	 */
+-	if (fd_file(f)->f_op == file->f_op)
+-		fud = __fuse_get_dev(fd_file(f));
++	if (fd_file(f)->f_op != file->f_op)
++		return -EINVAL;
+ 
+-	res = -EINVAL;
+-	if (fud) {
+-		mutex_lock(&fuse_mutex);
+-		res = fuse_device_clone(fud->fc, file);
+-		mutex_unlock(&fuse_mutex);
+-	}
++	fud = fuse_get_dev(fd_file(f));
++	if (IS_ERR(fud))
++		return PTR_ERR(fud);
+ 
+-	return res;
++	guard(mutex)(&fuse_mutex);
++	return fuse_device_clone(fud->fc, file);
+ }
+ 
+ static long fuse_dev_ioctl_backing_open(struct file *file,
+diff --git a/fs/fuse/fuse_i.h b/fs/fuse/fuse_i.h
+index 7f16049387d15e..23a241f18623a4 100644
+--- a/fs/fuse/fuse_i.h
++++ b/fs/fuse/fuse_i.h
+@@ -345,6 +345,7 @@ struct fuse_args {
+ 	bool is_ext:1;
+ 	bool is_pinned:1;
+ 	bool invalidate_vmap:1;
++	bool abort_on_kill:1;
+ 	struct fuse_in_arg in_args[4];
+ 	struct fuse_arg out_args[2];
+ 	void (*end)(struct fuse_mount *fm, struct fuse_args *args, int error);
+diff --git a/fs/fuse/inode.c b/fs/fuse/inode.c
+index c795abe47a4f4a..bc05c9479f5716 100644
+--- a/fs/fuse/inode.c
++++ b/fs/fuse/inode.c
+@@ -1551,6 +1551,7 @@ int fuse_send_init(struct fuse_mount *fm)
+ 	int err;
+ 
+ 	if (fm->fc->sync_init) {
++		ia->args.abort_on_kill = true;
+ 		err = fuse_simple_request(fm, &ia->args);
+ 		/* Ignore size of init reply */
+ 		if (err > 0)
+diff --git a/fs/fuse/readdir.c b/fs/fuse/readdir.c
+index c2aae2eef0868b..aae657fd56c0ed 100644
+--- a/fs/fuse/readdir.c
++++ b/fs/fuse/readdir.c
+@@ -41,6 +41,10 @@ static void fuse_add_dirent_to_cache(struct file *file,
+ 	unsigned int offset;
+ 	void *addr;
+ 
++	/* Dirent doesn't fit in readdir cache page?  Skip caching. */
++	if (reclen > PAGE_SIZE)
++		return;
++
+ 	spin_lock(&fi->rdc.lock);
+ 	/*
+ 	 * Is cache already completed?  Or this entry does not go at the end of
 diff --git a/fs/nilfs2/dat.c b/fs/nilfs2/dat.c
 index 674380837ab98b..888dc1831c86ee 100644
 --- a/fs/nilfs2/dat.c
@@ -1823,6 +2565,42 @@ index 674380837ab98b..888dc1831c86ee 100644
  	err = nilfs_read_inode_common(dat, raw_inode);
  	if (err)
  		goto failed;
+diff --git a/fs/ntfs3/fslog.c b/fs/ntfs3/fslog.c
+index 272e452761436e..037df47fa9f3af 100644
+--- a/fs/ntfs3/fslog.c
++++ b/fs/ntfs3/fslog.c
+@@ -2791,13 +2791,14 @@ static inline bool check_file_record(const struct MFT_REC *rec,
+ 	u16 fn = le16_to_cpu(rec->rhdr.fix_num);
+ 	u16 ao = le16_to_cpu(rec->attr_off);
+ 	u32 rs = sbi->record_size;
++	u32 used = le32_to_cpu(rec->used);
+ 
+ 	/* Check the file record header for consistency. */
+ 	if (rec->rhdr.sign != NTFS_FILE_SIGNATURE ||
+ 	    fo > (SECTOR_SIZE - ((rs >> SECTOR_SHIFT) + 1) * sizeof(short)) ||
+ 	    (fn - 1) * SECTOR_SIZE != rs || ao < MFTRECORD_FIXUP_OFFSET_1 ||
+ 	    ao > sbi->record_size - SIZEOF_RESIDENT || !is_rec_inuse(rec) ||
+-	    le32_to_cpu(rec->total) != rs) {
++	    le32_to_cpu(rec->total) != rs || used > rs || used < ao) {
+ 		return false;
+ 	}
+ 
+@@ -2809,6 +2810,15 @@ static inline bool check_file_record(const struct MFT_REC *rec,
+ 		return false;
+ 	}
+ 
++	/*
++	 * The do_action() handlers compute memmove lengths as
++	 * "rec->used - <offset of validated attr>", which underflows when
++	 * rec->used is smaller than the attribute walk reached.  At this
++	 * point attr is the ATTR_END marker; rec->used must cover it.
++	 */
++	if (used < PtrOffset(rec, attr) + sizeof(attr->type))
++		return false;
++
+ 	return true;
+ }
+ 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
 index 17ba79f443ee73..09146b43d1f07a 100644
 --- a/fs/ocfs2/aops.c
@@ -1923,6 +2701,286 @@ index ac3ec2c2111963..09724e7dc01ba4 100644
  
  	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
  		ocfs2_group_bitmap_size(osb->sb, 0,
+diff --git a/fs/smb/client/cifsacl.c b/fs/smb/client/cifsacl.c
+index c920039d733c3b..4ec204d2c7742b 100644
+--- a/fs/smb/client/cifsacl.c
++++ b/fs/smb/client/cifsacl.c
+@@ -758,6 +758,77 @@ static void dump_ace(struct smb_ace *pace, char *end_of_acl)
+ }
+ #endif
+ 
++static int validate_dacl(struct smb_acl *pdacl, char *end_of_acl)
++{
++	int i, ace_hdr_size, ace_size, min_ace_size;
++	u16 dacl_size, num_aces;
++	char *acl_base, *end_of_dacl;
++	struct smb_ace *pace;
++
++	if (!pdacl)
++		return 0;
++
++	if (end_of_acl < (char *)pdacl + sizeof(struct smb_acl)) {
++		cifs_dbg(VFS, "ACL too small to parse DACL\n");
++		return -EINVAL;
++	}
++
++	dacl_size = le16_to_cpu(pdacl->size);
++	if (dacl_size < sizeof(struct smb_acl) ||
++	    end_of_acl < (char *)pdacl + dacl_size) {
++		cifs_dbg(VFS, "ACL too small to parse DACL\n");
++		return -EINVAL;
++	}
++
++	num_aces = le16_to_cpu(pdacl->num_aces);
++	if (!num_aces)
++		return 0;
++
++	ace_hdr_size = offsetof(struct smb_ace, sid) +
++		offsetof(struct smb_sid, sub_auth);
++	min_ace_size = ace_hdr_size + sizeof(__le32);
++	if (num_aces > (dacl_size - sizeof(struct smb_acl)) / min_ace_size) {
++		cifs_dbg(VFS, "ACL too small to parse DACL\n");
++		return -EINVAL;
++	}
++
++	end_of_dacl = (char *)pdacl + dacl_size;
++	acl_base = (char *)pdacl;
++	ace_size = sizeof(struct smb_acl);
++
++	for (i = 0; i < num_aces; ++i) {
++		if (end_of_dacl - acl_base < ace_size) {
++			cifs_dbg(VFS, "ACL too small to parse ACE\n");
++			return -EINVAL;
++		}
++
++		pace = (struct smb_ace *)(acl_base + ace_size);
++		acl_base = (char *)pace;
++
++		if (end_of_dacl - acl_base < ace_hdr_size ||
++		    pace->sid.num_subauth == 0 ||
++		    pace->sid.num_subauth > SID_MAX_SUB_AUTHORITIES) {
++			cifs_dbg(VFS, "ACL too small to parse ACE\n");
++			return -EINVAL;
++		}
++
++		ace_size = ace_hdr_size + sizeof(__le32) * pace->sid.num_subauth;
++		if (end_of_dacl - acl_base < ace_size ||
++		    le16_to_cpu(pace->size) < ace_size) {
++			cifs_dbg(VFS, "ACL too small to parse ACE\n");
++			return -EINVAL;
++		}
++
++		ace_size = le16_to_cpu(pace->size);
++		if (end_of_dacl - acl_base < ace_size) {
++			cifs_dbg(VFS, "ACL too small to parse ACE\n");
++			return -EINVAL;
++		}
++	}
++
++	return 0;
++}
++
+ static void parse_dacl(struct smb_acl *pdacl, char *end_of_acl,
+ 		       struct smb_sid *pownersid, struct smb_sid *pgrpsid,
+ 		       struct cifs_fattr *fattr, bool mode_from_special_sid)
+@@ -765,7 +836,7 @@ static void parse_dacl(struct smb_acl *pdacl, char *end_of_acl,
+ 	int i;
+ 	u16 num_aces = 0;
+ 	int acl_size;
+-	char *acl_base;
++	char *acl_base, *end_of_dacl;
+ 	struct smb_ace **ppace;
+ 
+ 	/* BB need to add parm so we can store the SID BB */
+@@ -777,12 +848,8 @@ static void parse_dacl(struct smb_acl *pdacl, char *end_of_acl,
+ 		return;
+ 	}
+ 
+-	/* validate that we do not go past end of acl */
+-	if (end_of_acl < (char *)pdacl + sizeof(struct smb_acl) ||
+-	    end_of_acl < (char *)pdacl + le16_to_cpu(pdacl->size)) {
+-		cifs_dbg(VFS, "ACL too small to parse DACL\n");
++	if (validate_dacl(pdacl, end_of_acl))
+ 		return;
+-	}
+ 
+ 	cifs_dbg(NOISY, "DACL revision %d size %d num aces %d\n",
+ 		 le16_to_cpu(pdacl->revision), le16_to_cpu(pdacl->size),
+@@ -793,6 +860,7 @@ static void parse_dacl(struct smb_acl *pdacl, char *end_of_acl,
+ 	   user/group/other have no permissions */
+ 	fattr->cf_mode &= ~(0777);
+ 
++	end_of_dacl = (char *)pdacl + le16_to_cpu(pdacl->size);
+ 	acl_base = (char *)pdacl;
+ 	acl_size = sizeof(struct smb_acl);
+ 
+@@ -800,37 +868,18 @@ static void parse_dacl(struct smb_acl *pdacl, char *end_of_acl,
+ 	if (num_aces > 0) {
+ 		umode_t denied_mode = 0;
+ 
+-		if (num_aces > (le16_to_cpu(pdacl->size) - sizeof(struct smb_acl)) /
+-				(offsetof(struct smb_ace, sid) +
+-				 offsetof(struct smb_sid, sub_auth) + sizeof(__le16)))
+-			return;
+-
+ 		ppace = kmalloc_objs(struct smb_ace *, num_aces);
+ 		if (!ppace)
+ 			return;
+ 
+ 		for (i = 0; i < num_aces; ++i) {
+-			if (end_of_acl - acl_base < acl_size)
+-				break;
+-
+ 			ppace[i] = (struct smb_ace *) (acl_base + acl_size);
+-			acl_base = (char *)ppace[i];
+-			acl_size = offsetof(struct smb_ace, sid) +
+-				offsetof(struct smb_sid, sub_auth);
+-
+-			if (end_of_acl - acl_base < acl_size ||
+-			    ppace[i]->sid.num_subauth == 0 ||
+-			    ppace[i]->sid.num_subauth > SID_MAX_SUB_AUTHORITIES ||
+-			    (end_of_acl - acl_base <
+-			     acl_size + sizeof(__le32) * ppace[i]->sid.num_subauth) ||
+-			    (le16_to_cpu(ppace[i]->size) <
+-			     acl_size + sizeof(__le32) * ppace[i]->sid.num_subauth))
+-				break;
+ 
+ #ifdef CONFIG_CIFS_DEBUG2
+-			dump_ace(ppace[i], end_of_acl);
++			dump_ace(ppace[i], end_of_dacl);
+ #endif
+ 			if (mode_from_special_sid &&
++			    ppace[i]->sid.num_subauth >= 3 &&
+ 			    (compare_sids(&(ppace[i]->sid),
+ 					  &sid_unix_NFS_mode) == 0)) {
+ 				/*
+@@ -870,6 +919,7 @@ static void parse_dacl(struct smb_acl *pdacl, char *end_of_acl,
+ 				(void *)ppace[i],
+ 				sizeof(struct smb_ace)); */
+ 
++			acl_base = (char *)ppace[i];
+ 			acl_size = le16_to_cpu(ppace[i]->size);
+ 		}
+ 
+@@ -1293,10 +1343,9 @@ static int build_sec_desc(struct smb_ntsd *pntsd, struct smb_ntsd *pnntsd,
+ 	dacloffset = le32_to_cpu(pntsd->dacloffset);
+ 	if (dacloffset) {
+ 		dacl_ptr = (struct smb_acl *)((char *)pntsd + dacloffset);
+-		if (end_of_acl < (char *)dacl_ptr + le16_to_cpu(dacl_ptr->size)) {
+-			cifs_dbg(VFS, "Server returned illegal ACL size\n");
+-			return -EINVAL;
+-		}
++		rc = validate_dacl(dacl_ptr, end_of_acl);
++		if (rc)
++			return rc;
+ 	}
+ 
+ 	owner_sid_ptr = (struct smb_sid *)((char *)pntsd +
+@@ -1662,6 +1711,12 @@ id_mode_to_cifs_acl(struct inode *inode, const char *path, __u64 *pnmode,
+ 		dacloffset = le32_to_cpu(pntsd->dacloffset);
+ 		if (dacloffset) {
+ 			dacl_ptr = (struct smb_acl *)((char *)pntsd + dacloffset);
++			rc = validate_dacl(dacl_ptr, (char *)pntsd + secdesclen);
++			if (rc) {
++				kfree(pntsd);
++				cifs_put_tlink(tlink);
++				return rc;
++			}
+ 			if (mode_from_sid)
+ 				nsecdesclen +=
+ 					le16_to_cpu(dacl_ptr->num_aces) * sizeof(struct smb_ace);
+diff --git a/fs/smb/client/connect.c b/fs/smb/client/connect.c
+index 69b38f0ccf2b26..e9eeb9f8a56192 100644
+--- a/fs/smb/client/connect.c
++++ b/fs/smb/client/connect.c
+@@ -3610,7 +3610,6 @@ int cifs_mount_get_tcon(struct cifs_mount_ctx *mnt_ctx)
+ 	server = mnt_ctx->server;
+ 	ctx = mnt_ctx->fs_ctx;
+ 	cifs_sb = mnt_ctx->cifs_sb;
+-	sbflags = cifs_sb_flags(cifs_sb);
+ 
+ 	/* search for existing tcon to this server share */
+ 	tcon = cifs_get_tcon(mnt_ctx->ses, ctx);
+@@ -3625,9 +3624,10 @@ int cifs_mount_get_tcon(struct cifs_mount_ctx *mnt_ctx)
+ 	 * path (i.e., do not remap / and \ and do not map any special characters)
+ 	 */
+ 	if (tcon->posix_extensions) {
+-		sbflags |= CIFS_MOUNT_POSIX_PATHS;
+-		sbflags &= ~(CIFS_MOUNT_MAP_SFM_CHR |
+-			     CIFS_MOUNT_MAP_SPECIAL_CHR);
++		atomic_or(CIFS_MOUNT_POSIX_PATHS, &cifs_sb->mnt_cifs_flags);
++		atomic_andnot(CIFS_MOUNT_MAP_SFM_CHR |
++			      CIFS_MOUNT_MAP_SPECIAL_CHR,
++			      &cifs_sb->mnt_cifs_flags);
+ 	}
+ 
+ #ifdef CONFIG_CIFS_ALLOW_INSECURE_LEGACY
+@@ -3651,6 +3651,7 @@ int cifs_mount_get_tcon(struct cifs_mount_ctx *mnt_ctx)
+ #endif /* CONFIG_CIFS_ALLOW_INSECURE_LEGACY */
+ 		tcon->unix_ext = 0; /* server does not support them */
+ 
++	sbflags = cifs_sb_flags(cifs_sb);
+ 	/* do not care if a following call succeed - informational */
+ 	if (!tcon->pipe && server->ops->qfs_tcon) {
+ 		server->ops->qfs_tcon(mnt_ctx->xid, tcon, cifs_sb);
+@@ -3675,7 +3676,6 @@ int cifs_mount_get_tcon(struct cifs_mount_ctx *mnt_ctx)
+ 
+ out:
+ 	mnt_ctx->tcon = tcon;
+-	atomic_set(&cifs_sb->mnt_cifs_flags, sbflags);
+ 	return rc;
+ }
+ 
+diff --git a/fs/smb/client/smb1ops.c b/fs/smb/client/smb1ops.c
+index 9694117050a6c7..e198e3dda91772 100644
+--- a/fs/smb/client/smb1ops.c
++++ b/fs/smb/client/smb1ops.c
+@@ -49,7 +49,6 @@ void reset_cifs_unix_caps(unsigned int xid, struct cifs_tcon *tcon,
+ 
+ 	if (!CIFSSMBQFSUnixInfo(xid, tcon)) {
+ 		__u64 cap = le64_to_cpu(tcon->fsUnixInfo.Capability);
+-		unsigned int sbflags;
+ 
+ 		cifs_dbg(FYI, "unix caps which server supports %lld\n", cap);
+ 		/*
+@@ -76,29 +75,27 @@ void reset_cifs_unix_caps(unsigned int xid, struct cifs_tcon *tcon,
+ 		if (cap & CIFS_UNIX_TRANSPORT_ENCRYPTION_MANDATORY_CAP)
+ 			cifs_dbg(VFS, "per-share encryption not supported yet\n");
+ 
+-		if (cifs_sb)
+-			sbflags = cifs_sb_flags(cifs_sb);
+-
+ 		cap &= CIFS_UNIX_CAP_MASK;
+ 		if (ctx && ctx->no_psx_acl)
+ 			cap &= ~CIFS_UNIX_POSIX_ACL_CAP;
+ 		else if (CIFS_UNIX_POSIX_ACL_CAP & cap) {
+ 			cifs_dbg(FYI, "negotiated posix acl support\n");
+-			if (cifs_sb)
+-				sbflags |= CIFS_MOUNT_POSIXACL;
++			if (cifs_sb) {
++				atomic_or(CIFS_MOUNT_POSIXACL,
++					  &cifs_sb->mnt_cifs_flags);
++			}
+ 		}
+ 
+ 		if (ctx && ctx->posix_paths == 0)
+ 			cap &= ~CIFS_UNIX_POSIX_PATHNAMES_CAP;
+ 		else if (cap & CIFS_UNIX_POSIX_PATHNAMES_CAP) {
+ 			cifs_dbg(FYI, "negotiate posix pathnames\n");
+-			if (cifs_sb)
+-				sbflags |= CIFS_MOUNT_POSIX_PATHS;
++			if (cifs_sb) {
++				atomic_or(CIFS_MOUNT_POSIX_PATHS,
++					  &cifs_sb->mnt_cifs_flags);
++			}
+ 		}
+ 
+-		if (cifs_sb)
+-			atomic_set(&cifs_sb->mnt_cifs_flags, sbflags);
+-
+ 		cifs_dbg(FYI, "Negotiate caps 0x%x\n", (int)cap);
+ #ifdef CONFIG_CIFS_DEBUG2
+ 		if (cap & CIFS_UNIX_FCNTL_CAP)
 diff --git a/fs/smb/client/smb2file.c b/fs/smb/client/smb2file.c
 index ed651c946251d0..b292aa94a5932a 100644
 --- a/fs/smb/client/smb2file.c
@@ -1996,6 +3054,23 @@ index 364bdcff9c9d5b..fe1c9d7765806d 100644
  			return -EINVAL;
  
  		switch (vlen) {
+diff --git a/fs/smb/client/smb2ops.c b/fs/smb/client/smb2ops.c
+index 509fcea28a429d..3600705255f8db 100644
+--- a/fs/smb/client/smb2ops.c
++++ b/fs/smb/client/smb2ops.c
+@@ -1783,6 +1783,12 @@ replay_again:
+ 		qi_rsp = (struct smb2_query_info_rsp *)rsp_iov[1].iov_base;
+ 		if (le32_to_cpu(qi_rsp->OutputBufferLength) < qi.input_buffer_length)
+ 			qi.input_buffer_length = le32_to_cpu(qi_rsp->OutputBufferLength);
++		if (qi.input_buffer_length > 0 &&
++		    struct_size(qi_rsp, Buffer, qi.input_buffer_length) >
++		    rsp_iov[1].iov_len) {
++			rc = -EFAULT;
++			goto out;
++		}
+ 		if (copy_to_user(&pqi->input_buffer_length,
+ 				 &qi.input_buffer_length,
+ 				 sizeof(qi.input_buffer_length))) {
 diff --git a/fs/smb/client/smbdirect.c b/fs/smb/client/smbdirect.c
 index c79304012b08c3..46165810501331 100644
 --- a/fs/smb/client/smbdirect.c
@@ -2027,7 +3102,7 @@ index c79304012b08c3..46165810501331 100644
  	atomic_inc(&sc->send_io.credits.count);
  	wake_up(&sc->send_io.credits.wait_queue);
 diff --git a/fs/smb/server/connection.c b/fs/smb/server/connection.c
-index 1bb2081c492c38..26cfce344861fb 100644
+index 1bb2081c492c38..48f0c51740cfdd 100644
 --- a/fs/smb/server/connection.c
 +++ b/fs/smb/server/connection.c
 @@ -96,6 +96,7 @@ void ksmbd_conn_free(struct ksmbd_conn *conn)
@@ -2038,8 +3113,108 @@ index 1bb2081c492c38..26cfce344861fb 100644
  	if (atomic_dec_and_test(&conn->refcnt)) {
  		conn->transport->ops->free_transport(conn->transport);
  		kfree(conn);
+@@ -236,7 +237,7 @@ int ksmbd_conn_wait_idle_sess_id(struct ksmbd_conn *curr_conn, u64 sess_id)
+ {
+ 	struct ksmbd_conn *conn;
+ 	int rc, retry_count = 0, max_timeout = 120;
+-	int rcount = 1, bkt;
++	int rcount, bkt;
+ 
+ retry_idle:
+ 	if (retry_count >= max_timeout)
+@@ -245,8 +246,7 @@ retry_idle:
+ 	down_read(&conn_list_lock);
+ 	hash_for_each(conn_list, bkt, conn, hlist) {
+ 		if (conn->binding || xa_load(&conn->sessions, sess_id)) {
+-			if (conn == curr_conn)
+-				rcount = 2;
++			rcount = (conn == curr_conn) ? 2 : 1;
+ 			if (atomic_read(&conn->req_running) >= rcount) {
+ 				rc = wait_event_timeout(conn->req_running_q,
+ 					atomic_read(&conn->req_running) < rcount,
+diff --git a/fs/smb/server/mgmt/user_config.c b/fs/smb/server/mgmt/user_config.c
+index a3183fe5c5365f..cf45841d9d1b99 100644
+--- a/fs/smb/server/mgmt/user_config.c
++++ b/fs/smb/server/mgmt/user_config.c
+@@ -56,12 +56,6 @@ struct ksmbd_user *ksmbd_alloc_user(struct ksmbd_login_response *resp,
+ 		goto err_free;
+ 
+ 	if (resp_ext) {
+-		if (resp_ext->ngroups > NGROUPS_MAX) {
+-			pr_err("ngroups(%u) from login response exceeds max groups(%d)\n",
+-					resp_ext->ngroups, NGROUPS_MAX);
+-			goto err_free;
+-		}
+-
+ 		user->sgid = kmemdup(resp_ext->____payload,
+ 				     resp_ext->ngroups * sizeof(gid_t),
+ 				     KSMBD_DEFAULT_GFP);
+diff --git a/fs/smb/server/mgmt/user_session.c b/fs/smb/server/mgmt/user_session.c
+index 39be2d2be86c3a..a86589408835bc 100644
+--- a/fs/smb/server/mgmt/user_session.c
++++ b/fs/smb/server/mgmt/user_session.c
+@@ -382,12 +382,10 @@ void ksmbd_session_destroy(struct ksmbd_session *sess)
+ 		return;
+ 
+ 	delete_proc_session(sess);
+-
++	ksmbd_tree_conn_session_logoff(sess);
++	ksmbd_destroy_file_table(sess);
+ 	if (sess->user)
+ 		ksmbd_free_user(sess->user);
+-
+-	ksmbd_tree_conn_session_logoff(sess);
+-	ksmbd_destroy_file_table(&sess->file_table);
+ 	ksmbd_launch_ksmbd_durable_scavenger();
+ 	ksmbd_session_rpc_clear_list(sess);
+ 	free_channel_list(sess);
+@@ -618,7 +616,7 @@ void destroy_previous_session(struct ksmbd_conn *conn,
+ 		goto out;
+ 	}
+ 
+-	ksmbd_destroy_file_table(&prev_sess->file_table);
++	ksmbd_destroy_file_table(prev_sess);
+ 	prev_sess->state = SMB2_SESSION_EXPIRED;
+ 	ksmbd_all_conn_set_status(id, KSMBD_SESS_NEED_SETUP);
+ 	ksmbd_launch_ksmbd_durable_scavenger();
+diff --git a/fs/smb/server/oplock.c b/fs/smb/server/oplock.c
+index 9b2bb8764a805b..cd3f28b0e7cb24 100644
+--- a/fs/smb/server/oplock.c
++++ b/fs/smb/server/oplock.c
+@@ -1841,6 +1841,7 @@ int smb2_check_durable_oplock(struct ksmbd_conn *conn,
+ 			      struct ksmbd_share_config *share,
+ 			      struct ksmbd_file *fp,
+ 			      struct lease_ctx_info *lctx,
++			      struct ksmbd_user *user,
+ 			      char *name)
+ {
+ 	struct oplock_info *opinfo = opinfo_get(fp);
+@@ -1849,6 +1850,12 @@ int smb2_check_durable_oplock(struct ksmbd_conn *conn,
+ 	if (!opinfo)
+ 		return 0;
+ 
++	if (ksmbd_vfs_compare_durable_owner(fp, user) == false) {
++		ksmbd_debug(SMB, "Durable handle reconnect failed: owner mismatch\n");
++		ret = -EBADF;
++		goto out;
++	}
++
+ 	if (opinfo->is_lease == false) {
+ 		if (lctx) {
+ 			pr_err("create context include lease\n");
+diff --git a/fs/smb/server/oplock.h b/fs/smb/server/oplock.h
+index 921e3199e4df43..d91a8266e065ef 100644
+--- a/fs/smb/server/oplock.h
++++ b/fs/smb/server/oplock.h
+@@ -126,5 +126,6 @@ int smb2_check_durable_oplock(struct ksmbd_conn *conn,
+ 			      struct ksmbd_share_config *share,
+ 			      struct ksmbd_file *fp,
+ 			      struct lease_ctx_info *lctx,
++			      struct ksmbd_user *user,
+ 			      char *name);
+ #endif /* __KSMBD_OPLOCK_H */
 diff --git a/fs/smb/server/smb2pdu.c b/fs/smb/server/smb2pdu.c
-index 8e4cfdc0ba025a..a344937595f45c 100644
+index 8e4cfdc0ba025a..135c74e6c4be69 100644
 --- a/fs/smb/server/smb2pdu.c
 +++ b/fs/smb/server/smb2pdu.c
 @@ -1915,7 +1915,7 @@ out_err:
@@ -2051,7 +3226,17 @@ index 8e4cfdc0ba025a..a344937595f45c 100644
  		kfree(conn->mechToken);
  		conn->mechToken = NULL;
  	}
-@@ -4716,6 +4716,11 @@ static int smb2_get_ea(struct ksmbd_work *work, struct ksmbd_file *fp,
+@@ -3013,7 +3013,8 @@ int smb2_open(struct ksmbd_work *work)
+ 		}
+ 
+ 		if (dh_info.reconnected == true) {
+-			rc = smb2_check_durable_oplock(conn, share, dh_info.fp, lc, name);
++			rc = smb2_check_durable_oplock(conn, share, dh_info.fp,
++					lc, sess->user, name);
+ 			if (rc) {
+ 				ksmbd_put_durable_fd(dh_info.fp);
+ 				goto err_out2;
+@@ -4716,6 +4717,11 @@ static int smb2_get_ea(struct ksmbd_work *work, struct ksmbd_file *fp,
  
  		ea_req = (struct smb2_ea_info_req *)((char *)req +
  						     le16_to_cpu(req->InputBufferOffset));
@@ -2063,8 +3248,17 @@ index 8e4cfdc0ba025a..a344937595f45c 100644
  	} else {
  		/* need to send all EAs, if no specific EA is requested*/
  		if (le32_to_cpu(req->Flags) & SL_RETURN_SINGLE_ENTRY)
+@@ -4816,6 +4822,8 @@ static int smb2_get_ea(struct ksmbd_work *work, struct ksmbd_file *fp,
+ 		/* align next xattr entry at 4 byte bundary */
+ 		alignment_bytes = ((next_offset + 3) & ~3) - next_offset;
+ 		if (alignment_bytes) {
++			if (buf_free_len < alignment_bytes)
++				break;
+ 			memset(ptr, '\0', alignment_bytes);
+ 			ptr += alignment_bytes;
+ 			next_offset += alignment_bytes;
 diff --git a/fs/smb/server/smbacl.c b/fs/smb/server/smbacl.c
-index c30d01877c4185..061a305bf9c8b0 100644
+index c30d01877c4185..4bbc2c27e6805e 100644
 --- a/fs/smb/server/smbacl.c
 +++ b/fs/smb/server/smbacl.c
 @@ -451,7 +451,8 @@ static void parse_dacl(struct mnt_idmap *idmap,
@@ -2077,6 +3271,198 @@ index c30d01877c4185..061a305bf9c8b0 100644
  			fattr->cf_mode =
  				le32_to_cpu(ppace[i]->sid.sub_auth[2]);
  			break;
+@@ -595,6 +596,7 @@ static void set_posix_acl_entries_dacl(struct mnt_idmap *idmap,
+ 	struct smb_sid *sid;
+ 	struct smb_ace *ntace;
+ 	int i, j;
++	u16 ace_sz;
+ 
+ 	if (!fattr->cf_acls)
+ 		goto posix_default_acl;
+@@ -639,8 +641,10 @@ static void set_posix_acl_entries_dacl(struct mnt_idmap *idmap,
+ 			flags = 0x03;
+ 
+ 		ntace = (struct smb_ace *)((char *)pndace + *size);
+-		*size += fill_ace_for_sid(ntace, sid, ACCESS_ALLOWED, flags,
++		ace_sz = fill_ace_for_sid(ntace, sid, ACCESS_ALLOWED, flags,
+ 				pace->e_perm, 0777);
++		if (check_add_overflow(*size, ace_sz, size))
++			break;
+ 		(*num_aces)++;
+ 		if (pace->e_tag == ACL_USER)
+ 			ntace->access_req |=
+@@ -649,8 +653,10 @@ static void set_posix_acl_entries_dacl(struct mnt_idmap *idmap,
+ 		if (S_ISDIR(fattr->cf_mode) &&
+ 		    (pace->e_tag == ACL_USER || pace->e_tag == ACL_GROUP)) {
+ 			ntace = (struct smb_ace *)((char *)pndace + *size);
+-			*size += fill_ace_for_sid(ntace, sid, ACCESS_ALLOWED,
++			ace_sz = fill_ace_for_sid(ntace, sid, ACCESS_ALLOWED,
+ 					0x03, pace->e_perm, 0777);
++			if (check_add_overflow(*size, ace_sz, size))
++				break;
+ 			(*num_aces)++;
+ 			if (pace->e_tag == ACL_USER)
+ 				ntace->access_req |=
+@@ -690,8 +696,10 @@ posix_default_acl:
+ 		}
+ 
+ 		ntace = (struct smb_ace *)((char *)pndace + *size);
+-		*size += fill_ace_for_sid(ntace, sid, ACCESS_ALLOWED, 0x0b,
++		ace_sz = fill_ace_for_sid(ntace, sid, ACCESS_ALLOWED, 0x0b,
+ 				pace->e_perm, 0777);
++		if (check_add_overflow(*size, ace_sz, size))
++			break;
+ 		(*num_aces)++;
+ 		if (pace->e_tag == ACL_USER)
+ 			ntace->access_req |=
+@@ -727,7 +735,8 @@ static void set_ntacl_dacl(struct mnt_idmap *idmap,
+ 				break;
+ 
+ 			memcpy((char *)pndace + size, ntace, nt_ace_size);
+-			size += nt_ace_size;
++			if (check_add_overflow(size, nt_ace_size, &size))
++				break;
+ 			aces_size -= nt_ace_size;
+ 			ntace = (struct smb_ace *)((char *)ntace + nt_ace_size);
+ 			num_aces++;
+@@ -1105,8 +1114,24 @@ int smb_inherit_dacl(struct ksmbd_conn *conn,
+ 		goto free_parent_pntsd;
+ 	}
+ 
+-	aces_base = kmalloc(sizeof(struct smb_ace) * num_aces * 2,
+-			    KSMBD_DEFAULT_GFP);
++	aces_size = pdacl_size - sizeof(struct smb_acl);
++
++	/*
++	 * Validate num_aces against the DACL payload before allocating.
++	 * Each ACE must be at least as large as its fixed-size header
++	 * (up to the SID base), so num_aces cannot exceed the payload
++	 * divided by the minimum ACE size.  This mirrors the existing
++	 * check in parse_dacl().
++	 */
++	if (num_aces > aces_size / (offsetof(struct smb_ace, sid) +
++				    offsetof(struct smb_sid, sub_auth) +
++				    sizeof(__le16))) {
++		rc = -EINVAL;
++		goto free_parent_pntsd;
++	}
++
++	aces_base = kmalloc_array(num_aces * 2, sizeof(struct smb_ace),
++				  KSMBD_DEFAULT_GFP);
+ 	if (!aces_base) {
+ 		rc = -ENOMEM;
+ 		goto free_parent_pntsd;
+@@ -1115,7 +1140,6 @@ int smb_inherit_dacl(struct ksmbd_conn *conn,
+ 	aces = (struct smb_ace *)aces_base;
+ 	parent_aces = (struct smb_ace *)((char *)parent_pdacl +
+ 			sizeof(struct smb_acl));
+-	aces_size = acl_len - sizeof(struct smb_acl);
+ 
+ 	if (pntsd_type & DACL_AUTO_INHERITED)
+ 		inherited_flags = INHERITED_ACE;
+@@ -1123,11 +1147,14 @@ int smb_inherit_dacl(struct ksmbd_conn *conn,
+ 	for (i = 0; i < num_aces; i++) {
+ 		int pace_size;
+ 
+-		if (offsetof(struct smb_ace, access_req) > aces_size)
++		if (aces_size < offsetof(struct smb_ace, sid) +
++		    CIFS_SID_BASE_SIZE)
+ 			break;
+ 
+ 		pace_size = le16_to_cpu(parent_aces->size);
+-		if (pace_size > aces_size)
++		if (pace_size > aces_size ||
++		    pace_size < offsetof(struct smb_ace, sid) +
++				CIFS_SID_BASE_SIZE)
+ 			break;
+ 
+ 		aces_size -= pace_size;
+@@ -1341,10 +1368,13 @@ int smb_check_perm_dacl(struct ksmbd_conn *conn, const struct path *path,
+ 		ace = (struct smb_ace *)((char *)pdacl + sizeof(struct smb_acl));
+ 		aces_size = acl_size - sizeof(struct smb_acl);
+ 		for (i = 0; i < le16_to_cpu(pdacl->num_aces); i++) {
+-			if (offsetof(struct smb_ace, access_req) > aces_size)
++			if (offsetof(struct smb_ace, sid) +
++			    aces_size < CIFS_SID_BASE_SIZE)
+ 				break;
+ 			ace_size = le16_to_cpu(ace->size);
+-			if (ace_size > aces_size)
++			if (ace_size > aces_size ||
++			    ace_size < offsetof(struct smb_ace, sid) +
++				       CIFS_SID_BASE_SIZE)
+ 				break;
+ 			aces_size -= ace_size;
+ 			granted |= le32_to_cpu(ace->access_req);
+@@ -1359,13 +1389,19 @@ int smb_check_perm_dacl(struct ksmbd_conn *conn, const struct path *path,
+ 	ace = (struct smb_ace *)((char *)pdacl + sizeof(struct smb_acl));
+ 	aces_size = acl_size - sizeof(struct smb_acl);
+ 	for (i = 0; i < le16_to_cpu(pdacl->num_aces); i++) {
+-		if (offsetof(struct smb_ace, access_req) > aces_size)
++		if (offsetof(struct smb_ace, sid) +
++		    aces_size < CIFS_SID_BASE_SIZE)
+ 			break;
+ 		ace_size = le16_to_cpu(ace->size);
+-		if (ace_size > aces_size)
++		if (ace_size > aces_size ||
++		    ace_size < offsetof(struct smb_ace, sid) +
++			       CIFS_SID_BASE_SIZE)
+ 			break;
+ 		aces_size -= ace_size;
+ 
++		if (ace->sid.num_subauth > SID_MAX_SUB_AUTHORITIES)
++			break;
++
+ 		if (!compare_sids(&sid, &ace->sid) ||
+ 		    !compare_sids(&sid_unix_NFS_mode, &ace->sid)) {
+ 			found = 1;
+diff --git a/fs/smb/server/transport_ipc.c b/fs/smb/server/transport_ipc.c
+index 2dbabe2d800554..1c5645238bd3f6 100644
+--- a/fs/smb/server/transport_ipc.c
++++ b/fs/smb/server/transport_ipc.c
+@@ -13,6 +13,7 @@
+ #include <net/genetlink.h>
+ #include <linux/socket.h>
+ #include <linux/workqueue.h>
++#include <linux/overflow.h>
+ 
+ #include "vfs_cache.h"
+ #include "transport_ipc.h"
+@@ -497,7 +498,9 @@ static int ipc_validate_msg(struct ipc_msg_table_entry *entry)
+ 	{
+ 		struct ksmbd_rpc_command *resp = entry->response;
+ 
+-		msg_sz = sizeof(struct ksmbd_rpc_command) + resp->payload_sz;
++		if (check_add_overflow(sizeof(struct ksmbd_rpc_command),
++				       resp->payload_sz, &msg_sz))
++			return -EINVAL;
+ 		break;
+ 	}
+ 	case KSMBD_EVENT_SPNEGO_AUTHEN_REQUEST:
+@@ -516,8 +519,9 @@ static int ipc_validate_msg(struct ipc_msg_table_entry *entry)
+ 			if (resp->payload_sz < resp->veto_list_sz)
+ 				return -EINVAL;
+ 
+-			msg_sz = sizeof(struct ksmbd_share_config_response) +
+-					resp->payload_sz;
++			if (check_add_overflow(sizeof(struct ksmbd_share_config_response),
++					       resp->payload_sz, &msg_sz))
++				return -EINVAL;
+ 		}
+ 		break;
+ 	}
+@@ -526,6 +530,12 @@ static int ipc_validate_msg(struct ipc_msg_table_entry *entry)
+ 		struct ksmbd_login_response_ext *resp = entry->response;
+ 
+ 		if (resp->ngroups) {
++			if (resp->ngroups < 0 ||
++			    resp->ngroups > NGROUPS_MAX) {
++				pr_err("ngroups(%d) from login response exceeds max groups(%d)\n",
++				       resp->ngroups, NGROUPS_MAX);
++				return -EINVAL;
++			}
+ 			msg_sz = sizeof(struct ksmbd_login_response_ext) +
+ 					resp->ngroups * sizeof(gid_t);
+ 		}
 diff --git a/fs/smb/server/transport_rdma.c b/fs/smb/server/transport_rdma.c
 index 188572491d53ff..dbc8dedb85dced 100644
 --- a/fs/smb/server/transport_rdma.c
@@ -2104,6 +3490,320 @@ index 188572491d53ff..dbc8dedb85dced 100644
  header_failed:
  	atomic_inc(&sc->send_io.credits.count);
  credit_failed:
+diff --git a/fs/smb/server/transport_tcp.c b/fs/smb/server/transport_tcp.c
+index 7e29b06820e216..13b711ea575d8e 100644
+--- a/fs/smb/server/transport_tcp.c
++++ b/fs/smb/server/transport_tcp.c
+@@ -183,6 +183,8 @@ static int ksmbd_tcp_new_connection(struct socket *client_sk)
+ 	t = alloc_transport(client_sk);
+ 	if (!t) {
+ 		sock_release(client_sk);
++		if (server_conf.max_connections)
++			atomic_dec(&active_num_conn);
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -279,7 +281,7 @@ static int ksmbd_kthread_fn(void *p)
+ 
+ skip_max_ip_conns_limit:
+ 		if (server_conf.max_connections &&
+-		    atomic_inc_return(&active_num_conn) >= server_conf.max_connections) {
++		    atomic_inc_return(&active_num_conn) > server_conf.max_connections) {
+ 			pr_info_ratelimited("Limit the maximum number of connections(%u)\n",
+ 					    atomic_read(&active_num_conn));
+ 			atomic_dec(&active_num_conn);
+diff --git a/fs/smb/server/vfs_cache.c b/fs/smb/server/vfs_cache.c
+index 168f2dd7e200b7..3551f01a3fa035 100644
+--- a/fs/smb/server/vfs_cache.c
++++ b/fs/smb/server/vfs_cache.c
+@@ -19,6 +19,7 @@
+ #include "misc.h"
+ #include "mgmt/tree_connect.h"
+ #include "mgmt/user_session.h"
++#include "mgmt/user_config.h"
+ #include "smb_common.h"
+ #include "server.h"
+ #include "smb2pdu.h"
+@@ -463,9 +464,11 @@ static void __ksmbd_close_fd(struct ksmbd_file_table *ft, struct ksmbd_file *fp)
+ 	 * there are not accesses to fp->lock_list.
+ 	 */
+ 	list_for_each_entry_safe(smb_lock, tmp_lock, &fp->lock_list, flist) {
+-		spin_lock(&fp->conn->llist_lock);
+-		list_del(&smb_lock->clist);
+-		spin_unlock(&fp->conn->llist_lock);
++		if (!list_empty(&smb_lock->clist) && fp->conn) {
++			spin_lock(&fp->conn->llist_lock);
++			list_del(&smb_lock->clist);
++			spin_unlock(&fp->conn->llist_lock);
++		}
+ 
+ 		list_del(&smb_lock->flist);
+ 		locks_free_lock(smb_lock->fl);
+@@ -474,6 +477,8 @@ static void __ksmbd_close_fd(struct ksmbd_file_table *ft, struct ksmbd_file *fp)
+ 
+ 	if (ksmbd_stream_fd(fp))
+ 		kfree(fp->stream.name);
++	kfree(fp->owner.name);
++
+ 	kmem_cache_free(filp_cache, fp);
+ }
+ 
+@@ -785,11 +790,13 @@ void ksmbd_update_fstate(struct ksmbd_file_table *ft, struct ksmbd_file *fp,
+ }
+ 
+ static int
+-__close_file_table_ids(struct ksmbd_file_table *ft,
++__close_file_table_ids(struct ksmbd_session *sess,
+ 		       struct ksmbd_tree_connect *tcon,
+ 		       bool (*skip)(struct ksmbd_tree_connect *tcon,
+-				    struct ksmbd_file *fp))
++				    struct ksmbd_file *fp,
++				    struct ksmbd_user *user))
+ {
++	struct ksmbd_file_table *ft = &sess->file_table;
+ 	struct ksmbd_file *fp;
+ 	unsigned int id = 0;
+ 	int num = 0;
+@@ -802,7 +809,7 @@ __close_file_table_ids(struct ksmbd_file_table *ft,
+ 			break;
+ 		}
+ 
+-		if (skip(tcon, fp) ||
++		if (skip(tcon, fp, sess->user) ||
+ 		    !atomic_dec_and_test(&fp->refcount)) {
+ 			id++;
+ 			write_unlock(&ft->lock);
+@@ -854,7 +861,8 @@ static inline bool is_reconnectable(struct ksmbd_file *fp)
+ }
+ 
+ static bool tree_conn_fd_check(struct ksmbd_tree_connect *tcon,
+-			       struct ksmbd_file *fp)
++			       struct ksmbd_file *fp,
++			       struct ksmbd_user *user)
+ {
+ 	return fp->tcon != tcon;
+ }
+@@ -989,16 +997,74 @@ void ksmbd_stop_durable_scavenger(void)
+ 	kthread_stop(server_conf.dh_task);
+ }
+ 
++/*
++ * ksmbd_vfs_copy_durable_owner - Copy owner info for durable reconnect
++ * @fp: ksmbd file pointer to store owner info
++ * @user: user pointer to copy from
++ *
++ * This function binds the current user's identity to the file handle
++ * to satisfy MS-SMB2 Step 8 (SecurityContext matching) during reconnect.
++ *
++ * Return: 0 on success, or negative error code on failure
++ */
++static int ksmbd_vfs_copy_durable_owner(struct ksmbd_file *fp,
++		struct ksmbd_user *user)
++{
++	if (!user)
++		return -EINVAL;
++
++	/* Duplicate the user name to ensure identity persistence */
++	fp->owner.name = kstrdup(user->name, GFP_KERNEL);
++	if (!fp->owner.name)
++		return -ENOMEM;
++
++	fp->owner.uid = user->uid;
++	fp->owner.gid = user->gid;
++
++	return 0;
++}
++
++/**
++ * ksmbd_vfs_compare_durable_owner - Verify if the requester is original owner
++ * @fp: existing ksmbd file pointer
++ * @user: user pointer of the reconnect requester
++ *
++ * Compares the UID, GID, and name of the current requester against the
++ * original owner stored in the file handle.
++ *
++ * Return: true if the user matches, false otherwise
++ */
++bool ksmbd_vfs_compare_durable_owner(struct ksmbd_file *fp,
++		struct ksmbd_user *user)
++{
++	if (!user || !fp->owner.name)
++		return false;
++
++	/* Check if the UID and GID match first (fast path) */
++	if (fp->owner.uid != user->uid || fp->owner.gid != user->gid)
++		return false;
++
++	/* Validate the account name to ensure the same SecurityContext */
++	if (strcmp(fp->owner.name, user->name))
++		return false;
++
++	return true;
++}
++
+ static bool session_fd_check(struct ksmbd_tree_connect *tcon,
+-			     struct ksmbd_file *fp)
++			     struct ksmbd_file *fp, struct ksmbd_user *user)
+ {
+ 	struct ksmbd_inode *ci;
+ 	struct oplock_info *op;
+ 	struct ksmbd_conn *conn;
++	struct ksmbd_lock *smb_lock, *tmp_lock;
+ 
+ 	if (!is_reconnectable(fp))
+ 		return false;
+ 
++	if (ksmbd_vfs_copy_durable_owner(fp, user))
++		return false;
++
+ 	conn = fp->conn;
+ 	ci = fp->f_ci;
+ 	down_write(&ci->m_lock);
+@@ -1011,6 +1077,12 @@ static bool session_fd_check(struct ksmbd_tree_connect *tcon,
+ 	}
+ 	up_write(&ci->m_lock);
+ 
++	list_for_each_entry_safe(smb_lock, tmp_lock, &fp->lock_list, flist) {
++		spin_lock(&fp->conn->llist_lock);
++		list_del_init(&smb_lock->clist);
++		spin_unlock(&fp->conn->llist_lock);
++	}
++
+ 	fp->conn = NULL;
+ 	fp->tcon = NULL;
+ 	fp->volatile_id = KSMBD_NO_FID;
+@@ -1024,7 +1096,7 @@ static bool session_fd_check(struct ksmbd_tree_connect *tcon,
+ 
+ void ksmbd_close_tree_conn_fds(struct ksmbd_work *work)
+ {
+-	int num = __close_file_table_ids(&work->sess->file_table,
++	int num = __close_file_table_ids(work->sess,
+ 					 work->tcon,
+ 					 tree_conn_fd_check);
+ 
+@@ -1033,7 +1105,7 @@ void ksmbd_close_tree_conn_fds(struct ksmbd_work *work)
+ 
+ void ksmbd_close_session_fds(struct ksmbd_work *work)
+ {
+-	int num = __close_file_table_ids(&work->sess->file_table,
++	int num = __close_file_table_ids(work->sess,
+ 					 work->tcon,
+ 					 session_fd_check);
+ 
+@@ -1090,6 +1162,9 @@ int ksmbd_reopen_durable_fd(struct ksmbd_work *work, struct ksmbd_file *fp)
+ {
+ 	struct ksmbd_inode *ci;
+ 	struct oplock_info *op;
++	struct ksmbd_conn *conn = work->conn;
++	struct ksmbd_lock *smb_lock;
++	unsigned int old_f_state;
+ 
+ 	if (!fp->is_durable || fp->conn || fp->tcon) {
+ 		pr_err("Invalid durable fd [%p:%p]\n", fp->conn, fp->tcon);
+@@ -1101,9 +1176,23 @@ int ksmbd_reopen_durable_fd(struct ksmbd_work *work, struct ksmbd_file *fp)
+ 		return -EBADF;
+ 	}
+ 
+-	fp->conn = work->conn;
++	old_f_state = fp->f_state;
++	fp->f_state = FP_NEW;
++	__open_id(&work->sess->file_table, fp, OPEN_ID_TYPE_VOLATILE_ID);
++	if (!has_file_id(fp->volatile_id)) {
++		fp->f_state = old_f_state;
++		return -EBADF;
++	}
++
++	fp->conn = conn;
+ 	fp->tcon = work->tcon;
+ 
++	list_for_each_entry(smb_lock, &fp->lock_list, flist) {
++		spin_lock(&conn->llist_lock);
++		list_add_tail(&smb_lock->clist, &conn->lock_list);
++		spin_unlock(&conn->llist_lock);
++	}
++
+ 	ci = fp->f_ci;
+ 	down_write(&ci->m_lock);
+ 	list_for_each_entry_rcu(op, &ci->m_op_list, op_entry) {
+@@ -1114,13 +1203,10 @@ int ksmbd_reopen_durable_fd(struct ksmbd_work *work, struct ksmbd_file *fp)
+ 	}
+ 	up_write(&ci->m_lock);
+ 
+-	fp->f_state = FP_NEW;
+-	__open_id(&work->sess->file_table, fp, OPEN_ID_TYPE_VOLATILE_ID);
+-	if (!has_file_id(fp->volatile_id)) {
+-		fp->conn = NULL;
+-		fp->tcon = NULL;
+-		return -EBADF;
+-	}
++	fp->owner.uid = fp->owner.gid = 0;
++	kfree(fp->owner.name);
++	fp->owner.name = NULL;
++
+ 	return 0;
+ }
+ 
+@@ -1135,12 +1221,14 @@ int ksmbd_init_file_table(struct ksmbd_file_table *ft)
+ 	return 0;
+ }
+ 
+-void ksmbd_destroy_file_table(struct ksmbd_file_table *ft)
++void ksmbd_destroy_file_table(struct ksmbd_session *sess)
+ {
++	struct ksmbd_file_table *ft = &sess->file_table;
++
+ 	if (!ft->idr)
+ 		return;
+ 
+-	__close_file_table_ids(ft, NULL, session_fd_check);
++	__close_file_table_ids(sess, NULL, session_fd_check);
+ 	idr_destroy(ft->idr);
+ 	kfree(ft->idr);
+ 	ft->idr = NULL;
+diff --git a/fs/smb/server/vfs_cache.h b/fs/smb/server/vfs_cache.h
+index 78b506c5ef03b7..866f32c10d4dda 100644
+--- a/fs/smb/server/vfs_cache.h
++++ b/fs/smb/server/vfs_cache.h
+@@ -68,6 +68,13 @@ enum {
+ 	FP_CLOSED
+ };
+ 
++/* Owner information for durable handle reconnect */
++struct durable_owner {
++	unsigned int uid;
++	unsigned int gid;
++	char *name;
++};
++
+ struct ksmbd_file {
+ 	struct file			*filp;
+ 	u64				persistent_id;
+@@ -114,6 +121,7 @@ struct ksmbd_file {
+ 	bool				is_resilient;
+ 
+ 	bool                            is_posix_ctxt;
++	struct durable_owner		owner;
+ };
+ 
+ static inline void set_ctx_actor(struct dir_context *ctx,
+@@ -140,7 +148,7 @@ static inline bool ksmbd_stream_fd(struct ksmbd_file *fp)
+ }
+ 
+ int ksmbd_init_file_table(struct ksmbd_file_table *ft);
+-void ksmbd_destroy_file_table(struct ksmbd_file_table *ft);
++void ksmbd_destroy_file_table(struct ksmbd_session *sess);
+ int ksmbd_close_fd(struct ksmbd_work *work, u64 id);
+ struct ksmbd_file *ksmbd_lookup_fd_fast(struct ksmbd_work *work, u64 id);
+ struct ksmbd_file *ksmbd_lookup_foreign_fd(struct ksmbd_work *work, u64 id);
+@@ -166,6 +174,8 @@ void ksmbd_free_global_file_table(void);
+ void ksmbd_set_fd_limit(unsigned long limit);
+ void ksmbd_update_fstate(struct ksmbd_file_table *ft, struct ksmbd_file *fp,
+ 			 unsigned int state);
++bool ksmbd_vfs_compare_durable_owner(struct ksmbd_file *fp,
++		struct ksmbd_user *user);
+ 
+ /*
+  * INODE hash
 diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
 index 65910437be1ca3..67d4f092464649 100644
 --- a/include/linux/hugetlb.h
@@ -2189,6 +3889,19 @@ index 4fe63169d5a211..56328601218c5a 100644
  
  extern __must_check int check_zeroed_user(const void __user *from, size_t size);
  
+diff --git a/include/uapi/linux/mshv.h b/include/uapi/linux/mshv.h
+index e0645a34b55bca..32ff92b6342b24 100644
+--- a/include/uapi/linux/mshv.h
++++ b/include/uapi/linux/mshv.h
+@@ -357,7 +357,7 @@ struct mshv_vtl_sint_post_msg {
+ 
+ struct mshv_vtl_ram_disposition {
+ 	__u64 start_pfn;
+-	__u64 last_pfn;
++	__u64 last_pfn; /* last_pfn is excluded from the range [start_pfn, last_pfn) */
+ };
+ 
+ struct mshv_vtl_set_poll_file {
 diff --git a/kernel/time/clockevents.c b/kernel/time/clockevents.c
 index 38570998a19b8c..69379b34bcc923 100644
 --- a/kernel/time/clockevents.c
@@ -2447,6 +4160,76 @@ index 366d7566308c9f..db5bc6a878ddb0 100644
  	}
  
  	if (sk->sk_state == LLCP_CONNECTED) {
+diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
+index bb2d88205e5a65..7bbefa8a422f05 100644
+--- a/net/packet/af_packet.c
++++ b/net/packet/af_packet.c
+@@ -2717,7 +2717,8 @@ static int tpacket_snd(struct packet_sock *po, struct msghdr *msg)
+ {
+ 	struct sk_buff *skb = NULL;
+ 	struct net_device *dev;
+-	struct virtio_net_hdr *vnet_hdr = NULL;
++	struct virtio_net_hdr vnet_hdr;
++	bool has_vnet_hdr = false;
+ 	struct sockcm_cookie sockc;
+ 	__be16 proto;
+ 	int err, reserve = 0;
+@@ -2818,16 +2819,20 @@ static int tpacket_snd(struct packet_sock *po, struct msghdr *msg)
+ 		hlen = LL_RESERVED_SPACE(dev);
+ 		tlen = dev->needed_tailroom;
+ 		if (vnet_hdr_sz) {
+-			vnet_hdr = data;
+ 			data += vnet_hdr_sz;
+ 			tp_len -= vnet_hdr_sz;
+-			if (tp_len < 0 ||
+-			    __packet_snd_vnet_parse(vnet_hdr, tp_len)) {
++			if (tp_len < 0) {
++				tp_len = -EINVAL;
++				goto tpacket_error;
++			}
++			memcpy(&vnet_hdr, data - vnet_hdr_sz, sizeof(vnet_hdr));
++			if (__packet_snd_vnet_parse(&vnet_hdr, tp_len)) {
+ 				tp_len = -EINVAL;
+ 				goto tpacket_error;
+ 			}
+ 			copylen = __virtio16_to_cpu(vio_le(),
+-						    vnet_hdr->hdr_len);
++						    vnet_hdr.hdr_len);
++			has_vnet_hdr = true;
+ 		}
+ 		copylen = max_t(int, copylen, dev->hard_header_len);
+ 		skb = sock_alloc_send_skb(&po->sk,
+@@ -2864,12 +2869,12 @@ tpacket_error:
+ 			}
+ 		}
+ 
+-		if (vnet_hdr_sz) {
+-			if (virtio_net_hdr_to_skb(skb, vnet_hdr, vio_le())) {
++		if (has_vnet_hdr) {
++			if (virtio_net_hdr_to_skb(skb, &vnet_hdr, vio_le())) {
+ 				tp_len = -EINVAL;
+ 				goto tpacket_error;
+ 			}
+-			virtio_net_hdr_set_proto(skb, vnet_hdr);
++			virtio_net_hdr_set_proto(skb, &vnet_hdr);
+ 		}
+ 
+ 		skb->destructor = tpacket_destruct_skb;
+diff --git a/net/rxrpc/key.c b/net/rxrpc/key.c
+index 6301d79ee35a6c..3ec3d89fdf1403 100644
+--- a/net/rxrpc/key.c
++++ b/net/rxrpc/key.c
+@@ -502,6 +502,10 @@ static int rxrpc_preparse(struct key_preparsed_payload *prep)
+ 	if (v1->security_index != RXRPC_SECURITY_RXKAD)
+ 		goto error;
+ 
++	ret = -EKEYREJECTED;
++	if (v1->ticket_length > AFSTOKEN_RK_TIX_MAX)
++		goto error;
++
+ 	plen = sizeof(*token->kad) + v1->ticket_length;
+ 	prep->quotalen += plen + sizeof(*token);
+ 
 diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
 index e56374662ff797..27a43a4d9c4384 100755
 --- a/scripts/checkpatch.pl
@@ -2475,6 +4258,27 @@ index e56374662ff797..27a43a4d9c4384 100755
  			my ($email_name, $name_comment, $email_address, $comment) = parse_email($email);
  			my $suggested_email = format_email(($email_name, $name_comment, $email_address, $comment));
  			if ($suggested_email eq "") {
+diff --git a/scripts/dtc/dtc-lexer.l b/scripts/dtc/dtc-lexer.l
+index 15d585c8079802..1b129b118b0f77 100644
+--- a/scripts/dtc/dtc-lexer.l
++++ b/scripts/dtc/dtc-lexer.l
+@@ -39,8 +39,6 @@ extern bool treesource_error;
+ #define DPRINT(fmt, ...)	do { } while (0)
+ #endif
+ 
+-static int dts_version = 1;
+-
+ #define BEGIN_DEFAULT()		DPRINT("<V1>\n"); \
+ 				BEGIN(V1); \
+ 
+@@ -101,7 +99,6 @@ static void PRINTF(1, 2) lexical_error(const char *fmt, ...);
+ 
+ <*>"/dts-v1/"	{
+ 			DPRINT("Keyword: /dts-v1/\n");
+-			dts_version = 1;
+ 			BEGIN_DEFAULT();
+ 			return DT_V1;
+ 		}
 diff --git a/scripts/gdb/linux/symbols.py b/scripts/gdb/linux/symbols.py
 index d4308b7261838b..943ff1228b487e 100644
 --- a/scripts/gdb/linux/symbols.py
@@ -2489,11 +4293,25 @@ index d4308b7261838b..943ff1228b487e 100644
  
          if self.breakpoint is not None:
 diff --git a/scripts/generate_rust_analyzer.py b/scripts/generate_rust_analyzer.py
-index f9b545104f21f3..bd42f06bb8edcd 100755
+index f9b545104f21f3..92543d4f91b56f 100755
 --- a/scripts/generate_rust_analyzer.py
 +++ b/scripts/generate_rust_analyzer.py
-@@ -190,9 +190,10 @@ def generate_crates(srctree, objtree, sysroot_src, external_src, cfgs, core_edit
+@@ -188,11 +188,24 @@ def generate_crates(srctree, objtree, sysroot_src, external_src, cfgs, core_edit
+     append_crate_with_generated("uapi", ["core", "ffi", "pin_init"])
+     append_crate_with_generated("kernel", ["core", "macros", "build_error", "pin_init", "ffi", "bindings", "uapi"])
  
++    scripts = srctree / "scripts"
++    makefile = (scripts / "Makefile").read_text()
++    for path in scripts.glob("*.rs"):
++        name = path.stem
++        if f"{name}-rust" not in makefile:
++            continue
++        append_crate(
++            name,
++            path,
++            ["std"],
++        )
++
      def is_root_crate(build_file, target):
          try:
 -            return f"{target}.o" in open(build_file).read()
@@ -2504,6 +4322,15 @@ index f9b545104f21f3..bd42f06bb8edcd 100755
  
      # Then, the rest outside of `rust/`.
      #
+@@ -203,7 +216,7 @@ def generate_crates(srctree, objtree, sysroot_src, external_src, cfgs, core_edit
+     for folder in extra_dirs:
+         for path in folder.rglob("*.rs"):
+             logging.info("Checking %s", path)
+-            name = path.name.replace(".rs", "")
++            name = path.stem
+ 
+             # Skip those that are not crate roots.
+             if not is_root_crate(path.parent / "Makefile", name) and \
 diff --git a/sound/firewire/fireworks/fireworks_command.c b/sound/firewire/fireworks/fireworks_command.c
 index 2b595ee0bc357b..05550f36fac551 100644
 --- a/sound/firewire/fireworks/fireworks_command.c
@@ -2523,6 +4350,18 @@ index 2b595ee0bc357b..05550f36fac551 100644
  		err = -EIO;
  		goto end;
  	}
+diff --git a/sound/hda/codecs/realtek/alc269.c b/sound/hda/codecs/realtek/alc269.c
+index 45f9d648738857..ae74e1b69eb3a1 100644
+--- a/sound/hda/codecs/realtek/alc269.c
++++ b/sound/hda/codecs/realtek/alc269.c
+@@ -7605,6 +7605,7 @@ static const struct hda_quirk alc269_fixup_tbl[] = {
+ 	SND_PCI_QUIRK(0x17aa, 0x3801, "Lenovo Yoga9 14IAP7", ALC287_FIXUP_YOGA9_14IAP7_BASS_SPK_PIN),
+ 	HDA_CODEC_QUIRK(0x17aa, 0x3802, "DuetITL 2021", ALC287_FIXUP_YOGA7_14ITL_SPEAKERS),
+ 	SND_PCI_QUIRK(0x17aa, 0x3802, "Lenovo Yoga Pro 9 14IRP8", ALC287_FIXUP_TAS2781_I2C),
++	SND_PCI_QUIRK(0x17aa, 0x3811, "Legion S7 15IMH05", ALC287_FIXUP_LEGION_15IMHG05_SPEAKERS),
+ 	SND_PCI_QUIRK(0x17aa, 0x3813, "Legion 7i 15IMHG05", ALC287_FIXUP_LEGION_15IMHG05_SPEAKERS),
+ 	SND_PCI_QUIRK(0x17aa, 0x3818, "Lenovo C940 / Yoga Duet 7", ALC298_FIXUP_LENOVO_C940_DUET7),
+ 	SND_PCI_QUIRK(0x17aa, 0x3819, "Lenovo 13s Gen2 ITL", ALC287_FIXUP_13S_GEN2_SPEAKERS),
 diff --git a/sound/pci/ctxfi/ctvmem.h b/sound/pci/ctxfi/ctvmem.h
 index da54cbcdb0be4d..43a0065b40c354 100644
 --- a/sound/pci/ctxfi/ctvmem.h
@@ -2617,6 +4456,46 @@ index 5ff78814e68750..874f6cd503ca59 100644
  		}
  	}
  }
+diff --git a/sound/usb/caiaq/device.c b/sound/usb/caiaq/device.c
+index 3a71bab8a47749..51177ebfb8c627 100644
+--- a/sound/usb/caiaq/device.c
++++ b/sound/usb/caiaq/device.c
+@@ -384,7 +384,7 @@ static void card_free(struct snd_card *card)
+ 	snd_usb_caiaq_input_free(cdev);
+ #endif
+ 	snd_usb_caiaq_audio_free(cdev);
+-	usb_reset_device(cdev->chip.dev);
++	usb_put_dev(cdev->chip.dev);
+ }
+ 
+ static int create_card(struct usb_device *usb_dev,
+@@ -410,7 +410,7 @@ static int create_card(struct usb_device *usb_dev,
+ 		return err;
+ 
+ 	cdev = caiaqdev(card);
+-	cdev->chip.dev = usb_dev;
++	cdev->chip.dev = usb_get_dev(usb_dev);
+ 	cdev->chip.card = card;
+ 	cdev->chip.usb_id = USB_ID(le16_to_cpu(usb_dev->descriptor.idVendor),
+ 				  le16_to_cpu(usb_dev->descriptor.idProduct));
+diff --git a/sound/usb/mixer.c b/sound/usb/mixer.c
+index ac8c71ba948349..1ced9ba8be406d 100644
+--- a/sound/usb/mixer.c
++++ b/sound/usb/mixer.c
+@@ -1204,6 +1204,13 @@ static void volume_control_quirks(struct usb_mixer_elem_info *cval,
+ 			cval->min = -11264; /* Mute under it */
+ 		}
+ 		break;
++	case USB_ID(0x31b2, 0x0111): /* MOONDROP JU Jiu */
++		if (!strcmp(kctl->id.name, "PCM Playback Volume")) {
++			usb_audio_info(chip,
++				       "set volume quirk for MOONDROP JU Jiu\n");
++			cval->min = -10880; /* Mute under it */
++		}
++		break;
+ 	}
+ }
+ 
 diff --git a/sound/usb/usx2y/us144mkii.c b/sound/usb/usx2y/us144mkii.c
 index 0cf4fa74e210ac..94553b61013c52 100644
 --- a/sound/usb/usx2y/us144mkii.c
@@ -8619,3 +10498,2042 @@ index ce1435cb08b1..c90ac1d372af 100644
 -- 
 2.47.3
 
+From 27480e96c04500e8f65dd4ddeb56b337586cde33 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
+Date: Sun, 11 Dec 2022 23:51:16 +0100
+Subject: [PATCH] ZEN: Restore CONFIG_OPTIMIZE_FOR_PERFORMANCE_O3
+
+This reverts a6036a41bffba3d5007e377483b425d470ad8042 (kbuild: drop
+support for CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3), removes the
+dependency on CONFIG_ARC and adds RUSTFLAGS.
+---
+ Makefile     | 3 +++
+ init/Kconfig | 6 ++++++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index fe357fe93010db..63401226db9283 100644
+--- a/Makefile
++++ b/Makefile
+@@ -893,6 +893,9 @@ KBUILD_CFLAGS	+= -fno-delete-null-pointer-checks
+ ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+ KBUILD_CFLAGS += -O2
+ KBUILD_RUSTFLAGS += -Copt-level=2
++else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
++KBUILD_CFLAGS += -O3
++KBUILD_RUSTFLAGS += -Copt-level=3
+ else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS += -Os
+ KBUILD_RUSTFLAGS += -Copt-level=s
+diff --git a/init/Kconfig b/init/Kconfig
+index 7484cd703bc1ab..a9975a9bd93134 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1582,6 +1582,12 @@ config CC_OPTIMIZE_FOR_PERFORMANCE
+ 	  with the "-O2" compiler flag for best performance and most
+ 	  helpful compile-time warnings.
+ 
++config CC_OPTIMIZE_FOR_PERFORMANCE_O3
++	bool "Optimize more for performance (-O3)"
++	help
++	  Choosing this option will pass "-O3" to your compiler to optimize
++	  the kernel yet more for performance.
++
+ config CC_OPTIMIZE_FOR_SIZE
+ 	bool "Optimize for size (-Os)"
+ 	help
+From 9655114d3b3f8326042617ca5f59bfc7596efe23 Mon Sep 17 00:00:00 2001
+From: Daniel Drake <drake@endlessm.com>
+Date: Tue, 4 Jun 2019 14:51:21 +0800
+Subject: [PATCH] ZEN: PCI: Add Intel remapped NVMe device support
+
+Contains:
+  - PCI: Add Intel remapped NVMe device support
+
+    Consumer products that are configured by default to run the Intel SATA AHCI
+    controller in "RAID" or "Intel RST Premium With Intel Optane System
+    Acceleration" mode are becoming increasingly prevalent.
+
+    Unde this mode, NVMe devices are remapped into the SATA device and become
+    hidden from the PCI bus, which means that Linux users cannot access their
+    storage devices unless they go into the firmware setup menu to revert back
+    to AHCI mode - assuming such option is available. Lack of support for this
+    mode is also causing complications for vendors who distribute Linux.
+
+    Add support for the remapped NVMe mode by creating a virtual PCI bus,
+    where the AHCI and NVMe devices are presented separately, allowing the
+    ahci and nvme drivers to bind in the normal way.
+
+    Unfortunately the NVMe device configuration space is inaccesible under
+    this scheme, so we provide a fake one, and hope that no DeviceID-based
+    quirks are needed. The interrupt is shared between the AHCI and NVMe
+    devices.
+
+    Allow pci_real_dma_dev() to traverse back to the real DMA device from
+    the PCI devices created on our virtual bus, in case the iommu driver
+    will be involved with data transfers here.
+
+    The existing ahci driver is modified to not claim devices where remapped
+    NVMe devices are present, allowing this new driver to step in.
+
+    The details of the remapping scheme came from patches previously
+    posted by Dan Williams and the resulting discussion.
+
+    https://phabricator.endlessm.com/T24358
+    https://phabricator.endlessm.com/T29119
+
+    Signed-off-by: Daniel Drake <drake@endlessm.com>
+
+  - PCI: Fix order of remapped NVMe devices
+---
+ arch/x86/include/asm/pci.h                |   6 +
+ arch/x86/pci/common.c                     |   7 +-
+ drivers/ata/ahci.c                        |  23 +-
+ drivers/pci/controller/Makefile           |   6 +
+ drivers/pci/controller/intel-nvme-remap.c | 462 ++++++++++++++++++++++
+ 5 files changed, 488 insertions(+), 16 deletions(-)
+ create mode 100644 drivers/pci/controller/intel-nvme-remap.c
+
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index b3ab80a03365cf..5e883b397ff3f2 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -26,6 +26,7 @@ struct pci_sysdata {
+ #if IS_ENABLED(CONFIG_VMD)
+ 	struct pci_dev	*vmd_dev;	/* VMD Device if in Intel VMD domain */
+ #endif
++	struct pci_dev	*nvme_remap_dev;	/* AHCI Device if NVME remapped bus */
+ };
+ 
+ extern int pci_routeirq;
+@@ -69,6 +70,11 @@ static inline bool is_vmd(struct pci_bus *bus)
+ #define is_vmd(bus)		false
+ #endif /* CONFIG_VMD */
+ 
++static inline bool is_nvme_remap(struct pci_bus *bus)
++{
++	return to_pci_sysdata(bus)->nvme_remap_dev != NULL;
++}
++
+ /* Can be used to override the logic in pci_scan_bus for skipping
+    already-configured bus numbers - to be used for buggy BIOSes
+    or architectures with incomplete PCI setup by the loader */
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 63105b29fbf540..3e00fa75e8bf22 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -723,12 +723,15 @@ int pci_ext_cfg_avail(void)
+ 		return 0;
+ }
+ 
+-#if IS_ENABLED(CONFIG_VMD)
+ struct pci_dev *pci_real_dma_dev(struct pci_dev *dev)
+ {
++#if IS_ENABLED(CONFIG_VMD)
+ 	if (is_vmd(dev->bus))
+ 		return to_pci_sysdata(dev->bus)->vmd_dev;
++#endif
++
++	if (is_nvme_remap(dev->bus))
++		return to_pci_sysdata(dev->bus)->nvme_remap_dev;
+ 
+ 	return dev;
+ }
+-#endif
+diff --git a/drivers/ata/ahci.c b/drivers/ata/ahci.c
+index 1d73a53370cf3e..5e77aea2644b15 100644
+--- a/drivers/ata/ahci.c
++++ b/drivers/ata/ahci.c
+@@ -1686,7 +1686,7 @@ static irqreturn_t ahci_thunderx_irq_handler(int irq, void *dev_instance)
+ }
+ #endif
+ 
+-static void ahci_remap_check(struct pci_dev *pdev, int bar,
++static int ahci_remap_check(struct pci_dev *pdev, int bar,
+ 		struct ahci_host_priv *hpriv)
+ {
+ 	int i;
+@@ -1699,7 +1699,7 @@ static void ahci_remap_check(struct pci_dev *pdev, int bar,
+ 	    pci_resource_len(pdev, bar) < SZ_512K ||
+ 	    bar != AHCI_PCI_BAR_STANDARD ||
+ 	    !(readl(hpriv->mmio + AHCI_VSCAP) & 1))
+-		return;
++		return 0;
+ 
+ 	cap = readq(hpriv->mmio + AHCI_REMAP_CAP);
+ 	for (i = 0; i < AHCI_MAX_REMAP; i++) {
+@@ -1714,18 +1714,11 @@ static void ahci_remap_check(struct pci_dev *pdev, int bar,
+ 	}
+ 
+ 	if (!hpriv->remapped_nvme)
+-		return;
+-
+-	dev_warn(&pdev->dev, "Found %u remapped NVMe devices.\n",
+-		 hpriv->remapped_nvme);
+-	dev_warn(&pdev->dev,
+-		 "Switch your BIOS from RAID to AHCI mode to use them.\n");
++		return 0;
+ 
+-	/*
+-	 * Don't rely on the msi-x capability in the remap case,
+-	 * share the legacy interrupt across ahci and remapped devices.
+-	 */
+-	hpriv->flags |= AHCI_HFLAG_NO_MSI;
++	/* Abort probe, allowing intel-nvme-remap to step in when available */
++	dev_info(&pdev->dev, "Device will be handled by intel-nvme-remap.\n");
++	return -ENODEV;
+ }
+ 
+ static int ahci_get_irq_vector(struct ata_host *host, int port)
+@@ -1989,7 +1982,9 @@ static int ahci_init_one(struct pci_dev *pdev, const struct pci_device_id *ent)
+ 		return -ENOMEM;
+ 
+ 	/* detect remapped nvme devices */
+-	ahci_remap_check(pdev, ahci_pci_bar, hpriv);
++	rc = ahci_remap_check(pdev, ahci_pci_bar, hpriv);
++	if (rc)
++		return rc;
+ 
+ 	sysfs_add_file_to_group(&pdev->dev.kobj,
+ 				&dev_attr_remapped_nvme.attr,
+diff --git a/drivers/pci/controller/Makefile b/drivers/pci/controller/Makefile
+index ac8db283f0fea7..1aaa5b87726628 100644
+--- a/drivers/pci/controller/Makefile
++++ b/drivers/pci/controller/Makefile
+@@ -1,4 +1,10 @@
+ # SPDX-License-Identifier: GPL-2.0
++ifdef CONFIG_X86_64
++ifdef CONFIG_SATA_AHCI
++obj-y += intel-nvme-remap.o
++endif
++endif
++
+ obj-$(CONFIG_PCIE_CADENCE) += cadence/
+ obj-$(CONFIG_PCI_FTPCI100) += pci-ftpci100.o
+ obj-$(CONFIG_PCI_IXP4XX) += pci-ixp4xx.o
+diff --git a/drivers/pci/controller/intel-nvme-remap.c b/drivers/pci/controller/intel-nvme-remap.c
+new file mode 100644
+index 00000000000000..e105e6f5cc91d1
+--- /dev/null
++++ b/drivers/pci/controller/intel-nvme-remap.c
+@@ -0,0 +1,462 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Intel remapped NVMe device support.
++ *
++ * Copyright (c) 2019 Endless Mobile, Inc.
++ * Author: Daniel Drake <drake@endlessm.com>
++ *
++ * Some products ship by default with the SATA controller in "RAID" or
++ * "Intel RST Premium With Intel Optane System Acceleration" mode. Under this
++ * mode, which we refer to as "remapped NVMe" mode, any installed NVMe
++ * devices disappear from the PCI bus, and instead their I/O memory becomes
++ * available within the AHCI device BARs.
++ *
++ * This scheme is understood to be a way of avoiding usage of the standard
++ * Windows NVMe driver under that OS, instead mandating usage of Intel's
++ * driver instead, which has better power management, and presumably offers
++ * some RAID/disk-caching solutions too.
++ *
++ * Here in this driver, we support the remapped NVMe mode by claiming the
++ * AHCI device and creating a fake PCIe root port. On the new bus, the
++ * original AHCI device is exposed with only minor tweaks. Then, fake PCI
++ * devices corresponding to the remapped NVMe devices are created. The usual
++ * ahci and nvme drivers are then expected to bind to these devices and
++ * operate as normal.
++ *
++ * The PCI configuration space for the NVMe devices is completely
++ * unavailable, so we fake a minimal one and hope for the best.
++ *
++ * Interrupts are shared between the AHCI and NVMe devices. For simplicity,
++ * we only support the legacy interrupt here, although MSI support
++ * could potentially be added later.
++ */
++
++#define MODULE_NAME "intel-nvme-remap"
++
++#include <linux/ahci-remap.h>
++#include <linux/irq.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/pci.h>
++
++#define AHCI_PCI_BAR_STANDARD 5
++
++struct nvme_remap_dev {
++	struct pci_dev		*dev;		/* AHCI device */
++	struct pci_bus		*bus;		/* our fake PCI bus */
++	struct pci_sysdata	sysdata;
++	int			irq_base;	/* our fake interrupts */
++
++	/*
++	 * When we detect an all-ones write to a BAR register, this flag
++	 * is set, so that we return the BAR size on the next read (a
++	 * standard PCI behaviour).
++	 * This includes the assumption that an all-ones BAR write is
++	 * immediately followed by a read of the same register.
++	 */
++	bool			bar_sizing;
++
++	/*
++	 * Resources copied from the AHCI device, to be regarded as
++	 * resources on our fake bus.
++	 */
++	struct resource		ahci_resources[PCI_NUM_RESOURCES];
++
++	/* Resources corresponding to the NVMe devices. */
++	struct resource		remapped_dev_mem[AHCI_MAX_REMAP];
++
++	/* Number of remapped NVMe devices found. */
++	int			num_remapped_devices;
++};
++
++static inline struct nvme_remap_dev *nrdev_from_bus(struct pci_bus *bus)
++{
++	return container_of(bus->sysdata, struct nvme_remap_dev, sysdata);
++}
++
++
++/******** PCI configuration space **********/
++
++/*
++ * Helper macros for tweaking returned contents of PCI configuration space.
++ *
++ * value contains len bytes of data read from reg.
++ * If fixup_reg is included in that range, fix up the contents of that
++ * register to fixed_value.
++ */
++#define NR_FIX8(fixup_reg, fixed_value) do { \
++		if (reg <= fixup_reg && fixup_reg < reg + len) \
++			((u8 *) value)[fixup_reg - reg] = (u8) (fixed_value); \
++	} while (0)
++
++#define NR_FIX16(fixup_reg, fixed_value) do { \
++		NR_FIX8(fixup_reg, fixed_value); \
++		NR_FIX8(fixup_reg + 1, fixed_value >> 8); \
++	} while (0)
++
++#define NR_FIX24(fixup_reg, fixed_value) do { \
++		NR_FIX8(fixup_reg, fixed_value); \
++		NR_FIX8(fixup_reg + 1, fixed_value >> 8); \
++		NR_FIX8(fixup_reg + 2, fixed_value >> 16); \
++	} while (0)
++
++#define NR_FIX32(fixup_reg, fixed_value) do { \
++		NR_FIX16(fixup_reg, (u16) fixed_value); \
++		NR_FIX16(fixup_reg + 2, fixed_value >> 16); \
++	} while (0)
++
++/*
++ * Read PCI config space of the slot 0 (AHCI) device.
++ * We pass through the read request to the underlying device, but
++ * tweak the results in some cases.
++ */
++static int nvme_remap_pci_read_slot0(struct pci_bus *bus, int reg,
++				     int len, u32 *value)
++{
++	struct nvme_remap_dev *nrdev = nrdev_from_bus(bus);
++	struct pci_bus *ahci_dev_bus = nrdev->dev->bus;
++	int ret;
++
++	ret = ahci_dev_bus->ops->read(ahci_dev_bus, nrdev->dev->devfn,
++				      reg, len, value);
++	if (ret)
++		return ret;
++
++	/*
++	 * Adjust the device class, to prevent this driver from attempting to
++	 * additionally probe the device we're simulating here.
++	 */
++	NR_FIX24(PCI_CLASS_PROG, PCI_CLASS_STORAGE_SATA_AHCI);
++
++	/*
++	 * Unset interrupt pin, otherwise ACPI tries to find routing
++	 * info for our virtual IRQ, fails, and complains.
++	 */
++	NR_FIX8(PCI_INTERRUPT_PIN, 0);
++
++	/*
++	 * Truncate the AHCI BAR to not include the region that covers the
++	 * hidden devices. This will cause the ahci driver to successfully
++	 * probe th new device (instead of handing it over to this driver).
++	 */
++	if (nrdev->bar_sizing) {
++		NR_FIX32(PCI_BASE_ADDRESS_5, ~(SZ_16K - 1));
++		nrdev->bar_sizing = false;
++	}
++
++	return PCIBIOS_SUCCESSFUL;
++}
++
++/*
++ * Read PCI config space of a remapped device.
++ * Since the original PCI config space is inaccessible, we provide a minimal,
++ * fake config space instead.
++ */
++static int nvme_remap_pci_read_remapped(struct pci_bus *bus, unsigned int port,
++					int reg, int len, u32 *value)
++{
++	struct nvme_remap_dev *nrdev = nrdev_from_bus(bus);
++	struct resource *remapped_mem;
++
++	if (port > nrdev->num_remapped_devices)
++		return PCIBIOS_DEVICE_NOT_FOUND;
++
++	*value = 0;
++	remapped_mem = &nrdev->remapped_dev_mem[port - 1];
++
++	/* Set a Vendor ID, otherwise Linux assumes no device is present */
++	NR_FIX16(PCI_VENDOR_ID, PCI_VENDOR_ID_INTEL);
++
++	/* Always appear on & bus mastering */
++	NR_FIX16(PCI_COMMAND, PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
++
++	/* Set class so that nvme driver probes us */
++	NR_FIX24(PCI_CLASS_PROG, PCI_CLASS_STORAGE_EXPRESS);
++
++	if (nrdev->bar_sizing) {
++		NR_FIX32(PCI_BASE_ADDRESS_0,
++			 ~(resource_size(remapped_mem) - 1));
++		nrdev->bar_sizing = false;
++	} else {
++		resource_size_t mem_start = remapped_mem->start;
++
++		mem_start |= PCI_BASE_ADDRESS_MEM_TYPE_64;
++		NR_FIX32(PCI_BASE_ADDRESS_0, mem_start);
++		mem_start >>= 32;
++		NR_FIX32(PCI_BASE_ADDRESS_1, mem_start);
++	}
++
++	return PCIBIOS_SUCCESSFUL;
++}
++
++/* Read PCI configuration space. */
++static int nvme_remap_pci_read(struct pci_bus *bus, unsigned int devfn,
++			       int reg, int len, u32 *value)
++{
++	if (PCI_SLOT(devfn) == 0)
++		return nvme_remap_pci_read_slot0(bus, reg, len, value);
++	else
++		return nvme_remap_pci_read_remapped(bus, PCI_SLOT(devfn),
++						    reg, len, value);
++}
++
++/*
++ * Write PCI config space of the slot 0 (AHCI) device.
++ * Apart from the special case of BAR sizing, we disable all writes.
++ * Otherwise, the ahci driver could make changes (e.g. unset PCI bus master)
++ * that would affect the operation of the NVMe devices.
++ */
++static int nvme_remap_pci_write_slot0(struct pci_bus *bus, int reg,
++				      int len, u32 value)
++{
++	struct nvme_remap_dev *nrdev = nrdev_from_bus(bus);
++	struct pci_bus *ahci_dev_bus = nrdev->dev->bus;
++
++	if (reg >= PCI_BASE_ADDRESS_0 && reg <= PCI_BASE_ADDRESS_5) {
++		/*
++		 * Writing all-ones to a BAR means that the size of the
++		 * memory region is being checked. Flag this so that we can
++		 * reply with an appropriate size on the next read.
++		 */
++		if (value == ~0)
++			nrdev->bar_sizing = true;
++
++		return ahci_dev_bus->ops->write(ahci_dev_bus,
++						nrdev->dev->devfn,
++						reg, len, value);
++	}
++
++	return PCIBIOS_SET_FAILED;
++}
++
++/*
++ * Write PCI config space of a remapped device.
++ * Since the original PCI config space is inaccessible, we reject all
++ * writes, except for the special case of BAR probing.
++ */
++static int nvme_remap_pci_write_remapped(struct pci_bus *bus,
++					 unsigned int port,
++					 int reg, int len, u32 value)
++{
++	struct nvme_remap_dev *nrdev = nrdev_from_bus(bus);
++
++	if (port > nrdev->num_remapped_devices)
++		return PCIBIOS_DEVICE_NOT_FOUND;
++
++	/*
++	 * Writing all-ones to a BAR means that the size of the memory
++	 * region is being checked. Flag this so that we can reply with
++	 * an appropriate size on the next read.
++	 */
++	if (value == ~0 && reg >= PCI_BASE_ADDRESS_0
++			&& reg <= PCI_BASE_ADDRESS_5) {
++		nrdev->bar_sizing = true;
++		return PCIBIOS_SUCCESSFUL;
++	}
++
++	return PCIBIOS_SET_FAILED;
++}
++
++/* Write PCI configuration space. */
++static int nvme_remap_pci_write(struct pci_bus *bus, unsigned int devfn,
++				int reg, int len, u32 value)
++{
++	if (PCI_SLOT(devfn) == 0)
++		return nvme_remap_pci_write_slot0(bus, reg, len, value);
++	else
++		return nvme_remap_pci_write_remapped(bus, PCI_SLOT(devfn),
++						     reg, len, value);
++}
++
++static struct pci_ops nvme_remap_pci_ops = {
++	.read	= nvme_remap_pci_read,
++	.write	= nvme_remap_pci_write,
++};
++
++
++/******** Initialization & exit **********/
++
++/*
++ * Find a PCI domain ID to use for our fake bus.
++ * Start at 0x10000 to not clash with ACPI _SEG domains (16 bits).
++ */
++static int find_free_domain(void)
++{
++	int domain = 0xffff;
++	struct pci_bus *bus = NULL;
++
++	while ((bus = pci_find_next_bus(bus)) != NULL)
++		domain = max_t(int, domain, pci_domain_nr(bus));
++
++	return domain + 1;
++}
++
++static int find_remapped_devices(struct nvme_remap_dev *nrdev,
++				 struct list_head *resources)
++{
++	void __iomem *mmio;
++	int i, count = 0;
++	u32 cap;
++
++	mmio = pcim_iomap(nrdev->dev, AHCI_PCI_BAR_STANDARD,
++			  pci_resource_len(nrdev->dev,
++					   AHCI_PCI_BAR_STANDARD));
++	if (!mmio)
++		return -ENODEV;
++
++	/* Check if this device might have remapped nvme devices. */
++	if (pci_resource_len(nrdev->dev, AHCI_PCI_BAR_STANDARD) < SZ_512K ||
++	    !(readl(mmio + AHCI_VSCAP) & 1))
++		return -ENODEV;
++
++	cap = readq(mmio + AHCI_REMAP_CAP);
++	for (i = AHCI_MAX_REMAP-1; i >= 0; i--) {
++		struct resource *remapped_mem;
++
++		if ((cap & (1 << i)) == 0)
++			continue;
++		if (readl(mmio + ahci_remap_dcc(i))
++				!= PCI_CLASS_STORAGE_EXPRESS)
++			continue;
++
++		/* We've found a remapped device */
++		remapped_mem = &nrdev->remapped_dev_mem[count++];
++		remapped_mem->start =
++			pci_resource_start(nrdev->dev, AHCI_PCI_BAR_STANDARD)
++			+ ahci_remap_base(i);
++		remapped_mem->end = remapped_mem->start
++			+ AHCI_REMAP_N_SIZE - 1;
++		remapped_mem->flags = IORESOURCE_MEM | IORESOURCE_PCI_FIXED;
++		pci_add_resource(resources, remapped_mem);
++	}
++
++	pcim_iounmap(nrdev->dev, mmio);
++
++	if (count == 0)
++		return -ENODEV;
++
++	nrdev->num_remapped_devices = count;
++	dev_info(&nrdev->dev->dev, "Found %d remapped NVMe devices\n",
++		 nrdev->num_remapped_devices);
++	return 0;
++}
++
++static void nvme_remap_remove_root_bus(void *data)
++{
++	struct pci_bus *bus = data;
++
++	pci_stop_root_bus(bus);
++	pci_remove_root_bus(bus);
++}
++
++static int nvme_remap_probe(struct pci_dev *dev,
++			    const struct pci_device_id *id)
++{
++	struct nvme_remap_dev *nrdev;
++	LIST_HEAD(resources);
++	int i;
++	int ret;
++	struct pci_dev *child;
++
++	nrdev = devm_kzalloc(&dev->dev, sizeof(*nrdev), GFP_KERNEL);
++	nrdev->sysdata.domain = find_free_domain();
++	nrdev->sysdata.nvme_remap_dev = dev;
++	nrdev->dev = dev;
++	pci_set_drvdata(dev, nrdev);
++
++	ret = pcim_enable_device(dev);
++	if (ret < 0)
++		return ret;
++
++	pci_set_master(dev);
++
++	ret = find_remapped_devices(nrdev, &resources);
++	if (ret)
++		return ret;
++
++	/* Add resources from the original AHCI device */
++	for (i = 0; i < PCI_NUM_RESOURCES; i++) {
++		struct resource *res = &dev->resource[i];
++
++		if (res->start) {
++			struct resource *nr_res = &nrdev->ahci_resources[i];
++
++			nr_res->start = res->start;
++			nr_res->end = res->end;
++			nr_res->flags = res->flags;
++			pci_add_resource(&resources, nr_res);
++		}
++	}
++
++	/* Create virtual interrupts */
++	nrdev->irq_base = devm_irq_alloc_descs(&dev->dev, -1, 0,
++					       nrdev->num_remapped_devices + 1,
++					       0);
++	if (nrdev->irq_base < 0)
++		return nrdev->irq_base;
++
++	/* Create and populate PCI bus */
++	nrdev->bus = pci_create_root_bus(&dev->dev, 0, &nvme_remap_pci_ops,
++					 &nrdev->sysdata, &resources);
++	if (!nrdev->bus)
++		return -ENODEV;
++
++	if (devm_add_action_or_reset(&dev->dev, nvme_remap_remove_root_bus,
++				     nrdev->bus))
++		return -ENOMEM;
++
++	/* We don't support sharing MSI interrupts between these devices */
++	nrdev->bus->bus_flags |= PCI_BUS_FLAGS_NO_MSI;
++
++	pci_scan_child_bus(nrdev->bus);
++
++	list_for_each_entry(child, &nrdev->bus->devices, bus_list) {
++		/*
++		 * Prevent PCI core from trying to move memory BARs around.
++		 * The hidden NVMe devices are at fixed locations.
++		 */
++		for (i = 0; i < PCI_NUM_RESOURCES; i++) {
++			struct resource *res = &child->resource[i];
++
++			if (res->flags & IORESOURCE_MEM)
++				res->flags |= IORESOURCE_PCI_FIXED;
++		}
++
++		/* Share the legacy IRQ between all devices */
++		child->irq = dev->irq;
++	}
++
++	pci_assign_unassigned_bus_resources(nrdev->bus);
++	pci_bus_add_devices(nrdev->bus);
++
++	return 0;
++}
++
++static const struct pci_device_id nvme_remap_ids[] = {
++	/*
++	 * Match all Intel RAID controllers.
++	 *
++	 * There's overlap here with the set of devices detected by the ahci
++	 * driver, but ahci will only successfully probe when there
++	 * *aren't* any remapped NVMe devices, and this driver will only
++	 * successfully probe when there *are* remapped NVMe devices that
++	 * need handling.
++	 */
++	{
++		PCI_VDEVICE(INTEL, PCI_ANY_ID),
++		.class = PCI_CLASS_STORAGE_RAID << 8,
++		.class_mask = 0xffffff00,
++	},
++	{0,}
++};
++MODULE_DEVICE_TABLE(pci, nvme_remap_ids);
++
++static struct pci_driver nvme_remap_drv = {
++	.name		= MODULE_NAME,
++	.id_table	= nvme_remap_ids,
++	.probe		= nvme_remap_probe,
++};
++module_pci_driver(nvme_remap_drv);
++
++MODULE_AUTHOR("Daniel Drake <drake@endlessm.com>");
++MODULE_LICENSE("GPL v2");
+From b98f8d4f598cef72c2c61b4be65f7a4cfb09b6cb Mon Sep 17 00:00:00 2001
+From: Steven Barrett <steven@liquorix.net>
+Date: Sat, 30 Jan 2021 11:34:18 -0600
+Subject: [PATCH] ZEN: Add ACS override support
+
+Source: https://gitlab.com/Queuecumber/linux-acs-override/-/raw/master/workspaces/5.10.4/acso.patch
+---
+ .../admin-guide/kernel-parameters.txt         |   9 ++
+ drivers/pci/quirks.c                          | 101 ++++++++++++++++++
+ 2 files changed, 110 insertions(+)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 03a550630644f4..df2b2bb9fa5d81 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -5114,6 +5114,15 @@ Kernel parameters
+ 		nomsi		[MSI] If the PCI_MSI kernel config parameter is
+ 				enabled, this kernel boot option can be used to
+ 				disable the use of MSI interrupts system-wide.
++		pcie_acs_override =
++					[PCIE] Override missing PCIe ACS support for:
++				downstream
++					All downstream ports - full ACS capabilities
++				multfunction
++					All multifunction devices - multifunction ACS subset
++				id:nnnn:nnnn
++					Specfic device - full ACS capabilities
++					Specified as vid:did (vendor/device ID) in hex
+ 		noioapicquirk	[APIC] Disable all boot interrupt quirks.
+ 				Safety option to keep boot IRQs enabled. This
+ 				should never be necessary.
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index 48946cca4be72c..9a9ad2c1f4f221 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -3759,6 +3759,106 @@ static void quirk_no_bus_reset(struct pci_dev *dev)
+ 	dev->dev_flags |= PCI_DEV_FLAGS_NO_BUS_RESET;
+ }
+ 
++static bool acs_on_downstream;
++static bool acs_on_multifunction;
++
++#define NUM_ACS_IDS 16
++struct acs_on_id {
++	unsigned short vendor;
++	unsigned short device;
++};
++static struct acs_on_id acs_on_ids[NUM_ACS_IDS];
++static u8 max_acs_id;
++
++static __init int pcie_acs_override_setup(char *p)
++{
++	if (!p)
++		return -EINVAL;
++
++	while (*p) {
++		if (!strncmp(p, "downstream", 10))
++			acs_on_downstream = true;
++		if (!strncmp(p, "multifunction", 13))
++			acs_on_multifunction = true;
++		if (!strncmp(p, "id:", 3)) {
++			char opt[5];
++			int ret;
++			long val;
++
++			if (max_acs_id >= NUM_ACS_IDS - 1) {
++				pr_warn("Out of PCIe ACS override slots (%d)\n",
++						NUM_ACS_IDS);
++				goto next;
++			}
++
++			p += 3;
++			snprintf(opt, 5, "%s", p);
++			ret = kstrtol(opt, 16, &val);
++			if (ret) {
++				pr_warn("PCIe ACS ID parse error %d\n", ret);
++				goto next;
++			}
++			acs_on_ids[max_acs_id].vendor = val;
++
++			p += strcspn(p, ":");
++			if (*p != ':') {
++				pr_warn("PCIe ACS invalid ID\n");
++				goto next;
++			}
++
++			p++;
++			snprintf(opt, 5, "%s", p);
++			ret = kstrtol(opt, 16, &val);
++			if (ret) {
++				pr_warn("PCIe ACS ID parse error %d\n", ret);
++				goto next;
++			}
++			acs_on_ids[max_acs_id].device = val;
++			max_acs_id++;
++		}
++next:
++		p += strcspn(p, ",");
++		if (*p == ',')
++			p++;
++	}
++
++	if (acs_on_downstream || acs_on_multifunction || max_acs_id)
++		pr_warn("Warning: PCIe ACS overrides enabled; This may allow non-IOMMU protected peer-to-peer DMA\n");
++
++	return 0;
++}
++early_param("pcie_acs_override", pcie_acs_override_setup);
++
++static int pcie_acs_overrides(struct pci_dev *dev, u16 acs_flags)
++{
++	int i;
++
++	/* Never override ACS for legacy devices or devices with ACS caps */
++	if (!pci_is_pcie(dev) ||
++		pci_find_ext_capability(dev, PCI_EXT_CAP_ID_ACS))
++			return -ENOTTY;
++
++	for (i = 0; i < max_acs_id; i++)
++		if (acs_on_ids[i].vendor == dev->vendor &&
++			acs_on_ids[i].device == dev->device)
++				return 1;
++
++	switch (pci_pcie_type(dev)) {
++	case PCI_EXP_TYPE_DOWNSTREAM:
++	case PCI_EXP_TYPE_ROOT_PORT:
++		if (acs_on_downstream)
++			return 1;
++		break;
++	case PCI_EXP_TYPE_ENDPOINT:
++	case PCI_EXP_TYPE_UPSTREAM:
++	case PCI_EXP_TYPE_LEG_END:
++	case PCI_EXP_TYPE_RC_END:
++		if (acs_on_multifunction && dev->multifunction)
++			return 1;
++	}
++
++	return -ENOTTY;
++}
+ /*
+  * After asserting Secondary Bus Reset to downstream devices via a GB10
+  * Root Port, the link may not retrain correctly.
+@@ -5254,6 +5354,7 @@ static const struct pci_dev_acs_enabled {
+ 	{ PCI_VENDOR_ID_ZHAOXIN, PCI_ANY_ID, pci_quirk_zhaoxin_pcie_ports_acs },
+ 	/* Wangxun nics */
+ 	{ PCI_VENDOR_ID_WANGXUN, PCI_ANY_ID, pci_quirk_wangxun_nic_acs },
++	{ PCI_ANY_ID, PCI_ANY_ID, pcie_acs_overrides },
+ 	{ 0 }
+ };
+ 
+From 5ad7e9d7597324240e50d3b6d1e554b6cb79fbd6 Mon Sep 17 00:00:00 2001
+From: "Jan Alexander Steffens (heftig)" <heftig@archlinux.org>
+Date: Mon, 26 Apr 2021 22:12:46 +0200
+Subject: [PATCH] ZEN: Add VHBA driver
+
+remote https://github.com/cdemu/cdemu
+tag    vhba-module-20260313
+---
+ drivers/scsi/Kconfig       |    2 +
+ drivers/scsi/Makefile      |    1 +
+ drivers/scsi/vhba/Kconfig  |    9 +
+ drivers/scsi/vhba/Makefile |    4 +
+ drivers/scsi/vhba/vhba.c   | 1136 ++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1152 insertions(+)
+ create mode 100644 drivers/scsi/vhba/Kconfig
+ create mode 100644 drivers/scsi/vhba/Makefile
+ create mode 100644 drivers/scsi/vhba/vhba.c
+
+diff --git a/drivers/scsi/Kconfig b/drivers/scsi/Kconfig
+index 19d0884479a247..b37d8fcc1205b6 100644
+--- a/drivers/scsi/Kconfig
++++ b/drivers/scsi/Kconfig
+@@ -1524,4 +1524,6 @@ endif # SCSI_LOWLEVEL
+ 
+ source "drivers/scsi/device_handler/Kconfig"
+ 
++source "drivers/scsi/vhba/Kconfig"
++
+ endmenu
+diff --git a/drivers/scsi/Makefile b/drivers/scsi/Makefile
+index 16de3e41f94c40..4e88f6e3e67bac 100644
+--- a/drivers/scsi/Makefile
++++ b/drivers/scsi/Makefile
+@@ -152,6 +152,7 @@ obj-$(CONFIG_CHR_DEV_SCH)	+= ch.o
+ obj-$(CONFIG_SCSI_ENCLOSURE)	+= ses.o
+ 
+ obj-$(CONFIG_SCSI_HISI_SAS) += hisi_sas/
++obj-$(CONFIG_VHBA)		+= vhba/
+ 
+ # This goes last, so that "real" scsi devices probe earlier
+ obj-$(CONFIG_SCSI_DEBUG)	+= scsi_debug.o
+diff --git a/drivers/scsi/vhba/Kconfig b/drivers/scsi/vhba/Kconfig
+new file mode 100644
+index 00000000000000..e70a381fe3dff8
+--- /dev/null
++++ b/drivers/scsi/vhba/Kconfig
+@@ -0,0 +1,9 @@
++config VHBA
++	tristate "Virtual (SCSI) Host Bus Adapter"
++	depends on SCSI
++	help
++	  This is the in-kernel part of CDEmu, a CD/DVD-ROM device
++	  emulator.
++
++	  This driver can also be built as a module. If so, the module
++	  will be called vhba.
+diff --git a/drivers/scsi/vhba/Makefile b/drivers/scsi/vhba/Makefile
+new file mode 100644
+index 00000000000000..c55e5c3db4144b
+--- /dev/null
++++ b/drivers/scsi/vhba/Makefile
+@@ -0,0 +1,4 @@
++VHBA_VERSION := 20260313
++
++obj-$(CONFIG_VHBA)		+= vhba.o
++ccflags-y := -DVHBA_VERSION=\"$(VHBA_VERSION)\" -Werror
+diff --git a/drivers/scsi/vhba/vhba.c b/drivers/scsi/vhba/vhba.c
+new file mode 100644
+index 00000000000000..e24e600efb2452
+--- /dev/null
++++ b/drivers/scsi/vhba/vhba.c
+@@ -0,0 +1,1136 @@
++/*
++ * vhba.c
++ *
++ * Copyright (C) 2007-2026 Chia-I Wu <olvaffe AT gmail DOT com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ */
++
++#define pr_fmt(fmt) "vhba: " fmt
++
++#include <linux/version.h>
++
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/highmem.h>
++#include <linux/fs.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
++#include <linux/sched/signal.h>
++#else
++#include <linux/sched.h>
++#endif
++#include <linux/platform_device.h>
++#include <linux/miscdevice.h>
++#include <linux/poll.h>
++#include <linux/slab.h>
++#include <linux/scatterlist.h>
++#ifdef CONFIG_COMPAT
++#include <linux/compat.h>
++#endif
++#include <asm/uaccess.h>
++#include <scsi/scsi.h>
++#include <scsi/scsi_host.h>
++#include <scsi/scsi_cmnd.h>
++#include <scsi/scsi_device.h>
++#include <scsi/scsi_tcq.h>
++
++
++MODULE_AUTHOR("Chia-I Wu");
++MODULE_VERSION(VHBA_VERSION);
++MODULE_DESCRIPTION("Virtual SCSI HBA");
++MODULE_LICENSE("GPL");
++
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
++#define sdev_dbg(sdev, fmt, a...) \
++    dev_dbg(&(sdev)->sdev_gendev, fmt, ##a)
++#define scmd_dbg(scmd, fmt, a...) \
++    dev_dbg(&(scmd)->device->sdev_gendev, fmt, ##a)
++#endif
++
++#define VHBA_MAX_SECTORS_PER_IO 256
++#define VHBA_MAX_BUS 16
++#define VHBA_MAX_ID 16
++#define VHBA_MAX_DEVICES (VHBA_MAX_BUS * (VHBA_MAX_ID-1))
++#define VHBA_KBUF_SIZE PAGE_SIZE
++
++#define DATA_TO_DEVICE(dir) ((dir) == DMA_TO_DEVICE || (dir) == DMA_BIDIRECTIONAL)
++#define DATA_FROM_DEVICE(dir) ((dir) == DMA_FROM_DEVICE || (dir) == DMA_BIDIRECTIONAL)
++
++
++static int vhba_can_queue = 32;
++module_param_named(can_queue, vhba_can_queue, int, 0);
++
++
++enum vhba_req_state {
++    VHBA_REQ_FREE,
++    VHBA_REQ_PENDING,
++    VHBA_REQ_READING,
++    VHBA_REQ_SENT,
++    VHBA_REQ_WRITING,
++};
++
++struct vhba_command {
++    struct scsi_cmnd *cmd;
++    /* metatags are per-host. not to be confused with
++       queue tags that are usually per-lun */
++    unsigned long metatag;
++    int status;
++    struct list_head entry;
++};
++
++struct vhba_device {
++    unsigned int num;
++    spinlock_t cmd_lock;
++    struct list_head cmd_list;
++    wait_queue_head_t cmd_wq;
++    atomic_t refcnt;
++
++    unsigned char *kbuf;
++    size_t kbuf_size;
++};
++
++struct vhba_host {
++    struct Scsi_Host *shost;
++    spinlock_t cmd_lock;
++    int cmd_next;
++    struct vhba_command *commands;
++    spinlock_t dev_lock;
++    struct vhba_device *devices[VHBA_MAX_DEVICES];
++    int num_devices;
++    DECLARE_BITMAP(chgmap, VHBA_MAX_DEVICES);
++    int chgtype[VHBA_MAX_DEVICES];
++    struct work_struct scan_devices;
++};
++
++#define MAX_COMMAND_SIZE 16
++
++struct vhba_request {
++    __u32 metatag;
++    __u32 lun;
++    __u8 cdb[MAX_COMMAND_SIZE];
++    __u8 cdb_len;
++    __u32 data_len;
++};
++
++struct vhba_response {
++    __u32 metatag;
++    __u32 status;
++    __u32 data_len;
++};
++
++
++
++static struct vhba_command *vhba_alloc_command (void);
++static void vhba_free_command (struct vhba_command *vcmd);
++
++static struct platform_device vhba_platform_device;
++
++
++
++/* These functions define a symmetric 1:1 mapping between device numbers and
++   the bus and id. We have reserved the last id per bus for the host itself. */
++static void devnum_to_bus_and_id(unsigned int devnum, unsigned int *bus, unsigned int *id)
++{
++    *bus = devnum / (VHBA_MAX_ID-1);
++    *id  = devnum % (VHBA_MAX_ID-1);
++}
++
++static unsigned int bus_and_id_to_devnum(unsigned int bus, unsigned int id)
++{
++    return (bus * (VHBA_MAX_ID-1)) + id;
++}
++
++static struct vhba_device *vhba_device_alloc (void)
++{
++    struct vhba_device *vdev;
++
++    vdev = kzalloc(sizeof(struct vhba_device), GFP_KERNEL);
++    if (!vdev) {
++        return NULL;
++    }
++
++    spin_lock_init(&vdev->cmd_lock);
++    INIT_LIST_HEAD(&vdev->cmd_list);
++    init_waitqueue_head(&vdev->cmd_wq);
++    atomic_set(&vdev->refcnt, 1);
++
++    vdev->kbuf = NULL;
++    vdev->kbuf_size = 0;
++
++    return vdev;
++}
++
++static void vhba_device_put (struct vhba_device *vdev)
++{
++    if (atomic_dec_and_test(&vdev->refcnt)) {
++        kfree(vdev);
++    }
++}
++
++static struct vhba_device *vhba_device_get (struct vhba_device *vdev)
++{
++    atomic_inc(&vdev->refcnt);
++
++    return vdev;
++}
++
++static int vhba_device_queue (struct vhba_device *vdev, struct scsi_cmnd *cmd)
++{
++    struct vhba_host *vhost;
++    struct vhba_command *vcmd;
++    unsigned long flags;
++
++    vhost = platform_get_drvdata(&vhba_platform_device);
++
++    vcmd = vhba_alloc_command();
++    if (!vcmd) {
++        return SCSI_MLQUEUE_HOST_BUSY;
++    }
++
++    vcmd->cmd = cmd;
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
++    vcmd->metatag = scsi_cmd_to_rq(vcmd->cmd)->tag;
++#else
++    vcmd->metatag = vcmd->cmd->request->tag;
++#endif
++    list_add_tail(&vcmd->entry, &vdev->cmd_list);
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    wake_up_interruptible(&vdev->cmd_wq);
++
++    return 0;
++}
++
++static int vhba_device_dequeue (struct vhba_device *vdev, struct scsi_cmnd *cmd)
++{
++    struct vhba_command *vcmd;
++    int retval;
++    unsigned long flags;
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++    list_for_each_entry(vcmd, &vdev->cmd_list, entry) {
++        if (vcmd->cmd == cmd) {
++            list_del_init(&vcmd->entry);
++            break;
++        }
++    }
++
++    /* command not found */
++    if (&vcmd->entry == &vdev->cmd_list) {
++        spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++        return SUCCESS;
++    }
++
++    while (vcmd->status == VHBA_REQ_READING || vcmd->status == VHBA_REQ_WRITING) {
++        spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++        scmd_dbg(cmd, "wait for I/O before aborting\n");
++        schedule_timeout(1);
++        spin_lock_irqsave(&vdev->cmd_lock, flags);
++    }
++
++    retval = (vcmd->status == VHBA_REQ_SENT) ? FAILED : SUCCESS;
++
++    vhba_free_command(vcmd);
++
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    return retval;
++}
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
++static int vhba_slave_alloc(struct scsi_device *sdev)
++{
++    struct Scsi_Host *shost = sdev->host;
++
++    sdev_dbg(sdev, "enabling tagging (queue depth: %i).\n", sdev->queue_depth);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
++    if (!shost_use_blk_mq(shost) && shost->bqt) {
++#else
++    if (shost->bqt) {
++#endif
++        blk_queue_init_tags(sdev->request_queue, sdev->queue_depth, shost->bqt);
++    }
++    scsi_adjust_queue_depth(sdev, 0, sdev->queue_depth);
++
++    return 0;
++}
++#endif
++
++static void vhba_scan_devices_add (struct vhba_host *vhost, int bus, int id)
++{
++    struct scsi_device *sdev;
++
++    sdev = scsi_device_lookup(vhost->shost, bus, id, 0);
++    if (!sdev) {
++        scsi_add_device(vhost->shost, bus, id, 0);
++    } else {
++        dev_warn(&vhost->shost->shost_gendev, "tried to add an already-existing device %d:%d:0!\n", bus, id);
++        scsi_device_put(sdev);
++    }
++}
++
++static void vhba_scan_devices_remove (struct vhba_host *vhost, int bus, int id)
++{
++    struct scsi_device *sdev;
++
++    sdev = scsi_device_lookup(vhost->shost, bus, id, 0);
++    if (sdev) {
++        scsi_remove_device(sdev);
++        scsi_device_put(sdev);
++    } else {
++        dev_warn(&vhost->shost->shost_gendev, "tried to remove non-existing device %d:%d:0!\n", bus, id);
++    }
++}
++
++static void vhba_scan_devices (struct work_struct *work)
++{
++    struct vhba_host *vhost = container_of(work, struct vhba_host, scan_devices);
++    unsigned long flags;
++    int change, exists;
++    unsigned int devnum;
++    unsigned int bus, id;
++
++    for (;;) {
++        spin_lock_irqsave(&vhost->dev_lock, flags);
++
++        devnum = find_first_bit(vhost->chgmap, VHBA_MAX_DEVICES);
++        if (devnum >= VHBA_MAX_DEVICES) {
++            spin_unlock_irqrestore(&vhost->dev_lock, flags);
++            break;
++        }
++        change = vhost->chgtype[devnum];
++        exists = vhost->devices[devnum] != NULL;
++
++        vhost->chgtype[devnum] = 0;
++        clear_bit(devnum, vhost->chgmap);
++
++        spin_unlock_irqrestore(&vhost->dev_lock, flags);
++
++        devnum_to_bus_and_id(devnum, &bus, &id);
++
++        if (change < 0) {
++            dev_dbg(&vhost->shost->shost_gendev, "trying to remove target %d:%d:0\n", bus, id);
++            vhba_scan_devices_remove(vhost, bus, id);
++        } else if (change > 0) {
++            dev_dbg(&vhost->shost->shost_gendev, "trying to add target %d:%d:0\n", bus, id);
++            vhba_scan_devices_add(vhost, bus, id);
++        } else {
++            /* quick sequence of add/remove or remove/add; we determine
++               which one it was by checking if device structure exists */
++            if (exists) {
++                /* remove followed by add: remove and (re)add */
++                dev_dbg(&vhost->shost->shost_gendev, "trying to (re)add target %d:%d:0\n", bus, id);
++                vhba_scan_devices_remove(vhost, bus, id);
++                vhba_scan_devices_add(vhost, bus, id);
++            } else {
++                /* add followed by remove: no-op */
++                dev_dbg(&vhost->shost->shost_gendev, "no-op for target %d:%d:0\n", bus, id);
++            }
++        }
++    }
++}
++
++static int vhba_add_device (struct vhba_device *vdev)
++{
++    struct vhba_host *vhost;
++    unsigned int devnum;
++    unsigned long flags;
++
++    vhost = platform_get_drvdata(&vhba_platform_device);
++
++    vhba_device_get(vdev);
++
++    spin_lock_irqsave(&vhost->dev_lock, flags);
++    if (vhost->num_devices >= VHBA_MAX_DEVICES) {
++        spin_unlock_irqrestore(&vhost->dev_lock, flags);
++        vhba_device_put(vdev);
++        return -EBUSY;
++    }
++
++    for (devnum = 0; devnum < VHBA_MAX_DEVICES; devnum++) {
++        if (vhost->devices[devnum] == NULL) {
++            vdev->num = devnum;
++            vhost->devices[devnum] = vdev;
++            vhost->num_devices++;
++            set_bit(devnum, vhost->chgmap);
++            vhost->chgtype[devnum]++;
++            break;
++        }
++    }
++    spin_unlock_irqrestore(&vhost->dev_lock, flags);
++
++    schedule_work(&vhost->scan_devices);
++
++    return 0;
++}
++
++static int vhba_remove_device (struct vhba_device *vdev)
++{
++    struct vhba_host *vhost;
++    unsigned long flags;
++
++    vhost = platform_get_drvdata(&vhba_platform_device);
++
++    spin_lock_irqsave(&vhost->dev_lock, flags);
++    set_bit(vdev->num, vhost->chgmap);
++    vhost->chgtype[vdev->num]--;
++    vhost->devices[vdev->num] = NULL;
++    vhost->num_devices--;
++    spin_unlock_irqrestore(&vhost->dev_lock, flags);
++
++    vhba_device_put(vdev);
++
++    schedule_work(&vhost->scan_devices);
++
++    return 0;
++}
++
++static struct vhba_device *vhba_lookup_device (int devnum)
++{
++    struct vhba_host *vhost;
++    struct vhba_device *vdev = NULL;
++    unsigned long flags;
++
++    vhost = platform_get_drvdata(&vhba_platform_device);
++
++    if (likely(devnum < VHBA_MAX_DEVICES)) {
++        spin_lock_irqsave(&vhost->dev_lock, flags);
++        vdev = vhost->devices[devnum];
++        if (vdev) {
++            vdev = vhba_device_get(vdev);
++        }
++
++        spin_unlock_irqrestore(&vhost->dev_lock, flags);
++    }
++
++    return vdev;
++}
++
++static struct vhba_command *vhba_alloc_command (void)
++{
++    struct vhba_host *vhost;
++    struct vhba_command *vcmd;
++    unsigned long flags;
++    int i;
++
++    vhost = platform_get_drvdata(&vhba_platform_device);
++
++    spin_lock_irqsave(&vhost->cmd_lock, flags);
++
++    vcmd = vhost->commands + vhost->cmd_next++;
++    if (vcmd->status != VHBA_REQ_FREE) {
++        for (i = 0; i < vhba_can_queue; i++) {
++            vcmd = vhost->commands + i;
++
++            if (vcmd->status == VHBA_REQ_FREE) {
++                vhost->cmd_next = i + 1;
++                break;
++            }
++        }
++
++        if (i == vhba_can_queue) {
++            vcmd = NULL;
++        }
++    }
++
++    if (vcmd) {
++        vcmd->status = VHBA_REQ_PENDING;
++    }
++
++    vhost->cmd_next %= vhba_can_queue;
++
++    spin_unlock_irqrestore(&vhost->cmd_lock, flags);
++
++    return vcmd;
++}
++
++static void vhba_free_command (struct vhba_command *vcmd)
++{
++    struct vhba_host *vhost;
++    unsigned long flags;
++
++    vhost = platform_get_drvdata(&vhba_platform_device);
++
++    spin_lock_irqsave(&vhost->cmd_lock, flags);
++    vcmd->status = VHBA_REQ_FREE;
++    spin_unlock_irqrestore(&vhost->cmd_lock, flags);
++}
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
++static enum scsi_qc_status vhba_queuecommand (struct Scsi_Host *shost, struct scsi_cmnd *cmd)
++#else
++static int vhba_queuecommand (struct Scsi_Host *shost, struct scsi_cmnd *cmd)
++#endif
++{
++    struct vhba_device *vdev;
++    int retval;
++    unsigned int devnum;
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
++    scmd_dbg(cmd, "queue %p tag %i\n", cmd, scsi_cmd_to_rq(cmd)->tag);
++#else
++    scmd_dbg(cmd, "queue %p tag %i\n", cmd, cmd->request->tag);
++#endif
++
++    devnum = bus_and_id_to_devnum(cmd->device->channel, cmd->device->id);
++    vdev = vhba_lookup_device(devnum);
++    if (!vdev) {
++        scmd_dbg(cmd, "no such device\n");
++
++        cmd->result = DID_NO_CONNECT << 16;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
++        scsi_done(cmd);
++#else
++        cmd->scsi_done(cmd);
++#endif
++
++        return 0;
++    }
++
++    retval = vhba_device_queue(vdev, cmd);
++
++    vhba_device_put(vdev);
++
++    return retval;
++}
++
++static int vhba_abort (struct scsi_cmnd *cmd)
++{
++    struct vhba_device *vdev;
++    int retval = SUCCESS;
++    unsigned int devnum;
++
++    scmd_dbg(cmd, "abort %p\n", cmd);
++
++    devnum = bus_and_id_to_devnum(cmd->device->channel, cmd->device->id);
++    vdev = vhba_lookup_device(devnum);
++    if (vdev) {
++        retval = vhba_device_dequeue(vdev, cmd);
++        vhba_device_put(vdev);
++    } else {
++        cmd->result = DID_NO_CONNECT << 16;
++    }
++
++    return retval;
++}
++
++static struct scsi_host_template vhba_template = {
++    .module = THIS_MODULE,
++    .name = "vhba",
++    .proc_name = "vhba",
++    .queuecommand = vhba_queuecommand,
++    .eh_abort_handler = vhba_abort,
++    .this_id = -1,
++    .max_sectors = VHBA_MAX_SECTORS_PER_IO,
++    .sg_tablesize = 256,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
++    .slave_alloc = vhba_slave_alloc,
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
++    .tag_alloc_policy_rr = true,
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
++    .tag_alloc_policy = BLK_TAG_ALLOC_RR,
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)
++    .use_blk_tags = 1,
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
++    .max_segment_size = VHBA_KBUF_SIZE,
++#endif
++};
++
++static ssize_t do_request (struct vhba_device *vdev, unsigned long metatag, struct scsi_cmnd *cmd, char __user *buf, size_t buf_len)
++{
++    struct vhba_request vreq;
++    ssize_t ret;
++
++    scmd_dbg(cmd, "request %lu (%p), cdb 0x%x, bufflen %d, sg count %d\n",
++        metatag, cmd, cmd->cmnd[0], scsi_bufflen(cmd), scsi_sg_count(cmd));
++
++    ret = sizeof(vreq);
++    if (DATA_TO_DEVICE(cmd->sc_data_direction)) {
++        ret += scsi_bufflen(cmd);
++    }
++
++    if (ret > buf_len) {
++        scmd_dbg(cmd, "buffer too small (%zd < %zd) for a request\n", buf_len, ret);
++        return -EIO;
++    }
++
++    vreq.metatag = metatag;
++    vreq.lun = cmd->device->lun;
++    memcpy(vreq.cdb, cmd->cmnd, MAX_COMMAND_SIZE);
++    vreq.cdb_len = cmd->cmd_len;
++    vreq.data_len = scsi_bufflen(cmd);
++
++    if (copy_to_user(buf, &vreq, sizeof(vreq))) {
++        return -EFAULT;
++    }
++
++    if (DATA_TO_DEVICE(cmd->sc_data_direction) && vreq.data_len) {
++        buf += sizeof(vreq);
++
++        if (scsi_sg_count(cmd)) {
++            unsigned char *kaddr, *uaddr;
++            struct scatterlist *sglist = scsi_sglist(cmd);
++            struct scatterlist *sg;
++            int i;
++
++            uaddr = (unsigned char *) buf;
++
++            for_each_sg(sglist, sg, scsi_sg_count(cmd), i) {
++                size_t len = sg->length;
++
++                if (len > vdev->kbuf_size) {
++                    scmd_dbg(cmd, "segment size (%zu) exceeds kbuf size (%zu)!", len, vdev->kbuf_size);
++                    len = vdev->kbuf_size;
++                }
++
++                kaddr = kmap_atomic(sg_page(sg));
++                memcpy(vdev->kbuf, kaddr + sg->offset, len);
++                kunmap_atomic(kaddr);
++
++                if (copy_to_user(uaddr, vdev->kbuf, len)) {
++                    return -EFAULT;
++                }
++                uaddr += len;
++            }
++        } else {
++            if (copy_to_user(buf, scsi_sglist(cmd), vreq.data_len)) {
++                return -EFAULT;
++            }
++        }
++    }
++
++    return ret;
++}
++
++static ssize_t do_response (struct vhba_device *vdev, unsigned long metatag, struct scsi_cmnd *cmd, const char __user *buf, size_t buf_len, struct vhba_response *res)
++{
++    ssize_t ret = 0;
++
++    scmd_dbg(cmd, "response %lu (%p), status %x, data len %d, sg count %d\n",
++         metatag, cmd, res->status, res->data_len, scsi_sg_count(cmd));
++
++    if (res->status) {
++        if (res->data_len > SCSI_SENSE_BUFFERSIZE) {
++            scmd_dbg(cmd, "truncate sense (%d < %d)", SCSI_SENSE_BUFFERSIZE, res->data_len);
++            res->data_len = SCSI_SENSE_BUFFERSIZE;
++        }
++
++        if (copy_from_user(cmd->sense_buffer, buf, res->data_len)) {
++            return -EFAULT;
++        }
++
++        cmd->result = res->status;
++
++        ret += res->data_len;
++    } else if (DATA_FROM_DEVICE(cmd->sc_data_direction) && scsi_bufflen(cmd)) {
++        size_t to_read;
++
++        if (res->data_len > scsi_bufflen(cmd)) {
++            scmd_dbg(cmd, "truncate data (%d < %d)\n", scsi_bufflen(cmd), res->data_len);
++            res->data_len = scsi_bufflen(cmd);
++        }
++
++        to_read = res->data_len;
++
++        if (scsi_sg_count(cmd)) {
++            unsigned char *kaddr, *uaddr;
++            struct scatterlist *sglist = scsi_sglist(cmd);
++            struct scatterlist *sg;
++            int i;
++
++            uaddr = (unsigned char *)buf;
++
++            for_each_sg(sglist, sg, scsi_sg_count(cmd), i) {
++                size_t len = (sg->length < to_read) ? sg->length : to_read;
++
++                if (len > vdev->kbuf_size) {
++                    scmd_dbg(cmd, "segment size (%zu) exceeds kbuf size (%zu)!", len, vdev->kbuf_size);
++                    len = vdev->kbuf_size;
++                }
++
++                if (copy_from_user(vdev->kbuf, uaddr, len)) {
++                    return -EFAULT;
++                }
++                uaddr += len;
++
++                kaddr = kmap_atomic(sg_page(sg));
++                memcpy(kaddr + sg->offset, vdev->kbuf, len);
++                kunmap_atomic(kaddr);
++
++                to_read -= len;
++                if (to_read == 0) {
++                    break;
++                }
++            }
++        } else {
++            if (copy_from_user(scsi_sglist(cmd), buf, res->data_len)) {
++                return -EFAULT;
++            }
++
++            to_read -= res->data_len;
++        }
++
++        scsi_set_resid(cmd, to_read);
++
++        ret += res->data_len - to_read;
++    }
++
++    return ret;
++}
++
++static struct vhba_command *next_command (struct vhba_device *vdev)
++{
++    struct vhba_command *vcmd;
++
++    list_for_each_entry(vcmd, &vdev->cmd_list, entry) {
++        if (vcmd->status == VHBA_REQ_PENDING) {
++            break;
++        }
++    }
++
++    if (&vcmd->entry == &vdev->cmd_list) {
++        vcmd = NULL;
++    }
++
++    return vcmd;
++}
++
++static struct vhba_command *match_command (struct vhba_device *vdev, __u32 metatag)
++{
++    struct vhba_command *vcmd;
++
++    list_for_each_entry(vcmd, &vdev->cmd_list, entry) {
++        if (vcmd->metatag == metatag) {
++            break;
++        }
++    }
++
++    if (&vcmd->entry == &vdev->cmd_list) {
++        vcmd = NULL;
++    }
++
++    return vcmd;
++}
++
++static struct vhba_command *wait_command (struct vhba_device *vdev, unsigned long flags)
++{
++    struct vhba_command *vcmd;
++    DEFINE_WAIT(wait);
++
++    while (!(vcmd = next_command(vdev))) {
++        if (signal_pending(current)) {
++            break;
++        }
++
++        prepare_to_wait(&vdev->cmd_wq, &wait, TASK_INTERRUPTIBLE);
++
++        spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++        schedule();
++
++        spin_lock_irqsave(&vdev->cmd_lock, flags);
++    }
++
++    finish_wait(&vdev->cmd_wq, &wait);
++    if (vcmd) {
++        vcmd->status = VHBA_REQ_READING;
++    }
++
++    return vcmd;
++}
++
++static ssize_t vhba_ctl_read (struct file *file, char __user *buf, size_t buf_len, loff_t *offset)
++{
++    struct vhba_device *vdev;
++    struct vhba_command *vcmd;
++    ssize_t ret;
++    unsigned long flags;
++
++    vdev = file->private_data;
++
++    /* Get next command */
++    if (file->f_flags & O_NONBLOCK) {
++        /* Non-blocking variant */
++        spin_lock_irqsave(&vdev->cmd_lock, flags);
++        vcmd = next_command(vdev);
++        spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++        if (!vcmd) {
++            return -EWOULDBLOCK;
++        }
++    } else {
++        /* Blocking variant */
++        spin_lock_irqsave(&vdev->cmd_lock, flags);
++        vcmd = wait_command(vdev, flags);
++        spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++        if (!vcmd) {
++            return -ERESTARTSYS;
++        }
++    }
++
++    ret = do_request(vdev, vcmd->metatag, vcmd->cmd, buf, buf_len);
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++    if (ret >= 0) {
++        vcmd->status = VHBA_REQ_SENT;
++        *offset += ret;
++    } else {
++        vcmd->status = VHBA_REQ_PENDING;
++    }
++
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    return ret;
++}
++
++static ssize_t vhba_ctl_write (struct file *file, const char __user *buf, size_t buf_len, loff_t *offset)
++{
++    struct vhba_device *vdev;
++    struct vhba_command *vcmd;
++    struct vhba_response res;
++    ssize_t ret;
++    unsigned long flags;
++
++    if (buf_len < sizeof(res)) {
++        return -EIO;
++    }
++
++    if (copy_from_user(&res, buf, sizeof(res))) {
++        return -EFAULT;
++    }
++
++    vdev = file->private_data;
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++    vcmd = match_command(vdev, res.metatag);
++    if (!vcmd || vcmd->status != VHBA_REQ_SENT) {
++        spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++        pr_debug("ctl dev #%u not expecting response\n", vdev->num);
++        return -EIO;
++    }
++    vcmd->status = VHBA_REQ_WRITING;
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    ret = do_response(vdev, vcmd->metatag, vcmd->cmd, buf + sizeof(res), buf_len - sizeof(res), &res);
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++    if (ret >= 0) {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
++        scsi_done(vcmd->cmd);
++#else
++        vcmd->cmd->scsi_done(vcmd->cmd);
++#endif
++        ret += sizeof(res);
++
++        /* don't compete with vhba_device_dequeue */
++        if (!list_empty(&vcmd->entry)) {
++            list_del_init(&vcmd->entry);
++            vhba_free_command(vcmd);
++        }
++    } else {
++        vcmd->status = VHBA_REQ_SENT;
++    }
++
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    return ret;
++}
++
++static long vhba_ctl_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
++{
++    struct vhba_device *vdev = file->private_data;
++    struct vhba_host *vhost = platform_get_drvdata(&vhba_platform_device);
++
++    switch (cmd) {
++        case 0xBEEF001: {
++            unsigned int ident[4]; /* host, channel, id, lun */
++
++            ident[0] = vhost->shost->host_no;
++            devnum_to_bus_and_id(vdev->num, &ident[1], &ident[2]);
++            ident[3] = 0; /* lun */
++
++            if (copy_to_user((void *) arg, ident, sizeof(ident))) {
++                return -EFAULT;
++            }
++
++            return 0;
++        }
++        case 0xBEEF002: {
++            unsigned int devnum = vdev->num;
++
++            if (copy_to_user((void *) arg, &devnum, sizeof(devnum))) {
++                return -EFAULT;
++            }
++
++            return 0;
++        }
++    }
++
++    return -ENOTTY;
++}
++
++#ifdef CONFIG_COMPAT
++static long vhba_ctl_compat_ioctl (struct file *file, unsigned int cmd, unsigned long arg)
++{
++    unsigned long compat_arg = (unsigned long)compat_ptr(arg);
++    return vhba_ctl_ioctl(file, cmd, compat_arg);
++}
++#endif
++
++static unsigned int vhba_ctl_poll (struct file *file, poll_table *wait)
++{
++    struct vhba_device *vdev = file->private_data;
++    unsigned int mask = 0;
++    unsigned long flags;
++
++    poll_wait(file, &vdev->cmd_wq, wait);
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++    if (next_command(vdev)) {
++        mask |= POLLIN | POLLRDNORM;
++    }
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    return mask;
++}
++
++static int vhba_ctl_open (struct inode *inode, struct file *file)
++{
++    struct vhba_device *vdev;
++    int retval;
++
++    pr_debug("ctl dev open\n");
++
++    /* check if vhba is probed */
++    if (!platform_get_drvdata(&vhba_platform_device)) {
++        return -ENODEV;
++    }
++
++    vdev = vhba_device_alloc();
++    if (!vdev) {
++        return -ENOMEM;
++    }
++
++    vdev->kbuf_size = VHBA_KBUF_SIZE;
++    vdev->kbuf = kzalloc(vdev->kbuf_size, GFP_KERNEL);
++    if (!vdev->kbuf) {
++        return -ENOMEM;
++    }
++
++    if (!(retval = vhba_add_device(vdev))) {
++        file->private_data = vdev;
++    }
++
++    vhba_device_put(vdev);
++
++    return retval;
++}
++
++static int vhba_ctl_release (struct inode *inode, struct file *file)
++{
++    struct vhba_device *vdev;
++    struct vhba_command *vcmd;
++    unsigned long flags;
++
++    vdev = file->private_data;
++
++    pr_debug("ctl dev release\n");
++
++    vhba_device_get(vdev);
++    vhba_remove_device(vdev);
++
++    spin_lock_irqsave(&vdev->cmd_lock, flags);
++    list_for_each_entry(vcmd, &vdev->cmd_list, entry) {
++        WARN_ON(vcmd->status == VHBA_REQ_READING || vcmd->status == VHBA_REQ_WRITING);
++
++        scmd_dbg(vcmd->cmd, "device released with command %lu (%p)\n", vcmd->metatag, vcmd->cmd);
++        vcmd->cmd->result = DID_NO_CONNECT << 16;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
++        scsi_done(vcmd->cmd);
++#else
++        vcmd->cmd->scsi_done(vcmd->cmd);
++#endif
++        vhba_free_command(vcmd);
++    }
++    INIT_LIST_HEAD(&vdev->cmd_list);
++    spin_unlock_irqrestore(&vdev->cmd_lock, flags);
++
++    kfree(vdev->kbuf);
++    vdev->kbuf = NULL;
++
++    vhba_device_put(vdev);
++
++    return 0;
++}
++
++static struct file_operations vhba_ctl_fops = {
++    .owner = THIS_MODULE,
++    .open = vhba_ctl_open,
++    .release = vhba_ctl_release,
++    .read = vhba_ctl_read,
++    .write = vhba_ctl_write,
++    .poll = vhba_ctl_poll,
++    .unlocked_ioctl = vhba_ctl_ioctl,
++#ifdef CONFIG_COMPAT
++    .compat_ioctl = vhba_ctl_compat_ioctl,
++#endif
++};
++
++static struct miscdevice vhba_miscdev = {
++    .minor = MISC_DYNAMIC_MINOR,
++    .name = "vhba_ctl",
++    .fops = &vhba_ctl_fops,
++};
++
++static int vhba_probe (struct platform_device *pdev)
++{
++    struct Scsi_Host *shost;
++    struct vhba_host *vhost;
++    int i;
++
++    vhba_can_queue = clamp(vhba_can_queue, 1, 256);
++
++    shost = scsi_host_alloc(&vhba_template, sizeof(struct vhba_host));
++    if (!shost) {
++        return -ENOMEM;
++    }
++
++    shost->max_channel = VHBA_MAX_BUS-1;
++    shost->max_id = VHBA_MAX_ID;
++    /* we don't support lun > 0 */
++    shost->max_lun = 1;
++    shost->max_cmd_len = MAX_COMMAND_SIZE;
++    shost->can_queue = vhba_can_queue;
++    shost->cmd_per_lun = vhba_can_queue;
++
++    vhost = (struct vhba_host *)shost->hostdata;
++    memset(vhost, 0, sizeof(struct vhba_host));
++
++    vhost->shost = shost;
++    vhost->num_devices = 0;
++    spin_lock_init(&vhost->dev_lock);
++    spin_lock_init(&vhost->cmd_lock);
++    INIT_WORK(&vhost->scan_devices, vhba_scan_devices);
++    vhost->cmd_next = 0;
++    vhost->commands = kzalloc(vhba_can_queue * sizeof(struct vhba_command), GFP_KERNEL);
++    if (!vhost->commands) {
++        return -ENOMEM;
++    }
++
++    for (i = 0; i < vhba_can_queue; i++) {
++        vhost->commands[i].status = VHBA_REQ_FREE;
++    }
++
++    platform_set_drvdata(pdev, vhost);
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)
++    i = scsi_init_shared_tag_map(shost, vhba_can_queue);
++    if (i) return i;
++#endif
++
++    if (scsi_add_host(shost, &pdev->dev)) {
++        scsi_host_put(shost);
++        return -ENOMEM;
++    }
++
++    return 0;
++}
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
++static int vhba_remove (struct platform_device *pdev)
++#else
++static void vhba_remove (struct platform_device *pdev)
++#endif
++{
++    struct vhba_host *vhost;
++    struct Scsi_Host *shost;
++
++    vhost = platform_get_drvdata(pdev);
++    shost = vhost->shost;
++
++    scsi_remove_host(shost);
++    scsi_host_put(shost);
++
++    kfree(vhost->commands);
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0)
++    return 0;
++#endif
++}
++
++static void vhba_release (struct device * dev)
++{
++    return;
++}
++
++static struct platform_device vhba_platform_device = {
++    .name = "vhba",
++    .id = -1,
++    .dev = {
++        .release = vhba_release,
++    },
++};
++
++static struct platform_driver vhba_platform_driver = {
++    .driver = {
++        .owner = THIS_MODULE,
++        .name = "vhba",
++    },
++    .probe = vhba_probe,
++    .remove = vhba_remove,
++};
++
++static int __init vhba_init (void)
++{
++    int ret;
++
++    ret = platform_device_register(&vhba_platform_device);
++    if (ret < 0) {
++        return ret;
++    }
++
++    ret = platform_driver_register(&vhba_platform_driver);
++    if (ret < 0) {
++        platform_device_unregister(&vhba_platform_device);
++        return ret;
++    }
++
++    ret = misc_register(&vhba_miscdev);
++    if (ret < 0) {
++        platform_driver_unregister(&vhba_platform_driver);
++        platform_device_unregister(&vhba_platform_device);
++        return ret;
++    }
++
++    return 0;
++}
++
++static void __exit vhba_exit(void)
++{
++    misc_deregister(&vhba_miscdev);
++    platform_driver_unregister(&vhba_platform_driver);
++    platform_device_unregister(&vhba_platform_device);
++}
++
++module_init(vhba_init);
++module_exit(vhba_exit);
++

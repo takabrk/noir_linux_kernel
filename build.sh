@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#April 15,2026
+#May 1,2026
 
 . ./config
 
@@ -36,6 +36,11 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0014-OpenRGB.patch
         wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
         wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
+        
+        wget https://github.com/zen-kernel/zen-kernel/commit/27480e96c04500e8f65dd4ddeb56b337586cde33.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/9655114d3b3f8326042617ca5f59bfc7596efe23.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/b98f8d4f598cef72c2c61b4be65f7a4cfb09b6cb.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/5ad7e9d7597324240e50d3b6d1e554b6cb79fbd6.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -55,6 +60,10 @@ case $e_num in
             patches/noir_base/default_kyber.patch \
             patches/other/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch \
             patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
+            patches/other/27480e96c04500e8f65dd4ddeb56b337586cde33.patch \
+            patches/other/9655114d3b3f8326042617ca5f59bfc7596efe23.patch \
+            patches/other/b98f8d4f598cef72c2c61b4be65f7a4cfb09b6cb.patch \
+            patches/other/5ad7e9d7597324240e50d3b6d1e554b6cb79fbd6.patch \
             >> noir.patch
             case $f_num in
                 bore)
