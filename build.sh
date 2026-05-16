@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#May 1,2026
+#May 16,2026
 
 . ./config
 
