@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#May 16,2026
+#July 1,2026
 
 . ./config
 
@@ -15,7 +15,7 @@ do
 done
 
 case $e_num in
-#build noir_rt.patch,noir_bore.patch
+#build noir.patch
     patch)
         rm -r patches/linux/patch-$VERSIONPOINT
         cd patches/linux
@@ -26,62 +26,52 @@ case $e_num in
         cd ../../
         cd patches/other
         rm -r *.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/rt-patches/0001-rt-patches.patch
+        wget https://www.kernel.org/pub/linux/kernel/projects/rt/7.1/patch-7.1.1-rt2.patch.xz
+        unxz patch-7.1.1-rt2.patch.xz
+        rm -r patch-7.1.1-rt2.patch.xz
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bore-patches/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0013-optimize_harder_O3.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0006-add-acs-overrides_iommu.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0014-OpenRGB.patch
         wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
         wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch
-        
-        wget https://github.com/zen-kernel/zen-kernel/commit/27480e96c04500e8f65dd4ddeb56b337586cde33.patch
-        wget https://github.com/zen-kernel/zen-kernel/commit/9655114d3b3f8326042617ca5f59bfc7596efe23.patch
-        wget https://github.com/zen-kernel/zen-kernel/commit/b98f8d4f598cef72c2c61b4be65f7a4cfb09b6cb.patch
-        wget https://github.com/zen-kernel/zen-kernel/commit/5ad7e9d7597324240e50d3b6d1e554b6cb79fbd6.patch
+        wget https://github.com/zen-kernel/zen-kernel/commit/7c4891e860507a39b03f1a899b938089dffe3dcc.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
             cat patches/linux/patch-$VERSIONPOINT >> noir.patch
         fi
         case $f_num in
-            bore)
-                cat patches/noir_base/noir_base_bore.patch \
-                    patches/other/0001-rt-patches.patch \
-                    patches/other/0001-linux$VERSIONBASE-bore$VERSIONBORE.patch \
+            rt)
+                cat patches/noir_base/noir_base.patch \
+                    patches/other/patch-7.1.1-rt2.patch \
                     >> noir.patch
             ;;
         esac
         cat patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0002-clear-patches.patch \
             patches/noir_base/default_kyber.patch \
+            patches/other/0013-optimize_harder_O3.patch \
+            patches/other/0006-add-acs-overrides_iommu.patch \
+            patches/other/0014-OpenRGB.patch \
             patches/other/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch \
-            patches/other/0011-XANMOD-kconfig-add-500Hz-timer-interrupt-kernel-conf.patch \
-            patches/other/27480e96c04500e8f65dd4ddeb56b337586cde33.patch \
-            patches/other/9655114d3b3f8326042617ca5f59bfc7596efe23.patch \
-            patches/other/b98f8d4f598cef72c2c61b4be65f7a4cfb09b6cb.patch \
-            patches/other/5ad7e9d7597324240e50d3b6d1e554b6cb79fbd6.patch \
+            patches/other/7c4891e860507a39b03f1a899b938089dffe3dcc.patch \
             >> noir.patch
-            case $f_num in
-                bore)
-                    mv noir.patch noir_bore.patch
-                ;;
-            esac
            ;;
     vanilla)
             case $f_num in
-               bore)
+               rt)
                    wget https://mirrors.edge.kernel.org/pub/linux/kernel/v$LINUX_MAJOR.x/linux-$VERSIONBASE.tar.xz
                    ;;
             esac 
             ;;
     source)
            case $f_num in
-               bore)
+               rt)
                    tar -Jxvf linux-$VERSIONBASE.tar.xz
                    cd linux-$VERSIONBASE
-                   patch -p1 < ../noir_bore.patch
+                   patch -p1 < ../noir.patch
                    cd ../
                    mv linux-$VERSIONBASE linux-$VERSIONPOINT-$NOIR_VERSION
                    ;;
@@ -89,7 +79,7 @@ case $e_num in
            ;;                
     build)
            case $f_num in
-               bore)
+               rt)
                    JOBS=$(grep processor /proc/cpuinfo | wc -l)
                    echo "Threads : $JOBS"
                    cd linux-$VERSIONPOINT-$NOIR_VERSION
@@ -106,7 +96,7 @@ case $e_num in
            ;;
     install_kernel)
            case $f_num in
-               bore)
+               rt)
                    cd linux-$VERSIONPOINT-$NOIR_VERSION
                    sudo make clean
                    cd ../
