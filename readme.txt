@@ -20,23 +20,22 @@ $ sudo dpkg -i *.deb
 
 
 カスタムカーネルには、様々なパッチを適用しています。
-noir_zen.patch、noir_bore.patchは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
-ZEN版、あるいはBORE版をビルド出来ます。
+noir.patchは、それらのパッチを統合した物であり、これをバニラカーネル( https://www.kernel.org )のソースコードに当てる事で、カスタムカーネル用のソースコードを作る事も可能です。
 
 1.Noir Linux Kernelパッチの組み立て
-$ ./build.sh -e patch -f bore
+$ ./build.sh -e patch -f noir
 
 2.バニラカーネルのソースコード取得と解凍
-$ ./build.sh -e vanilla -f bore
+$ ./build.sh -e vanilla -f noir
 
 3.パッチ当て
-$ ./build.sh -e source -f bore
+$ ./build.sh -e source -f noir
 
 4.前述を行った後にカスタムカーネルのビルド
-$ ./build.sh -e build -f bore
+$ ./build.sh -e build -f noir
 
 5.カーネルのインストール
-$ ./build.sh -e install_kernel -f bore
+$ ./build.sh -e install_kernel -f noir
 
 [スペック]
 - Built on the GCC 13.3.0
