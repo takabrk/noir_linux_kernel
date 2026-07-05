@@ -4,7 +4,6 @@ Created by takamitsu_h
 July 5,2026
 
 このカスタムカーネルは、Ubuntu向けです。
-リアルタイム性能・レスポンス性能の向上を図ります。
 
 カーネルをビルドをする場合は、以下の物が必要です。いずれもAPT経由で入手出来ます。
 - build-essential
