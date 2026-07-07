@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-July 5,2026
+July 8,2026
 
 このカスタムカーネルは、Ubuntu向けです。
 
@@ -41,7 +41,7 @@ $ ./build.sh -e install_kernel -f noir
 - CPU scheduler -> EEVDF
 - Default I/O scheduler -> Kyber
 - Processor family -> Generic X86_64
-- Preemption Model -> Low Latency 
+- Preemption Model -> Scheduler controlled preemption model
 - CPU Timer frequency -> 1000Hz
 - Kernel Compression mode -> zstd
 - RCU boost delay -> 339
@@ -54,9 +54,11 @@ $ ./build.sh -e install_kernel -f noir
 - OpenRGB support
 - ACS Override support
 - VHBA driver support
+- le9uo support
 - sched: Flatten the pick ON
 - CONFIG_TRANSPARENT_HUGEPAGE y
 - CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS n
+- NTSync on
 
 [patches]
 https://www.kernel.org/
@@ -82,3 +84,12 @@ echo madvise | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
 
 システムのパフォーマンスとPulseAudioの音質を向上させたい場合は、以下のコマンドを使います。
 $ ./performanceup.sh
+
+◇NTSync
+NTSyncドライバをカーネルに内蔵しています。システム起動時に自動で読み込むようにするには、以下のコマンドを実行します。
+
+echo "ntsync" | sudo tee /etc/modules-load.d/ntsync.conf
+
+Steamで使う場合は、Proton GE 10.10以降を導入して、ゲームのプロパティーの起動オプションに次のコマンドを入力すると、NTSyncが使えるようになります。
+
+PROTON_USE_NTSYNC=1 %command%

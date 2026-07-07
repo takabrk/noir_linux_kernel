@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#July 5,2026
+#July 6,2026
 
 . ./config
 
@@ -34,6 +34,7 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0014-OpenRGB.patch
         wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
         wget https://github.com/zen-kernel/zen-kernel/commit/7c4891e860507a39b03f1a899b938089dffe3dcc.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/le9uo-patches/0001-mm-$VERSIONBASE-add-le9uo.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -55,6 +56,7 @@ case $e_num in
             patches/other/0014-OpenRGB.patch \
             patches/other/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch \
             patches/other/7c4891e860507a39b03f1a899b938089dffe3dcc.patch \
+            patches/other/0001-mm-$VERSIONBASE-add-le9uo.patch \
             >> noir.patch
            ;;
     vanilla)
@@ -88,6 +90,7 @@ case $e_num in
                    sudo make clean
                    time sudo make -j$JOBS
                    time sudo make modules -j$JOBS
+                   sudo make modules_install
                    sudo make bindeb-pkg
                    ;;     
            esac
