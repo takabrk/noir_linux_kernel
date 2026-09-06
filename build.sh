@@ -1,7 +1,7 @@
 #!/bin/bash
 #custom linux kernel build script
 #Created by takamitsu_h
-#August 31,2026
+#September 6,2026
 
 . ./config
 
@@ -31,7 +31,7 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0013-optimize_harder_O3.patch
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-add-BBRv3-congestion-control.patch
-        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/cgroup-patches/0001-cgroup-patches.patch
+        wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-7.2-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -46,9 +46,9 @@ case $e_num in
         cat patches/other/0002-clear-patches.patch \
             patches/other/0001-tcp-bbr3-add-BBRv3-congestion-control.patch \
             patches/other/0013-optimize_harder_O3.patch \
-            patches/other/0001-cgroup-patches.patch \
             patches/other/0001-gaming-sched-patches.patch \
             patches/other/0001-rt-patches.patch \
+            patches/other/0001-futex-7.2-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             >> noir.patch
            ;;
     vanilla)
