@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-September 6,2026
+September 10,2026
 
 このカスタムカーネルは、Ubuntu向けです。
 
@@ -52,7 +52,6 @@ $ ./build.sh -e install_kernel -f noir
 - Clear Linux support
 - CONFIG_TRANSPARENT_HUGEPAGE y
 - CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS n
-- futex support
 - NTSync on
 
 [patches]
