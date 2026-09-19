@@ -31,8 +31,9 @@ case $e_num in
         wget https://raw.githubusercontent.com/Frogging-Family/linux-tkg/refs/heads/master/linux-tkg-patches/$VERSIONBASE/0002-clear-patches.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/bbr3-patches/0001-tcp-bbr3-add-BBRv3-congestion-control.patch
         wget https://raw.githubusercontent.com/sirlucjan/kernel-patches/refs/heads/master/$VERSIONBASE/futex-patches/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-7.2.y-xanmod/xanmod/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
-        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-7.2.y-xanmod/xanmod/0013-XANMOD-mm-Raise-max_map_count-default-value.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0013-XANMOD-mm-Raise-max_map_count-default-value.patch
+        wget https://gitlab.com/xanmod/linux-patches/-/raw/master/linux-$VERSIONBASE.y-xanmod/xanmod/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch
         cd ../../
         truncate noir.patch --size 0
         if [ -e patches/linux/patch-$VERSIONPOINT ]; then
@@ -51,6 +52,7 @@ case $e_num in
             patches/other/0001-futex-$VERSIONBASE-Add-entry-point-for-FUTEX_WAIT_MULTIPLE-op.patch \
             patches/other/0007-XANMOD-block-mq-deadline-Increase-write-priority-to-.patch \
             patches/other/0013-XANMOD-mm-Raise-max_map_count-default-value.patch \
+            patches/other/0009-XANMOD-block-Set-rq_affinity-to-force-complete-I-O-r.patch \
             >> noir.patch
            ;;
     vanilla)
