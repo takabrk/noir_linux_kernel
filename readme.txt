@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-September 22,2026
+September 28,2026
 
 このカスタムカーネルは、Ubuntu向けです。
 
