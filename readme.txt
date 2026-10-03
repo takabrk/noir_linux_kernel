@@ -37,7 +37,7 @@ $ ./build.sh -e build -f noir
 $ ./build.sh -e install_kernel -f noir
 
 [スペック]
-- Built on the GCC 13.3.0
+- Built on the GCC 14.2.0
 - CPU scheduler -> EEVDF
 - Default I/O scheduler -> MQ-deadline
 - Processor family -> Generic X86_64
