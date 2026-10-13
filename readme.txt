@@ -1,7 +1,7 @@
 Custom linux kernel "Noir Linux kernel" Build Script
 Web site URL : https://note.com/vsrx
 Created by takamitsu_h
-October 4,2026
+October 13,2026
 
 このカスタムカーネルは、Ubuntu向けです。
 
@@ -86,3 +86,6 @@ echo "ntsync" | sudo tee /etc/modules-load.d/ntsync.conf
 Steamで使う場合は、Proton GE 10.10以降を導入して、ゲームのプロパティーの起動オプションに次のコマンドを入力すると、NTSyncが使えるようになります。
 
 PROTON_USE_NTSYNC=1 %command%
+
+◇linux firmwareの解凍
+firmware_unzip_zst.shは、/lib/firmwareにあるZstandardで圧縮されているファームウェアを解凍するスクリプトです。これを実行する事で、カスタムカーネルでファームウェアを読み込む事が出来るようになります。
